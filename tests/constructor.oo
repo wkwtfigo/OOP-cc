@@ -1,0 +1,19 @@
+class ConstructorExample is
+    var a : Integer(0)
+    var b : Integer(0)
+
+    this() is
+        a := Integer(1)
+        b := Integer(2)
+    end
+
+    this(x : Integer) is
+        a := x
+        b := Integer(1)
+    end
+
+    this(x : Integer, y : Integer) is 
+        a := x
+        b := y
+    end
+end
