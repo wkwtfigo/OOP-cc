@@ -1,0 +1,15 @@
+class A[T] is
+
+  method foo (T t) : T => t
+end
+
+class Test is
+    this() is 
+      var a_int : A[Integer]()
+      var a_real : A[Real]()
+      a_int.foo(1)
+      a_real.foo(1.1)
+
+    end
+
+end

@@ -1,0 +1,17 @@
+
+
+class A is
+  method foo1() : Integer => 1
+  method foo2() : Integer => Integer(10).Div(foo1())
+
+end
+
+class B extends A is
+
+  method foo1() : Integer => 0
+
+  this () is
+  this.foo2()
+  end
+
+end  
