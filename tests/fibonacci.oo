@@ -1,0 +1,16 @@
+class Fibonacci is
+    method fib(n: Integer) : Integer is
+        if n.LessEqual(Integer(1)) then
+            return n
+        else
+            return fib(n.Minus(Integer(1))).Plus(fib(n.Minus(Integer(2))))
+        end
+    end
+end
+
+class Main is
+    this() is
+        var f : Fibonacci()
+        var res : f.fib(Integer(6))   // 8
+    end
+end

@@ -17,3 +17,11 @@ class ConstructorExample is
         b := y
     end
 end
+
+Class Main is
+    this() is
+        var c1: ConstructorExample()
+        var c2: ConstructorExample(Integer(10))
+        var c3: ConstructorExample(Integer(5), Integer(7))
+    end
+end
