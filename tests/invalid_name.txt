@@ -1,0 +1,5 @@
+class BadNames is
+    var classA : Integer(1)   // ok
+    var method1 : Integer(2)  // ok
+    var class : Integer(3)    // error
+end
