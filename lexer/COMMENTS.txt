@@ -1,0 +1,68 @@
+TOKEN categories:
+
+1.Keywords
+
+class, extends, is, end, var, method, this,
+if, then, else, while, loop, return, true, false
+
+2. Identifiers
+
+names of classes, parameters, variables
+lexical rule: [A-Za-z_][A-Za-z0-0_]* (with check for a keyword)
+
+3. Assignment operators
+
+ASSIGN -> ":="
+ARROW -> "=>" (short form)
+
+4. Separators / Punctuation
+
+DOT -> "."
+COLON -> ":"
+COMMA -> ","
+LPAR -> "("
+RPAR -> ")"
+LBRACK -> "["
+RBRACK -> "]"
+LBRACE -> "{"
+RBRACE -> "}"
+
+not tokens
+5. Comments
+
+one line: // ...
+multiple lines: /* ... */
+
+6. Spaces / Tabulation / New lines
+
+ignored
+
+7. Error
+
+
+
+Printing Expression Rule:
+
+Statement 
+    : print Expression
+
+class Hello is
+    this() is
+        var x : Integer(42)
+        print x
+    end
+end
+
+OR
+
+class IO is
+    method println(x: AnyValue)
+end
+
+class Hello is
+    this() is
+        var x : Integer(42)
+        IO.println(x)
+    end
+end
+
