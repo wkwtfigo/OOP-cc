@@ -28,6 +28,8 @@ LBRACK -> "["
 RBRACK -> "]"
 LBRACE -> "{"
 RBRACE -> "}"
+LT -> "<" // for generics
+RT -> ">" // for generics
 
 not tokens
 5. Comments

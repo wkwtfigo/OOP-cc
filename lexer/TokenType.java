@@ -4,7 +4,7 @@ public enum TokenType {
     IF, THEN, ELSE, RETURN, TRUE, FALSE, PRINT,
 
     // Identifiers
-    ID,
+    ID, // [A-Za-z_][A-Za-z0-9_]*,
 
     // Literals
     INT_LIT, REAL_LIT, //BOOL_LIT
@@ -15,7 +15,7 @@ public enum TokenType {
 
     // Separators
     DOT, COLON, COMMA,
-    LPAR, RPAR, LBRACK, RBRACK, LBRACE, RBRACE,
+    LPAR, RPAR, LBRACK, RBRACK, LBRACE, RBRACE, LT, RT,
 
     // Errors on lexer level
     EOF, ERROR
