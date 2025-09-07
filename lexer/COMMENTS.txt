@@ -4,7 +4,9 @@ TOKEN categories:
 
 class, extends, is, end, var, method, this,
 if, then, else, while, loop, return, true, false
+print
 
+// for reference of something declared
 2. Identifiers
 
 names of classes, parameters, variables
@@ -37,9 +39,37 @@ multiple lines: /* ... */
 
 ignored
 
+/*
+we can add errors as tokens and as exceptions -- different implementations
+or we can 2 types of errors -- two implementations for different types
+
+lexer errors: 
+1. Unknown character.
+2. Invalid literal (number, boolean).
+3. Unclosed constructs (comment, string).
+4. Overflow.
+5. Invalid escape characters.
+6. Unexpected EOF.
+
+parser errors:
+1. syntax errors
+
+AST errors:
+1. semantic errors
+
+also runtime errors
+*/
 7. Error
 
+// values:
+// var a : Integer(42) -- 42 is a literal (INT_LIT)
+8. Literals
 
+INT_LIT -> integers
+REAL_LIT -> real numbers
+
+// BOOL_LIT may be not declared as we have true/false as keywords
+BOOL_LIT -> logical (true/false)
 
 Printing Expression Rule:
 
