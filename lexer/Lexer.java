@@ -7,22 +7,22 @@ public class Lexer {
     private int col = 1;
 
     private static final Map<String, TokenType> KEYWORDS = Map.ofEntries(
-            Map.entry("class", TokenType.CLASS),
-            Map.entry("extends", TokenType.EXTENDS),
-            Map.entry("is", TokenType.IS),
-            Map.entry("end", TokenType.END),
-            Map.entry("var", TokenType.VAR),
-            Map.entry("method", TokenType.METHOD),
-            Map.entry("this", TokenType.THIS),
-            Map.entry("if", TokenType.IF),
-            Map.entry("then", TokenType.THEN),
-            Map.entry("else", TokenType.ELSE),
-            Map.entry("while", TokenType.WHILE),
-            Map.entry("loop", TokenType.LOOP),
-            Map.entry("return", TokenType.RETURN),
-            Map.entry("true", TokenType.TRUE),
-            Map.entry("false", TokenType.FALSE),
-            Map.entry("print", TokenType.PRINT)
+            Map.entry("class", TokenType.TOK_CLASS),
+            Map.entry("extends", TokenType.TOK_EXTENDS),
+            Map.entry("is", TokenType.TOK_IS),
+            Map.entry("end", TokenType.TOK_END),
+            Map.entry("var", TokenType.TOK_VAR),
+            Map.entry("method", TokenType.TOK_METHOD),
+            Map.entry("this", TokenType.TOK_THIS),
+            Map.entry("if", TokenType.TOK_IF),
+            Map.entry("then", TokenType.TOK_THEN),
+            Map.entry("else", TokenType.TOK_ELSE),
+            Map.entry("while", TokenType.TOK_WHILE),
+            Map.entry("loop", TokenType.TOK_LOOP),
+            Map.entry("return", TokenType.TOK_RETURN),
+            Map.entry("true", TokenType.TOK_TRUE),
+            Map.entry("false", TokenType.TOK_FALSE),
+            Map.entry("print", TokenType.TOK_PRINT)
     );
 
     public Lexer(String input) {
@@ -33,32 +33,32 @@ public class Lexer {
         skipWhitespaceAndComments();
 
         if (eof()) {
-            return new Token(TokenType.EOF, "", line, col);
+            return new Token(TokenType.TOK_EOF, "", new Location(line, col));
         }
 
         char c = peek();
 
         if (c == ':' && peekNext() == '=') {
             consume(); consume();
-            return new Token(TokenType.ASSIGN, ":=", line, col - 2);
+            return new Token(TokenType.TOK_ASSIGN, ":=", new Location(line, col - 2));
         }
         if (c == '=' && peekNext() == '>') {
             consume(); consume();
-            return new Token(TokenType.ARROW, "=>", line, col - 2);
+            return new Token(TokenType.TOK_ARROW, "=>", new Location(line, col - 2));
         }
 
         switch (c) {
-            case '(' -> { return makeSimple(TokenType.LPAR); }
-            case ')' -> { return makeSimple(TokenType.RPAR); }
-            case '{' -> { return makeSimple(TokenType.LBRACE); }
-            case '}' -> { return makeSimple(TokenType.RBRACE); }
-            case '[' -> { return makeSimple(TokenType.LBRACK); }
-            case ']' -> { return makeSimple(TokenType.RBRACK); }
-            case ':' -> { return makeSimple(TokenType.COLON); }
-            case ',' -> { return makeSimple(TokenType.COMMA); }
-            case '.' -> { return makeSimple(TokenType.DOT); }
-            case '<' -> { return makeSimple(TokenType.LT); }
-            case '>' -> { return makeSimple(TokenType.RT); }
+            case '(' -> { return makeSimple(TokenType.TOK_LPAR); }
+            case ')' -> { return makeSimple(TokenType.TOK_RPAR); }
+            case '{' -> { return makeSimple(TokenType.TOK_LBRACE); }
+            case '}' -> { return makeSimple(TokenType.TOK_RBRACE); }
+            case '[' -> { return makeSimple(TokenType.TOK_LBRACK); }
+            case ']' -> { return makeSimple(TokenType.TOK_RBRACK); }
+            case ':' -> { return makeSimple(TokenType.TOK_COLON); }
+            case ',' -> { return makeSimple(TokenType.TOK_COMMA); }
+            case '.' -> { return makeSimple(TokenType.TOK_DOT); }
+            case '<' -> { return makeSimple(TokenType.TOK_LT); }
+            case '>' -> { return makeSimple(TokenType.TOK_RT); }
         }
 
         // Numbers
@@ -69,11 +69,6 @@ public class Lexer {
         // Identifiers or keywords
         if (Character.isLetter(c) || c == '_') {
             return identifier();
-        }
-
-        // String literals
-        if (c == '"') {
-            return stringLiteral();
         }
 
         throw new RuntimeException("Unexpected character '" + c + "' at " + line + ":" + col);
@@ -88,29 +83,9 @@ public class Lexer {
         }
         String lexeme = sb.toString();
 
-        TokenType type = KEYWORDS.getOrDefault(lexeme, TokenType.ID);
+        TokenType type = KEYWORDS.getOrDefault(lexeme, TokenType.TOK_ID);
 
-        return new Token(type, lexeme, line, startCol);
-    }
-
-    private Token stringLiteral() {
-        int startCol = col;
-        
-        consume();
-        
-        StringBuilder sb = new StringBuilder();
-
-        while (!eof() && peek() != '"') {
-            sb.append(consume());
-        }
-
-        if (eof()) {
-            throw new RuntimeException("Unterminated string literal at " + line + ":" + startCol);
-        }
-
-        consume();
-        String lexeme = sb.toString();
-        return new Token(TokenType.ID, lexeme, line, startCol);
+        return new Token(type, lexeme, new Location(line, startCol));
     }
 
     // reads a sequance of numbers
@@ -126,15 +101,15 @@ public class Lexer {
             while (!eof() && Character.isDigit(peek())) {
                 sb.append(consume());
             }
-            return new Token(TokenType.REAL_LIT, sb.toString(), line, startCol);
+            return new Token(TokenType.TOK_REAL_LIT, sb.toString(), new Location(line, startCol));
         }
-        return new Token(TokenType.INT_LIT, sb.toString(), line, startCol);
+        return new Token(TokenType.TOK_INT_LIT, sb.toString(), new Location(line, startCol));
     }
 
     // for simple symbols - : ( )
     private Token makeSimple(TokenType type) {
         char c = consume();
-        return new Token(type, String.valueOf(c), line, col - 1);
+        return new Token(type, String.valueOf(c), new Location(line, col - 1));
     }
 
     // skip spaces, comments, and next line symbols 

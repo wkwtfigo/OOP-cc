@@ -10,7 +10,7 @@ public class LexerTest {
             return;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "constructor.txt")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "wrong_return_type.txt")) {
             for (Path file : stream) {
                 System.out.println("=== " + file.getFileName() + " ===");
                 String code = Files.readString(file);
@@ -41,7 +41,7 @@ public class LexerTest {
 
                     lineTokens.add(token.getType().toString());
 
-                } while (token.getType() != TokenType.EOF);
+                } while (token.getType() != TokenType.TOK_EOF);
 
                 if (!lineTokens.isEmpty()) {
                     System.out.println(String.join(" ", lineTokens));

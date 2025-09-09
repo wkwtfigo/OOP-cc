@@ -1,14 +1,12 @@
 public class Token {
-    public final TokenType type;
-    public final String lexeme;
-    public final int line;
-    public final int column;
+    private  final TokenType type;
+    private final String lexeme;
+    private final Location location;
 
-    public Token(TokenType type, String lexeme, int line, int column) {
+    public Token(TokenType type, String lexeme, Location location) {
         this.type = type;
         this.lexeme = lexeme;
-        this.line = line;
-        this.column = column;
+        this.location = location;
     }
 
     @Override
@@ -16,15 +14,23 @@ public class Token {
         return type.toString();
     }
 
-    TokenType getType() {
+    public TokenType getType() {
         return type;
     }
 
-    int getLine() {
-        return line;
+    public Location getLocation() {
+        return location;
     }
 
-    int getColumn() {
-        return column;
+    public int getLine() {
+        return location.line;
+    }
+
+    public int getColumn() {
+        return location.column;
+    }
+
+    public String getLexeme() {
+        return lexeme;
     }
 }
