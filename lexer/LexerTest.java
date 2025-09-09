@@ -10,7 +10,7 @@ public class LexerTest {
             return;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "invalid_name.txt")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "constructor.txt")) {
             for (Path file : stream) {
                 System.out.println("=== " + file.getFileName() + " ===");
                 String code = Files.readString(file);
@@ -19,6 +19,7 @@ public class LexerTest {
                 Token token;
 
                 int currentLine = 1;
+                int firstColumn = 1;
                 List<String> lineTokens = new ArrayList<>();
 
                 do {
@@ -26,10 +27,16 @@ public class LexerTest {
 
                     if (token.getLine() != currentLine) {
                         if (!lineTokens.isEmpty()) {
-                            System.out.println(String.join(" ", lineTokens));
+                            String indent = " ".repeat(firstColumn - 1);
+                            System.out.println(indent + String.join(" ", lineTokens));
                             lineTokens.clear();
                         }
                         currentLine = token.getLine();
+                        firstColumn = token.getColumn();
+                    }
+
+                    if (lineTokens.isEmpty()) {
+                        firstColumn = token.getColumn();
                     }
 
                     lineTokens.add(token.getType().toString());

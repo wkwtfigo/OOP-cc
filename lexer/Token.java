@@ -23,4 +23,8 @@ public class Token {
     int getLine() {
         return line;
     }
+
+    int getColumn() {
+        return column;
+    }
 }
