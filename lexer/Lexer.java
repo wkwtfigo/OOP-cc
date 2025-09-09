@@ -1,11 +1,20 @@
 import java.util.Map;
 
+/**
+ * The lexer is responsible for converting the raw source code string
+ * into a sequence of {@link Token} objects. Each token has a type
+ * ({@link TokenType}), its lexeme (original text), and a location
+ * (line and column number). 
+ */
 public class Lexer {
     private final String input;
     private int pos = 0;
     private int line = 1;
     private int col = 1;
 
+    /**
+     * Map of language keywords and their corresponding token types.
+     */
     private static final Map<String, TokenType> KEYWORDS = Map.ofEntries(
             Map.entry("class", TokenType.TOK_CLASS),
             Map.entry("extends", TokenType.TOK_EXTENDS),
@@ -29,6 +38,12 @@ public class Lexer {
         this.input = input;
     }
 
+    /**
+     * Reads the next token from the input stream.
+     *
+     * @return the next {@link Token}, or {@link TokenType#TOK_EOF} when input ends
+     * @throws LexerException if an unexpected character is found
+     */
     public Token nextToken() {
         skipWhitespaceAndComments();
 
@@ -71,9 +86,14 @@ public class Lexer {
             return identifier();
         }
 
-        throw new RuntimeException("Unexpected character '" + c + "' (ASCII: " + (int)c + ") at " + line + ":" + col);
+        throw new LexerException("Unexpected character '" + c + "' (ASCII: " + (int)c + ")", new Location(line, col));
     }
 
+    /**
+     * Parses an identifier or keyword starting at the current position.
+     *
+     * @return a {@link Token} of type {@link TokenType#TOK_ID} or keyword type
+     */
     private Token identifier() {
         int startCol = col;
         StringBuilder sb = new StringBuilder();
@@ -88,7 +108,12 @@ public class Lexer {
         return new Token(type, lexeme, new Location(line, startCol));
     }
 
-    // reads a sequance of numbers
+    /**
+     * Parses a numeric literal (integer or real).
+     *
+     * @return a {@link Token} of type {@link TokenType#TOK_INT_LIT}
+     *         or {@link TokenType#TOK_REAL_LIT}
+     */
     private Token number() {
         int startCol = col;
         StringBuilder sb = new StringBuilder();
@@ -106,13 +131,23 @@ public class Lexer {
         return new Token(TokenType.TOK_INT_LIT, sb.toString(), new Location(line, startCol));
     }
 
-    // for simple symbols - : ( )
+    /**
+     * Creates a simple single-character token (like parentheses, colon, etc.).
+     *
+     * @param type the {@link TokenType} to create
+     * @return the created token
+     */
     private Token makeSimple(TokenType type) {
         char c = consume();
         return new Token(type, String.valueOf(c), new Location(line, col - 1));
     }
 
-    // skip spaces, comments, and next line symbols 
+    /**
+     * Skips whitespace, line breaks, and comments.
+     * Supports single-line (//) and multi-line (/* ... *​/) comments.
+     *
+     * @throws LexerException if a multi-line comment is not properly closed
+     */ 
     private void skipWhitespaceAndComments() {
         while (!eof()) {
             char c = peek();
@@ -147,24 +182,41 @@ public class Lexer {
         }
     }
 
-    // get next token, is used for identifying a token
+    /**
+     * Peeks at the current character without consuming it.
+     *
+     * @return the current character
+     */
     private char peek() {
         return input.charAt(pos);
     }
 
+    /**
+     * Peeks at the next character without consuming it.
+     *
+     * @return the next character, or '\0' if at end of input
+     */
     private char peekNext() {
         if (pos + 1 >= input.length()) return '\0';
         return input.charAt(pos + 1);
     }
 
-    // get next token, token is known
+    /**
+     * Consumes the current character and moves forward.
+     *
+     * @return the consumed character
+     */
     private char consume() {
         char c = input.charAt(pos++);
         col++;
         return c;
     }
 
-    // check for the end of file
+    /**
+     * Checks if the end of the input string has been reached.
+     *
+     * @return true if end of input, false otherwise
+     */
     private boolean eof() {
         return pos >= input.length();
     }
