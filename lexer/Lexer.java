@@ -42,7 +42,7 @@ public class Lexer {
      * Reads the next token from the input stream.
      *
      * @return the next {@link Token}, or {@link TokenType#TOK_EOF} when input ends
-     * @throws LexerException if an unexpected character is found
+     * @throws UnknownCharacterException if an unexpected character is found
      */
     public Token nextToken() {
         skipWhitespaceAndComments();
@@ -86,7 +86,8 @@ public class Lexer {
             return identifier();
         }
 
-        throw new LexerException("Unexpected character '" + c + "' (ASCII: " + (int)c + ")", new Location(line, col));
+        // unknown character
+        throw new UnknownCharacterException(c, new Location(line, col));
     }
 
     /**
@@ -113,6 +114,8 @@ public class Lexer {
      *
      * @return a {@link Token} of type {@link TokenType#TOK_INT_LIT}
      *         or {@link TokenType#TOK_REAL_LIT}
+     * @throws InvalidNumberException if invalid form of number is met (.123, 10., etc.)
+     * @throws NumberOverflowException
      */
     private Token number() {
         int startCol = col;
@@ -123,11 +126,24 @@ public class Lexer {
 
         if (!eof() && peek() == '.') {
             sb.append(consume());
+            boolean hasDigit = false;
             while (!eof() && Character.isDigit(peek())) {
                 sb.append(consume());
+                hasDigit = true;
+            }
+            if (!hasDigit) {
+                throw new InvalidNumberException(sb.toString(), new Location(line, startCol));
             }
             return new Token(TokenType.TOK_REAL_LIT, sb.toString(), new Location(line, startCol));
         }
+
+        // check for integer overflow (for 32-bit int)
+        try {
+            Integer.valueOf(sb.toString());
+        } catch (NumberFormatException e) {
+            throw new NumberOverflowException(sb.toString(), new Location(line, startCol));
+        }
+
         return new Token(TokenType.TOK_INT_LIT, sb.toString(), new Location(line, startCol));
     }
 
@@ -146,7 +162,7 @@ public class Lexer {
      * Skips whitespace, line breaks, and comments.
      * Supports single-line (//) and multi-line (/* ... *​/) comments.
      *
-     * @throws LexerException if a multi-line comment is not properly closed
+     * @throws UnterminatedCommentException if a multi-line comment is not properly closed
      */ 
     private void skipWhitespaceAndComments() {
         while (!eof()) {
@@ -174,7 +190,7 @@ public class Lexer {
                     consume();
                 }
                 if (eof()) {
-                    throw new LexerException("Unterminated comment", new Location(line, col));
+                    throw new UnterminatedCommentException(new Location(line, col));
                 }
             } else {
                 break;
