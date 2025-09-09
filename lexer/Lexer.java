@@ -71,7 +71,7 @@ public class Lexer {
             return identifier();
         }
 
-        throw new RuntimeException("Unexpected character '" + c + "' at " + line + ":" + col);
+        throw new RuntimeException("Unexpected character '" + c + "' (ASCII: " + (int)c + ") at " + line + ":" + col);
     }
 
     private Token identifier() {
@@ -125,16 +125,22 @@ public class Lexer {
             } else if (c == '/' && peekNext() == '/') { // single line comment
                 consume(); consume();
                 while (!eof() && peek() != '\n') consume();
-            } else if (c == '/' && peekNext() == '*') { // multi-line comment
+            } else if (c == '/' && peekNext() == '*') { // multi line comment
                 consume(); consume();
-                while (!eof() && !(peek() == '*' && peekNext() == '/')) {
+                while (!eof()) {
+                    if (peek() == '*' && peekNext() == '/') {
+                        consume(); consume();
+                        break;
+                    }
                     if (peek() == '\n') {
                         line++;
-                        col = 1;
+                        col = 0;
                     }
                     consume();
                 }
-                if (!eof()) { consume(); consume(); } // closing */
+                if (eof()) {
+                    throw new LexerException("Unterminated comment", new Location(line, col));
+                }
             } else {
                 break;
             }
