@@ -134,17 +134,32 @@ public class Lexer {
             if (!hasDigit) {
                 throw new InvalidNumberException(sb.toString(), new Location(line, startCol));
             }
-            return new Token(TokenType.TOK_REAL_LIT, sb.toString(), new Location(line, startCol));
+            
+            String realStr = sb.toString();
+            // check real overflow
+            try {
+                double value = Double.parseDouble(realStr);
+                if (Double.isInfinite(value)) {
+                    throw new NumberOverflowException(realStr, new Location(line, startCol));
+                }
+            } catch (NumberFormatException e) {
+                throw new NumberOverflowException(realStr, new Location(line, startCol));
+            }
+            
+            return new Token(TokenType.TOK_REAL_LIT, realStr, new Location(line, startCol));
         }
 
         // check for integer overflow (for 32-bit int)
+        String intStr = sb.toString();
         try {
-            Integer.valueOf(sb.toString());
+            long longValue = Long.parseLong(intStr);
+            if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+                throw new NumberOverflowException(intStr, new Location(line, startCol));
+            }
         } catch (NumberFormatException e) {
-            throw new NumberOverflowException(sb.toString(), new Location(line, startCol));
+            throw new NumberOverflowException(intStr, new Location(line, startCol));
         }
-
-        return new Token(TokenType.TOK_INT_LIT, sb.toString(), new Location(line, startCol));
+        return new Token(TokenType.TOK_INT_LIT, intStr, new Location(line, startCol));
     }
 
     /**
