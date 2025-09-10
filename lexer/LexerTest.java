@@ -10,7 +10,7 @@ public class LexerTest {
             return;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "invalid_name.txt")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "loop.txt")) {
             for (Path file : stream) {
                 System.out.println("=== " + file.getFileName() + " ===");
                 String code = Files.readString(file);

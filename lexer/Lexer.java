@@ -116,12 +116,20 @@ public class Lexer {
      *         or {@link TokenType#TOK_REAL_LIT}
      * @throws InvalidNumberException if invalid form of number is met (.123, 10., etc.)
      * @throws NumberOverflowException
+     * @throws InvalidIdentifierException
      */
     private Token number() {
         int startCol = col;
         StringBuilder sb = new StringBuilder();
         while (!eof() && Character.isDigit(peek())) {
             sb.append(consume());
+        }
+
+        if (!eof() && (Character.isLetter(peek()) || peek() == '_')) {
+            throw new InvalidIdentifierException(
+                "Identifiers cannot start with digit: " + sb.toString() + peek(),
+                new Location(line, startCol)
+            );
         }
 
         if (!eof() && peek() == '.') {
