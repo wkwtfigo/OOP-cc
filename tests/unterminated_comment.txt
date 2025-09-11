@@ -5,5 +5,4 @@ class BadNames is
     var me := Boolean(true)
     var b := true
     /*
-    */
 end

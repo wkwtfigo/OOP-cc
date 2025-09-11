@@ -29,8 +29,8 @@ public class Lexer {
             Map.entry("while", TokenType.TOK_WHILE),
             Map.entry("loop", TokenType.TOK_LOOP),
             Map.entry("return", TokenType.TOK_RETURN),
-            Map.entry("true", TokenType.TOK_TRUE),
-            Map.entry("false", TokenType.TOK_FALSE),
+            Map.entry("true", TokenType.TOK_BOOL_LIT),
+            Map.entry("false", TokenType.TOK_BOOL_LIT),
             Map.entry("print", TokenType.TOK_PRINT)
     );
 

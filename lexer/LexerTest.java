@@ -10,7 +10,7 @@ public class LexerTest {
             return;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "loop.txt")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "number_overflow.txt")) {
             for (Path file : stream) {
                 System.out.println("=== " + file.getFileName() + " ===");
                 String code = Files.readString(file);
