@@ -130,6 +130,7 @@ statement
     | while_loop
     | if_statement
     | return_statement
+    | print_statement
     ;
 
 assignment
@@ -165,10 +166,15 @@ expression
     | expression TOK_DOT expression
     ;
 
+print_statement
+    : TOK_PRINT expression
+    ;
+
 primary
     : TOK_INT_LIT
     | TOK_REAL_LIT
     | TOK_BOOL_LIT
+    | TOK_ID
     | TOK_THIS
     ;
 
