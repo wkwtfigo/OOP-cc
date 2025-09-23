@@ -186,12 +186,12 @@ constructor_invocation
         ;
 
     optional_arguments
-        : /* empty */
-        | arguments
+        : arguments
         ;
 
     arguments
-        : TOK_LPAR arg_list TOK_RPAR
+        : TOK_LPAR TOK_RPAR
+        | TOK_LPAR arg_list TOK_RPAR
         ;
 
     arg_list
