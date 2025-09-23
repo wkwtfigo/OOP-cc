@@ -36,7 +36,7 @@ class_list
     ;
 
 class_declaration
-    : TOK_CLASS class_name optional_extends TOK_IS TOK_LBRACE member_list TOK_RBRACE TOK_END
+    : TOK_CLASS class_name optional_extends TOK_IS member_list TOK_END
     ;
 
 class_name
@@ -174,7 +174,6 @@ primary
     : TOK_INT_LIT
     | TOK_REAL_LIT
     | TOK_BOOL_LIT
-    | TOK_ID
     | TOK_THIS
     ;
 
