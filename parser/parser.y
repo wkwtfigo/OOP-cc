@@ -22,6 +22,8 @@
 %token TOK_LT TOK_RT
 %token TOK_EOF
 
+%left TOK_DOT
+
 %start program
 
 %%
@@ -36,16 +38,7 @@ class_list
     ;
 
 class_declaration
-    : TOK_CLASS class_name optional_extends TOK_IS member_list TOK_END
-    ;
-
-class_name
-    : TOK_ID optional_generic_params
-    ;
-
-optional_generic_params
-    : /* empty */
-    | TOK_LBRACK type_list TOK_RBRACK
+    : TOK_CLASS TOK_ID optional_extends TOK_IS member_list TOK_END
     ;
 
 type_list
@@ -107,12 +100,12 @@ parameter_list
     ;
 
 parameter_declaration
-    : TOK_ID TOK_COLON class_name
+    : TOK_ID TOK_COLON TOK_ID
     ;
 
 optional_return_type
     : /* empty */
-    | TOK_COLON class_name
+    | TOK_COLON TOK_ID
     ;
 
 constructor_declaration
@@ -120,8 +113,7 @@ constructor_declaration
     ;
 
 body
-    : /* empty */
-    | body statement
+    : body statement
     | body variable_declaration
     ;
 
@@ -181,29 +173,29 @@ constructor_invocation
     : class_name optional_arguments
     ;
 
-    function_call
-        : expression optional_arguments
-        ;
+function_call
+    : expression optional_arguments
+    ;
 
-    optional_arguments
-        : arguments
-        ;
+optional_arguments
+    : arguments
+    ;
 
-    arguments
-        : TOK_LPAR TOK_RPAR
-        | TOK_LPAR arg_list TOK_RPAR
-        ;
+arguments
+    : TOK_LPAR TOK_RPAR
+    | TOK_LPAR arg_list TOK_RPAR
+    ;
 
-    arg_list
-        : expression arg_list_tail
-        ;
+arg_list
+    : expression arg_list_tail
+    ;
 
-    arg_list_tail
-        : /* empty */
-        | TOK_COMMA expression arg_list_tail
-        ;
+arg_list_tail
+    : /* empty */
+    | TOK_COMMA expression arg_list_tail
+    ;
 
-    %%
+%%
 
 void yyerror(String s) {
     System.err.println("Syntax error: " + s);
