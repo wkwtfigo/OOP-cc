@@ -155,7 +155,8 @@ expression
     : primary
     | constructor_invocation
     | function_call
-    | expression TOK_DOT expression
+    | TOK_DOT expression
+    | expression 
     ;
 
 print_statement
