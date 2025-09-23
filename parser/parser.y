@@ -191,13 +191,13 @@ optional_arguments
     ;
 
 arguments
-    : TOK_LPAR TOK_RPAR
-    | TOK_LPAR arg_list TOK_RPAR
+    : TOK_LPAR arg_list TOK_RPAR
     ;
 
 arg_list
-    : expression
-    | arg_list TOK_COMMA expression
+    : /* empty */
+    | expression
+    | expression TOK_COMMA arg_list
     ;
 
 %%
