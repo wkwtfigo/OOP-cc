@@ -170,7 +170,7 @@ primary
     ;
 
 constructor_invocation
-    : class_name optional_arguments
+    : TOK_ID optional_arguments
     ;
 
 function_call
