@@ -1,6 +1,6 @@
 %language "Java"
-%define api.package "myparser"
-%define api.parser.class {MyParser}
+%define api.package "parser"
+%define api.parser.class {Parser}
 %define api.value.type {Object}
 
 %code imports {

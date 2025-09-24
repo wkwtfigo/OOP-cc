@@ -34,17 +34,6 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-package myparser;
-
-
-
-import java.text.MessageFormat;
-import java.util.ArrayList;
-/* "%code imports" blocks.  */
-/* "parser.y":6  */
-
-    import java.util.*;
-
 /* "parser.java":49  */
 
 /**
@@ -52,7 +41,7 @@ import java.util.ArrayList;
  *
  * @author LALR (1) parser skeleton written by Paolo Bonzini.
  */
-class MyParser
+class Parser
 {
   /** Version number for the Bison executable that generated this parser.  */
   public static final String bisonVersion = "3.8.2";
@@ -299,7 +288,7 @@ class MyParser
 
   /**
    * Communication interface between the scanner and the Bison-generated
-   * parser <tt>MyParser</tt>.
+   * parser <tt>Parser</tt>.
    */
   public interface Lexer {
     /* Token kinds.  */
@@ -419,7 +408,7 @@ class MyParser
    * Instantiates the Bison-generated parser.
    * @param yylexer The scanner that will supply tokens to the parser.
    */
-  public MyParser(Lexer yylexer)
+  public Parser(Lexer yylexer)
   {
 
     this.yylexer = yylexer;
@@ -835,13 +824,13 @@ class MyParser
    * a syntax error diagnostic.
    */
   public static final class Context {
-    Context(MyParser parser, YYStack stack, SymbolKind token) {
+    Context(Parser parser, YYStack stack, SymbolKind token) {
       yyparser = parser;
       yystack = stack;
       yytoken = token;
     }
 
-    private MyParser yyparser;
+    private Parser yyparser;
     private YYStack yystack;
 
 
@@ -853,7 +842,7 @@ class MyParser
     }
 
     private SymbolKind yytoken;
-    static final int NTOKENS = MyParser.YYNTOKENS_;
+    static final int NTOKENS = Parser.YYNTOKENS_;
 
     /**
      * Put in YYARG at most YYARGN of the expected tokens given the
@@ -1149,8 +1138,3 @@ private static final byte[] yycheck_ = yycheck_init();
 
 }
 /* "parser.y":199  */
-
-
-void yyerror(String s) {
-    System.err.println("Syntax error: " + s);
-}
