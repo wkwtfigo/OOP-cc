@@ -1,0 +1,9 @@
+class A is
+  var a : Integer(2)
+end
+
+class Test is
+    this() is 
+      var a : A()
+      a.a := 0
+    end

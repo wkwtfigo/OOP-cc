@@ -1,0 +1,2 @@
+class Base is an ERROR
+  method foo (): Integer => Integer 

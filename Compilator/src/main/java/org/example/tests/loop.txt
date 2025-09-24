@@ -1,0 +1,10 @@
+class LoopExample is
+    this() is
+        var i : Integer(1.)
+        var sum : Integer(0)
+        while i.LessEqual(Integer(5)) loop
+            sum := sum.Plus(i)
+            i := i.Plus(1)
+        end
+    end
+end

@@ -1,0 +1,9 @@
+class OverloadExample is
+    method f(x: Integer) : Integer => x.Plus(1)
+    method f(x: Real) : Real => x.Plus(Real(0.5))
+
+    this() is
+        var a : f(Integer(5))   // 6
+        var b : f(Real(2.0))    // 2.5
+    end
+end
