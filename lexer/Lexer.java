@@ -104,7 +104,14 @@ public class Lexer {
         }
         String lexeme = sb.toString();
 
-        TokenType type = KEYWORDS.getOrDefault(lexeme, TokenType.TOK_ID);
+        TokenType type;
+        if (KEYWORDS.containsKey(lexeme)) {
+            type = KEYWORDS.get(lexeme);
+        } else if (lexeme.equals("Integer") || lexeme.equals("Real") || lexeme.equals("Boolean")) {
+            type = TokenType.TOK_TYPE_ID;
+        } else {
+            type = TokenType.TOK_ID;
+        }
 
         return new Token(type, lexeme, new Location(line, startCol));
     }

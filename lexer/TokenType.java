@@ -6,7 +6,8 @@ public enum TokenType {
     TOK_ELSE, TOK_RETURN, TOK_PRINT,
 
     // Identifiers
-    TOK_ID, // [A-Za-z_][A-Za-z0-9_]*,
+    TOK_ID, // other 
+    TOK_TYPE_ID, // Integer, Real, Boolean
 
     // Literals
     TOK_INT_LIT, TOK_REAL_LIT, TOK_BOOL_LIT,
