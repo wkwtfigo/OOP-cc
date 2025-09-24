@@ -2,6 +2,7 @@ package org.example.lexer;
 
 import java.io.IOException;
 import java.util.Map;
+
 import org.example.parser.Parser;
 /**
  * The lexer is responsible for converting the raw source code string

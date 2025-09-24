@@ -29,7 +29,7 @@
 %%
 
 program
-    : class_list
+    : class_list TOK_EOF
     ;
 
 class_list
@@ -199,5 +199,20 @@ argument_list
 %%
 
 void yyerror(String s) {
-    System.err.println("Syntax error: " + s);
+    String msg = s;
+    try {
+        if (yylexer != null) {
+            Token last = yylexer.getLastToken();
+            if (last != null) {
+                msg = String.format("%s at line %d, column %d near `%s`",
+                      s, last.getLine(), last.getColumn(), last.getLexeme());
+            } else {
+                msg = String.format("%s at line %d, column %d",
+                      s, yylexer.getLine(), yylexer.getColumn());
+            }
+        }
+    } catch (Throwable e) {
+        // не ломаем обработку ошибок, оставляем базовое сообщение
+    }
+    throw new RuntimeException(msg);
 }
