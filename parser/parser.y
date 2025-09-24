@@ -11,7 +11,7 @@
 %token TOK_END TOK_VAR TOK_METHOD TOK_THIS
 %token TOK_WHILE TOK_LOOP TOK_IF TOK_THEN
 %token TOK_ELSE TOK_RETURN TOK_PRINT
-%token TOK_ID
+%token TOK_ID TOK_TYPE_ID
 %token TOK_INT_LIT TOK_REAL_LIT TOK_BOOL_LIT
 %token TOK_ASSIGN
 %token TOK_ARROW
@@ -41,11 +41,6 @@ class_declaration
     : TOK_CLASS TOK_ID optional_extends TOK_IS member_list TOK_END
     ;
 
-type_list
-    : TOK_ID
-    | type_list TOK_COMMA TOK_ID
-    ;
-
 optional_extends
     : /* empty */
     | TOK_EXTENDS TOK_ID
@@ -63,7 +58,12 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON expression
+    : TOK_VAR TOK_ID TOK_COLON type_with_args
+    ;
+
+type_with_args
+    : TOK_TYPE_ID
+    | TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 method_declaration
@@ -71,7 +71,7 @@ method_declaration
     ;
 
 method_header
-    : TOK_METHOD TOK_ID optional_parameters optional_return_type
+    : TOK_METHOD TOK_ID parameter_list_opt optional_return_type
     ;
 
 optional_method_body
@@ -84,14 +84,9 @@ method_body
     | TOK_ARROW expression
     ;
 
-optional_parameters
+parameter_list_opt
     : /* empty */
-    | parameters
-    ;
-
-parameters
-    : TOK_LPAR parameter_list TOK_RPAR
-    | TOK_LPAR TOK_RPAR
+    | parameter_list
     ;
 
 parameter_list
@@ -100,21 +95,31 @@ parameter_list
     ;
 
 parameter_declaration
-    : TOK_ID TOK_COLON TOK_ID
+    : TOK_ID TOK_COLON TOK_TYPE_ID
     ;
 
 optional_return_type
     : /* empty */
-    | TOK_COLON TOK_ID
+    | TOK_COLON TOK_TYPE_ID
     ;
 
 constructor_declaration
-    : TOK_THIS optional_parameters TOK_IS body TOK_END
+    : TOK_THIS TOK_LPAR parameter_list_opt TOK_RPAR TOK_IS body TOK_END
     ;
 
 body
-    : body statement
-    | body variable_declaration
+    : /* empty */
+    | body_element_list
+    ;
+
+body_element_list
+    : body_element
+    | body_element_list body_element
+    ;
+
+body_element
+    : statement
+    | variable_declaration
     ;
 
 statement
@@ -155,8 +160,11 @@ expression
     : primary
     | constructor_invocation
     | function_call
-    | TOK_DOT expression
-    | expression 
+    | member_access
+    ;
+
+member_access
+    : expression TOK_DOT TOK_ID
     ;
 
 print_statement
@@ -171,29 +179,21 @@ primary
     ;
 
 constructor_invocation
-    : TOK_ID optional_arguments
+    : TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 function_call
-    : expression optional_arguments
+    : expression TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
-optional_arguments
-    : arguments
-    ;
-
-arguments
-    : TOK_LPAR TOK_RPAR
-    | TOK_LPAR arg_list TOK_RPAR
-    ;
-
-arg_list
-    : expression arg_list_tail
-    ;
-
-arg_list_tail
+argument_list_opt
     : /* empty */
-    | TOK_COMMA expression arg_list_tail
+    | argument_list
+    ;
+
+argument_list
+    : expression
+    | argument_list TOK_COMMA expression
     ;
 
 %%
