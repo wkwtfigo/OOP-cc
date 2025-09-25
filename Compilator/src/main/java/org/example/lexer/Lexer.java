@@ -16,6 +16,49 @@ public class Lexer implements Parser.Lexer {
     private int line = 1;
     private int col = 1;
     private  Token currentToken;
+
+    /**
+     * Converts TokenType to the numeric code expected by the parser
+     */
+    private int tokenTypeToCode(TokenType type) {
+        switch (type) {
+            case TOK_CLASS: return Parser.Lexer.TOK_CLASS;
+            case TOK_EXTENDS: return Parser.Lexer.TOK_EXTENDS;
+            case TOK_IS: return Parser.Lexer.TOK_IS;
+            case TOK_END: return Parser.Lexer.TOK_END;
+            case TOK_VAR: return Parser.Lexer.TOK_VAR;
+            case TOK_METHOD: return Parser.Lexer.TOK_METHOD;
+            case TOK_THIS: return Parser.Lexer.TOK_THIS;
+            case TOK_WHILE: return Parser.Lexer.TOK_WHILE;
+            case TOK_LOOP: return Parser.Lexer.TOK_LOOP;
+            case TOK_IF: return Parser.Lexer.TOK_IF;
+            case TOK_THEN: return Parser.Lexer.TOK_THEN;
+            case TOK_ELSE: return Parser.Lexer.TOK_ELSE;
+            case TOK_RETURN: return Parser.Lexer.TOK_RETURN;
+            case TOK_PRINT: return Parser.Lexer.TOK_PRINT;
+            case TOK_ID: return Parser.Lexer.TOK_ID;
+            case TOK_TYPE_ID: return Parser.Lexer.TOK_TYPE_ID;
+            case TOK_INT_LIT: return Parser.Lexer.TOK_INT_LIT;
+            case TOK_REAL_LIT: return Parser.Lexer.TOK_REAL_LIT;
+            case TOK_BOOL_LIT: return Parser.Lexer.TOK_BOOL_LIT;
+            case TOK_ASSIGN: return Parser.Lexer.TOK_ASSIGN;
+            case TOK_ARROW: return Parser.Lexer.TOK_ARROW;
+            case TOK_DOT: return Parser.Lexer.TOK_DOT;
+            case TOK_COLON: return Parser.Lexer.TOK_COLON;
+            case TOK_COMMA: return Parser.Lexer.TOK_COMMA;
+            case TOK_LPAR: return Parser.Lexer.TOK_LPAR;
+            case TOK_RPAR: return Parser.Lexer.TOK_RPAR;
+            case TOK_LBRACK: return Parser.Lexer.TOK_LBRACK;
+            case TOK_RBRACK: return Parser.Lexer.TOK_RBRACK;
+            case TOK_LBRACE: return Parser.Lexer.TOK_LBRACE;
+            case TOK_RBRACE: return Parser.Lexer.TOK_RBRACE;
+            case TOK_LT: return Parser.Lexer.TOK_LT;
+            case TOK_RT: return Parser.Lexer.TOK_RT;
+            case TOK_EOF: return Parser.Lexer.TOK_EOF;
+            default: return Parser.Lexer.YYerror;
+        }
+    }
+
     /**
      * Map of language keywords and their corresponding token types.
      */
@@ -282,8 +325,9 @@ public class Lexer implements Parser.Lexer {
     public int yylex() throws IOException {
         this.currentToken = nextToken();
 
-        return currentToken.getType()
-                .ordinal();
+        int tokenCode = tokenTypeToCode(currentToken.getType());
+        
+        return tokenCode;
     }
 
     @Override
