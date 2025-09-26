@@ -1,16 +1,63 @@
+package org.example.lexer;
+
+import java.io.IOException;
 import java.util.Map;
 
+import org.example.parser.Parser;
 /**
  * The lexer is responsible for converting the raw source code string
  * into a sequence of {@link Token} objects. Each token has a type
  * ({@link TokenType}), its lexeme (original text), and a location
  * (line and column number). 
  */
-public class Lexer {
+public class Lexer implements Parser.Lexer {
     private final String input;
     private int pos = 0;
     private int line = 1;
     private int col = 1;
+    private  Token currentToken;
+
+    /**
+     * Converts TokenType to the numeric code expected by the parser
+     */
+    private int tokenTypeToCode(TokenType type) {
+        return switch (type) {
+            case TOK_CLASS -> Parser.Lexer.TOK_CLASS;
+            case TOK_EXTENDS -> Parser.Lexer.TOK_EXTENDS;
+            case TOK_IS -> Parser.Lexer.TOK_IS;
+            case TOK_END -> Parser.Lexer.TOK_END;
+            case TOK_VAR -> Parser.Lexer.TOK_VAR;
+            case TOK_METHOD -> Parser.Lexer.TOK_METHOD;
+            case TOK_THIS -> Parser.Lexer.TOK_THIS;
+            case TOK_WHILE -> Parser.Lexer.TOK_WHILE;
+            case TOK_LOOP -> Parser.Lexer.TOK_LOOP;
+            case TOK_IF -> Parser.Lexer.TOK_IF;
+            case TOK_THEN -> Parser.Lexer.TOK_THEN;
+            case TOK_ELSE -> Parser.Lexer.TOK_ELSE;
+            case TOK_RETURN -> Parser.Lexer.TOK_RETURN;
+            case TOK_PRINT -> Parser.Lexer.TOK_PRINT;
+            case TOK_ID -> Parser.Lexer.TOK_ID;
+            case TOK_TYPE_ID -> Parser.Lexer.TOK_TYPE_ID;
+            case TOK_INT_LIT -> Parser.Lexer.TOK_INT_LIT;
+            case TOK_REAL_LIT -> Parser.Lexer.TOK_REAL_LIT;
+            case TOK_BOOL_LIT -> Parser.Lexer.TOK_BOOL_LIT;
+            case TOK_ASSIGN -> Parser.Lexer.TOK_ASSIGN;
+            case TOK_ARROW -> Parser.Lexer.TOK_ARROW;
+            case TOK_DOT -> Parser.Lexer.TOK_DOT;
+            case TOK_COLON -> Parser.Lexer.TOK_COLON;
+            case TOK_COMMA -> Parser.Lexer.TOK_COMMA;
+            case TOK_LPAR -> Parser.Lexer.TOK_LPAR;
+            case TOK_RPAR -> Parser.Lexer.TOK_RPAR;
+            case TOK_LBRACK -> Parser.Lexer.TOK_LBRACK;
+            case TOK_RBRACK -> Parser.Lexer.TOK_RBRACK;
+            case TOK_LBRACE -> Parser.Lexer.TOK_LBRACE;
+            case TOK_RBRACE -> Parser.Lexer.TOK_RBRACE;
+            case TOK_LT -> Parser.Lexer.TOK_LT;
+            case TOK_RT -> Parser.Lexer.TOK_RT;
+            case TOK_EOF -> Parser.Lexer.TOK_EOF;
+            default -> Parser.Lexer.YYerror;
+        };
+    }
 
     /**
      * Map of language keywords and their corresponding token types.
@@ -161,7 +208,8 @@ public class Lexer {
                 throw new NumberOverflowException(realStr, new Location(line, startCol));
             }
             
-            return new Token(TokenType.TOK_REAL_LIT, realStr, new Location(line, startCol));
+            return new Token(
+                    TokenType.TOK_REAL_LIT, realStr, new Location(line, startCol));
         }
 
         // check for integer overflow (for 32-bit int)
@@ -174,7 +222,8 @@ public class Lexer {
         } catch (NumberFormatException e) {
             throw new NumberOverflowException(intStr, new Location(line, startCol));
         }
-        return new Token(TokenType.TOK_INT_LIT, intStr, new Location(line, startCol));
+        return new Token(
+                TokenType.TOK_INT_LIT, intStr, new Location(line, startCol));
     }
 
     /**
@@ -265,5 +314,25 @@ public class Lexer {
      */
     private boolean eof() {
         return pos >= input.length();
+    }
+
+    @Override
+    public Object getLVal() {
+        return this.currentToken;
+    }
+
+    @Override
+    public int yylex() throws IOException {
+        this.currentToken = nextToken();
+
+        int tokenCode = tokenTypeToCode(currentToken.getType());
+        
+        return tokenCode;
+    }
+
+    @Override
+    public void yyerror(String msg) {
+        System.out.println("Error at line " + currentToken.getLine() +
+                ", column " + currentToken.getColumn() + ", lexeme: " + currentToken.getLexeme() + ": " + msg);
     }
 }

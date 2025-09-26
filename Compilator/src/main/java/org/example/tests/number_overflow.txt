@@ -1,0 +1,9 @@
+class BadNames is
+    var classA : Integer(11111111111111111111111111111111111)
+    var method1 : Integer(2)  // ok
+    var class : Integer(3)    // error
+    var me := Boolean(true)
+    var b := true
+    /*
+    */
+end

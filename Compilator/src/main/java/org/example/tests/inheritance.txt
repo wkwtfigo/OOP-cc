@@ -1,0 +1,12 @@
+class Base is
+    method whoAmI() : Integer => Integer(1)
+end
+
+class Derived extends Base is
+    method whoAmI() : Integer => Integer(2)
+
+    this() is
+        var x : Base(Derived())
+        var res : x.whoAmI()
+    end
+end

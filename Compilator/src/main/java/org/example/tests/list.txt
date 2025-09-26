@@ -1,0 +1,9 @@
+class ListTest is
+    this() is
+        var l : List[Integer](Integer(1))
+        l := l.append(Integer(2))
+        l := l.append(Integer(3))
+        var head : l.head()   // 1
+        var tail : l.tail()   // list [2,3]
+    end
+end

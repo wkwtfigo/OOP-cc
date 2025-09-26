@@ -1,3 +1,5 @@
+package org.example.lexer;
+
 public enum TokenType {
     // Keywords
     TOK_CLASS, TOK_EXTENDS, TOK_IS, 
