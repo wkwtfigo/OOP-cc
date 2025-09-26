@@ -18,7 +18,7 @@ class ConstructorExample is
     end
 end
 
-Class Main is
+class Main is
     this() is
         var c1: ConstructorExample()
         var c2: ConstructorExample(Integer(10))

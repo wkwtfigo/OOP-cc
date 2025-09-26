@@ -1,8 +1,11 @@
 package org.example.lexer;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LexerTest {
     public static void main(String[] args) throws IOException {
@@ -12,7 +15,7 @@ public class LexerTest {
             return;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "number_overflow.txt")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "loop.txt")) {
             for (Path file : stream) {
                 System.out.println("=== " + file.getFileName() + " ===");
                 String code = Files.readString(file);

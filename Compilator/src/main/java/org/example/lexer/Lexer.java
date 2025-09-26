@@ -21,42 +21,42 @@ public class Lexer implements Parser.Lexer {
      * Converts TokenType to the numeric code expected by the parser
      */
     private int tokenTypeToCode(TokenType type) {
-        switch (type) {
-            case TOK_CLASS: return Parser.Lexer.TOK_CLASS;
-            case TOK_EXTENDS: return Parser.Lexer.TOK_EXTENDS;
-            case TOK_IS: return Parser.Lexer.TOK_IS;
-            case TOK_END: return Parser.Lexer.TOK_END;
-            case TOK_VAR: return Parser.Lexer.TOK_VAR;
-            case TOK_METHOD: return Parser.Lexer.TOK_METHOD;
-            case TOK_THIS: return Parser.Lexer.TOK_THIS;
-            case TOK_WHILE: return Parser.Lexer.TOK_WHILE;
-            case TOK_LOOP: return Parser.Lexer.TOK_LOOP;
-            case TOK_IF: return Parser.Lexer.TOK_IF;
-            case TOK_THEN: return Parser.Lexer.TOK_THEN;
-            case TOK_ELSE: return Parser.Lexer.TOK_ELSE;
-            case TOK_RETURN: return Parser.Lexer.TOK_RETURN;
-            case TOK_PRINT: return Parser.Lexer.TOK_PRINT;
-            case TOK_ID: return Parser.Lexer.TOK_ID;
-            case TOK_TYPE_ID: return Parser.Lexer.TOK_TYPE_ID;
-            case TOK_INT_LIT: return Parser.Lexer.TOK_INT_LIT;
-            case TOK_REAL_LIT: return Parser.Lexer.TOK_REAL_LIT;
-            case TOK_BOOL_LIT: return Parser.Lexer.TOK_BOOL_LIT;
-            case TOK_ASSIGN: return Parser.Lexer.TOK_ASSIGN;
-            case TOK_ARROW: return Parser.Lexer.TOK_ARROW;
-            case TOK_DOT: return Parser.Lexer.TOK_DOT;
-            case TOK_COLON: return Parser.Lexer.TOK_COLON;
-            case TOK_COMMA: return Parser.Lexer.TOK_COMMA;
-            case TOK_LPAR: return Parser.Lexer.TOK_LPAR;
-            case TOK_RPAR: return Parser.Lexer.TOK_RPAR;
-            case TOK_LBRACK: return Parser.Lexer.TOK_LBRACK;
-            case TOK_RBRACK: return Parser.Lexer.TOK_RBRACK;
-            case TOK_LBRACE: return Parser.Lexer.TOK_LBRACE;
-            case TOK_RBRACE: return Parser.Lexer.TOK_RBRACE;
-            case TOK_LT: return Parser.Lexer.TOK_LT;
-            case TOK_RT: return Parser.Lexer.TOK_RT;
-            case TOK_EOF: return Parser.Lexer.TOK_EOF;
-            default: return Parser.Lexer.YYerror;
-        }
+        return switch (type) {
+            case TOK_CLASS -> Parser.Lexer.TOK_CLASS;
+            case TOK_EXTENDS -> Parser.Lexer.TOK_EXTENDS;
+            case TOK_IS -> Parser.Lexer.TOK_IS;
+            case TOK_END -> Parser.Lexer.TOK_END;
+            case TOK_VAR -> Parser.Lexer.TOK_VAR;
+            case TOK_METHOD -> Parser.Lexer.TOK_METHOD;
+            case TOK_THIS -> Parser.Lexer.TOK_THIS;
+            case TOK_WHILE -> Parser.Lexer.TOK_WHILE;
+            case TOK_LOOP -> Parser.Lexer.TOK_LOOP;
+            case TOK_IF -> Parser.Lexer.TOK_IF;
+            case TOK_THEN -> Parser.Lexer.TOK_THEN;
+            case TOK_ELSE -> Parser.Lexer.TOK_ELSE;
+            case TOK_RETURN -> Parser.Lexer.TOK_RETURN;
+            case TOK_PRINT -> Parser.Lexer.TOK_PRINT;
+            case TOK_ID -> Parser.Lexer.TOK_ID;
+            case TOK_TYPE_ID -> Parser.Lexer.TOK_TYPE_ID;
+            case TOK_INT_LIT -> Parser.Lexer.TOK_INT_LIT;
+            case TOK_REAL_LIT -> Parser.Lexer.TOK_REAL_LIT;
+            case TOK_BOOL_LIT -> Parser.Lexer.TOK_BOOL_LIT;
+            case TOK_ASSIGN -> Parser.Lexer.TOK_ASSIGN;
+            case TOK_ARROW -> Parser.Lexer.TOK_ARROW;
+            case TOK_DOT -> Parser.Lexer.TOK_DOT;
+            case TOK_COLON -> Parser.Lexer.TOK_COLON;
+            case TOK_COMMA -> Parser.Lexer.TOK_COMMA;
+            case TOK_LPAR -> Parser.Lexer.TOK_LPAR;
+            case TOK_RPAR -> Parser.Lexer.TOK_RPAR;
+            case TOK_LBRACK -> Parser.Lexer.TOK_LBRACK;
+            case TOK_RBRACK -> Parser.Lexer.TOK_RBRACK;
+            case TOK_LBRACE -> Parser.Lexer.TOK_LBRACE;
+            case TOK_RBRACE -> Parser.Lexer.TOK_RBRACE;
+            case TOK_LT -> Parser.Lexer.TOK_LT;
+            case TOK_RT -> Parser.Lexer.TOK_RT;
+            case TOK_EOF -> Parser.Lexer.TOK_EOF;
+            default -> Parser.Lexer.YYerror;
+        };
     }
 
     /**
@@ -333,6 +333,6 @@ public class Lexer implements Parser.Lexer {
     @Override
     public void yyerror(String msg) {
         System.out.println("Error at line " + currentToken.getLine() +
-                ", column " + currentToken.getColumn() + ": " + msg);
+                ", column " + currentToken.getColumn() + ", lexeme: " + currentToken.getLexeme() + ": " + msg);
     }
 }

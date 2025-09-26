@@ -1,5 +1,5 @@
 %language "Java"
-%define api.package "parser"
+%define api.package "org.example.parser"
 %define api.parser.class {Parser}
 %define api.value.type {Object}
 
@@ -58,12 +58,8 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON type_with_args
-    ;
-
-type_with_args
-    : TOK_TYPE_ID
-    | TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
+    : TOK_VAR TOK_ID TOK_COLON TOK_TYPE_ID     
+    | TOK_VAR TOK_ID TOK_COLON expression      
     ;
 
 method_declaration
@@ -148,23 +144,26 @@ optional_else
     ;
 
 return_statement
-    : TOK_RETURN optional_expression
+    : TOK_RETURN return_expression_opt
     ;
 
-optional_expression
+return_expression_opt
     : /* empty */
-    | expression
+    | return_expression
+    ;
+
+return_expression
+    : primary
+    | constructor_invocation
+    | return_expression TOK_LPAR argument_list_opt TOK_RPAR
+    | return_expression TOK_DOT TOK_ID
     ;
 
 expression
     : primary
     | constructor_invocation
-    | function_call
-    | member_access
-    ;
-
-member_access
-    : expression TOK_DOT TOK_ID
+    | expression TOK_LPAR argument_list_opt TOK_RPAR
+    | expression TOK_DOT TOK_ID
     ;
 
 print_statement
@@ -180,10 +179,6 @@ primary
 
 constructor_invocation
     : TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
-    ;
-
-function_call
-    : expression TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 argument_list_opt
