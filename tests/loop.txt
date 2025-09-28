@@ -1,10 +1,8 @@
-class LoopExample is
-    this() is
-        var i : Integer(1)
-        var sum : Integer(0)
-        while i.LessEqual(Integer(5)) loop
-            sum := sum.Plus(i)
-            i := i.Plus(1)
-        end
-    end
-end
+// Должно работать:
+class MyClass is ... end      // MyClass -> TOK_TYPE_ID
+var x: MyClass              // MyClass -> TOK_TYPE_ID
+var y: Integer              // Integer -> TOK_TYPE_ID
+
+// Не должно ломать:
+class class                  // второе 'class' -> TOK_CLASS (ключевое слово)
+var z: UnknownType          // UnknownType -> TOK_ID (неизвестный тип)

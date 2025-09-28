@@ -1,7 +1,9 @@
 package org.example.lexer;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.example.parser.Parser;
 /**
@@ -16,6 +18,9 @@ public class Lexer implements Parser.Lexer {
     private int line = 1;
     private int col = 1;
     private  Token currentToken;
+
+    // Set to track type indetifiers (class names)
+    private final Set<String> typeIdentifiers = new HashSet<>();
 
     /**
      * Converts TokenType to the numeric code expected by the parser
@@ -81,8 +86,12 @@ public class Lexer implements Parser.Lexer {
             Map.entry("print", TokenType.TOK_PRINT)
     );
 
+    // Built-in type identifiers
+    private static final Set<String> BUILTIN_TYPES = Set.of("Integer", "Real", "Boolean");
+
     public Lexer(String input) {
         this.input = input;
+        typeIdentifiers.addAll(BUILTIN_TYPES);
     }
 
     /**
@@ -154,13 +163,22 @@ public class Lexer implements Parser.Lexer {
         TokenType type;
         if (KEYWORDS.containsKey(lexeme)) {
             type = KEYWORDS.get(lexeme);
-        } else if (lexeme.equals("Integer") || lexeme.equals("Real") || lexeme.equals("Boolean")) {
+        } else if (typeIdentifiers.contains(lexeme)) {
             type = TokenType.TOK_TYPE_ID;
         } else {
             type = TokenType.TOK_ID;
         }
 
-        return new Token(type, lexeme, new Location(line, startCol));
+        Token token =  new Token(type, lexeme, new Location(line, startCol));
+
+        if (currentToken != null && currentToken.getType() == TokenType.TOK_CLASS && type == TokenType.TOK_ID) {
+            typeIdentifiers.add(lexeme);
+            token = new Token(TokenType.TOK_TYPE_ID, lexeme, new Location(line, startCol), currentToken);
+        } else if (currentToken != null) {
+            token.setPreviousToken(currentToken);
+        }
+        
+        return token;
     }
 
     /**
@@ -323,8 +341,12 @@ public class Lexer implements Parser.Lexer {
 
     @Override
     public int yylex() throws IOException {
+        Token previous = this.currentToken;
         this.currentToken = nextToken();
 
+        if (this.currentToken != null && previous != null) {
+            this.currentToken.setPreviousToken(previous);
+        }
         int tokenCode = tokenTypeToCode(currentToken.getType());
         
         return tokenCode;

@@ -3,10 +3,6 @@
 %define api.parser.class {Parser}
 %define api.value.type {Object}
 
-%code imports {
-    import java.util.*;
-}
-
 %token TOK_CLASS TOK_EXTENDS TOK_IS
 %token TOK_END TOK_VAR TOK_METHOD TOK_THIS
 %token TOK_WHILE TOK_LOOP TOK_IF TOK_THEN
@@ -38,12 +34,12 @@ class_list
     ;
 
 class_declaration
-    : TOK_CLASS TOK_ID optional_extends TOK_IS member_list TOK_END
+    : TOK_CLASS TOK_TYPE_ID optional_extends TOK_IS member_list TOK_END
     ;
 
 optional_extends
     : /* empty */
-    | TOK_EXTENDS TOK_ID
+    | TOK_EXTENDS TOK_TYPE_ID
     ;
 
 member_list
@@ -58,8 +54,12 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON TOK_TYPE_ID     
-    | TOK_VAR TOK_ID TOK_COLON expression      
+    : TOK_VAR TOK_ID TOK_COLON type_expression
+    ;
+
+type_expression
+    : TOK_TYPE_ID
+    | TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 method_declaration
@@ -149,25 +149,19 @@ return_statement
 
 return_expression_opt
     : /* empty */
-    | return_expression
+    | expression
     ;
 
-return_expression
-    : primary
-    | constructor_invocation
-    | return_expression TOK_LPAR argument_list_opt TOK_RPAR
-    | return_expression TOK_DOT TOK_ID
+    
+print_statement
+    : TOK_PRINT expression
     ;
 
 expression
     : primary
     | constructor_invocation
-    | expression TOK_LPAR argument_list_opt TOK_RPAR
-    | expression TOK_DOT TOK_ID
-    ;
-
-print_statement
-    : TOK_PRINT expression
+    | method_invocation
+    | expression TOK_DOT method_invocation
     ;
 
 primary
@@ -179,6 +173,10 @@ primary
 
 constructor_invocation
     : TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
+    ;
+
+method_invocation
+    : TOK_ID TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 argument_list_opt
