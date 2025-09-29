@@ -18,18 +18,21 @@
 %token TOK_LT TOK_RT
 %token TOK_EOF
 
+%right TOK_ASSIGN
 %left TOK_DOT
+%left TOK_LPAR TOK_RPAR
 
 %start program
 
 %%
 
 program
-    : class_list TOK_EOF
+    : TOK_EOF
+    | class_list TOK_EOF
     ;
 
 class_list
-    : /* empty */
+    : class_declaration
     | class_list class_declaration
     ;
 
@@ -63,16 +66,11 @@ type_expression
     ;
 
 method_declaration
-    : method_header optional_method_body
+    : method_header method_body
     ;
 
 method_header
-    : TOK_METHOD TOK_ID parameter_list_opt optional_return_type
-    ;
-
-optional_method_body
-    : /* empty */
-    | method_body
+    : TOK_METHOD TOK_ID TOK_LPAR parameter_list_opt TOK_RPAR optional_return_type
     ;
 
 method_body
@@ -152,7 +150,6 @@ return_expression_opt
     | expression
     ;
 
-    
 print_statement
     : TOK_PRINT expression
     ;
@@ -168,6 +165,7 @@ primary
     : TOK_INT_LIT
     | TOK_REAL_LIT
     | TOK_BOOL_LIT
+    | TOK_ID
     | TOK_THIS
     ;
 

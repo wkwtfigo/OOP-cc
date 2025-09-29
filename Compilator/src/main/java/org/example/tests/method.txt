@@ -20,7 +20,7 @@ end
 
 class Main is
     this() is
-        var t : Test()
+        var t : MethodExample()
 
         t.incA()                  // a = 3
         var r1 : t.getA()         // 3
