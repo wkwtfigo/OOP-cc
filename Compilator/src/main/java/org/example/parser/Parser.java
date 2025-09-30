@@ -36,6 +36,11 @@
 
 package org.example.parser;
 
+
+
+import java.text.MessageFormat;
+import java.util.ArrayList;
+
 /**
  * A Bison parser, automatically generated from <tt>parser.y</tt>.
  *
@@ -50,6 +55,23 @@ public class Parser
   public static final String bisonSkeleton = "lalr1.java";
 
 
+
+  /**
+   * True if verbose error messages are enabled.
+   */
+  private boolean yyErrorVerbose = true;
+
+  /**
+   * Whether verbose error messages are enabled.
+   */
+  public final boolean getErrorVerbose() { return yyErrorVerbose; }
+
+  /**
+   * Set the verbosity of error messages.
+   * @param verbose True to request verbose error messages.
+   */
+  public final void setErrorVerbose(boolean verbose)
+  { yyErrorVerbose = verbose; }
 
 
 
@@ -100,32 +122,31 @@ public class Parser
     S_member_list(41),             /* member_list  */
     S_member_declaration(42),      /* member_declaration  */
     S_variable_declaration(43),    /* variable_declaration  */
-    S_type_expression(44),         /* type_expression  */
-    S_method_declaration(45),      /* method_declaration  */
-    S_method_header(46),           /* method_header  */
-    S_method_body(47),             /* method_body  */
-    S_parameter_list_opt(48),      /* parameter_list_opt  */
-    S_parameter_list(49),          /* parameter_list  */
-    S_parameter_declaration(50),   /* parameter_declaration  */
-    S_optional_return_type(51),    /* optional_return_type  */
-    S_constructor_declaration(52), /* constructor_declaration  */
-    S_body(53),                    /* body  */
-    S_body_element_list(54),       /* body_element_list  */
-    S_body_element(55),            /* body_element  */
-    S_statement(56),               /* statement  */
-    S_assignment(57),              /* assignment  */
-    S_while_loop(58),              /* while_loop  */
-    S_if_statement(59),            /* if_statement  */
-    S_optional_else(60),           /* optional_else  */
-    S_return_statement(61),        /* return_statement  */
-    S_return_expression_opt(62),   /* return_expression_opt  */
-    S_print_statement(63),         /* print_statement  */
-    S_expression(64),              /* expression  */
-    S_primary(65),                 /* primary  */
-    S_constructor_invocation(66),  /* constructor_invocation  */
-    S_method_invocation(67),       /* method_invocation  */
-    S_argument_list_opt(68),       /* argument_list_opt  */
-    S_argument_list(69);           /* argument_list  */
+    S_method_declaration(44),      /* method_declaration  */
+    S_method_header(45),           /* method_header  */
+    S_method_body(46),             /* method_body  */
+    S_parameter_list_opt(47),      /* parameter_list_opt  */
+    S_parameter_list(48),          /* parameter_list  */
+    S_parameter_declaration(49),   /* parameter_declaration  */
+    S_optional_return_type(50),    /* optional_return_type  */
+    S_constructor_declaration(51), /* constructor_declaration  */
+    S_body(52),                    /* body  */
+    S_body_element_list(53),       /* body_element_list  */
+    S_body_element(54),            /* body_element  */
+    S_statement(55),               /* statement  */
+    S_assignment(56),              /* assignment  */
+    S_while_loop(57),              /* while_loop  */
+    S_if_statement(58),            /* if_statement  */
+    S_optional_else(59),           /* optional_else  */
+    S_return_statement(60),        /* return_statement  */
+    S_return_expression_opt(61),   /* return_expression_opt  */
+    S_print_statement(62),         /* print_statement  */
+    S_expression(63),              /* expression  */
+    S_primary(64),                 /* primary  */
+    S_constructor_invocation(65),  /* constructor_invocation  */
+    S_method_invocation(66),       /* method_invocation  */
+    S_argument_list_opt(67),       /* argument_list_opt  */
+    S_argument_list(68);           /* argument_list  */
 
 
     private final int yycode_;
@@ -179,7 +200,6 @@ public class Parser
       SymbolKind.S_member_list,
       SymbolKind.S_member_declaration,
       SymbolKind.S_variable_declaration,
-      SymbolKind.S_type_expression,
       SymbolKind.S_method_declaration,
       SymbolKind.S_method_header,
       SymbolKind.S_method_body,
@@ -263,7 +283,7 @@ public class Parser
   "TOK_LBRACE", "TOK_RBRACE", "TOK_LT", "TOK_RT", "TOK_EOF", "$accept",
   "program", "class_list", "class_declaration", "optional_extends",
   "member_list", "member_declaration", "variable_declaration",
-  "type_expression", "method_declaration", "method_header", "method_body",
+  "method_declaration", "method_header", "method_body",
   "parameter_list_opt", "parameter_list", "parameter_declaration",
   "optional_return_type", "constructor_declaration", "body",
   "body_element_list", "body_element", "statement", "assignment",
@@ -558,7 +578,7 @@ public class Parser
     switch (yyn)
       {
         
-/* "parser.java":567  */
+/* "parser.java":582  */
 
         default: break;
       }
@@ -884,6 +904,44 @@ public class Parser
 
 
 
+  private int yysyntaxErrorArguments(Context yyctx, SymbolKind[] yyarg, int yyargn) {
+    /* There are many possibilities here to consider:
+       - If this state is a consistent state with a default action,
+         then the only way this function was invoked is if the
+         default action is an error action.  In that case, don't
+         check for expected tokens because there are none.
+       - The only way there can be no lookahead present (in tok) is
+         if this state is a consistent state with a default action.
+         Thus, detecting the absence of a lookahead is sufficient to
+         determine that there is no unexpected or expected token to
+         report.  In that case, just report a simple "syntax error".
+       - Don't assume there isn't a lookahead just because this
+         state is a consistent state with a default action.  There
+         might have been a previous inconsistent state, consistent
+         state with a non-default action, or user semantic action
+         that manipulated yychar.  (However, yychar is currently out
+         of scope during semantic actions.)
+       - Of course, the expected token list depends on states to
+         have correct lookahead information, and it depends on the
+         parser not to perform extra reductions after fetching a
+         lookahead from the scanner and before detecting a syntax
+         error.  Thus, state merging (from LALR or IELR) and default
+         reductions corrupt the expected token list.  However, the
+         list is correct for canonical LR with one exception: it
+         will still contain any token that will not be accepted due
+         to an error action in a later state.
+    */
+    int yycount = 0;
+    if (yyctx.getToken() != null)
+      {
+        if (yyarg != null)
+          yyarg[yycount] = yyctx.getToken();
+        yycount += 1;
+        yycount += yyctx.getExpectedTokens(yyarg, 1, yyargn);
+      }
+    return yycount;
+  }
+
 
   /**
    * Build and emit a "syntax error" message in a user-defined way.
@@ -891,7 +949,28 @@ public class Parser
    * @param ctx  The context of the error.
    */
   private void yyreportSyntaxError(Context yyctx) {
-      yyerror("syntax error");
+      if (yyErrorVerbose) {
+          final int argmax = 5;
+          SymbolKind[] yyarg = new SymbolKind[argmax];
+          int yycount = yysyntaxErrorArguments(yyctx, yyarg, argmax);
+          String[] yystr = new String[yycount];
+          for (int yyi = 0; yyi < yycount; ++yyi) {
+              yystr[yyi] = yyarg[yyi].getName();
+          }
+          String yyformat;
+          switch (yycount) {
+              default:
+              case 0: yyformat = "syntax error"; break;
+              case 1: yyformat = "syntax error, unexpected {0}"; break;
+              case 2: yyformat = "syntax error, unexpected {0}, expecting {1}"; break;
+              case 3: yyformat = "syntax error, unexpected {0}, expecting {1} or {2}"; break;
+              case 4: yyformat = "syntax error, unexpected {0}, expecting {1} or {2} or {3}"; break;
+              case 5: yyformat = "syntax error, unexpected {0}, expecting {1} or {2} or {3} or {4}"; break;
+          }
+          yyerror(new MessageFormat(yyformat).format(yystr));
+      } else {
+          yyerror("syntax error");
+      }
   }
 
   /**
@@ -911,7 +990,7 @@ public class Parser
     return yyvalue == yytable_ninf_;
   }
 
-  private static final byte yypact_ninf_ = -82;
+  private static final byte yypact_ninf_ = -78;
   private static final byte yytable_ninf_ = -1;
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
@@ -921,18 +1000,17 @@ public class Parser
   {
     return new byte[]
     {
-      -2,    -1,   -82,    21,     1,   -82,    18,   -82,   -82,   -82,
-      10,    29,   -82,   -82,    38,   -82,    32,    33,    11,   -82,
-     -82,   -82,     9,   -82,     4,    24,    35,     8,    22,   -82,
-      22,    22,    36,    35,    28,    30,    31,   -82,    22,    22,
-      22,    22,    34,   -82,    53,     8,   -82,   -82,   -82,   -82,
-     -82,   -82,   -82,   -82,    37,    39,   -82,   -82,   -82,    41,
-     -82,   -82,   -82,    41,    41,    40,    46,    42,    43,    55,
-      35,    -5,     3,   -82,    41,    41,    22,   -82,   -82,    22,
-      22,    45,    22,    22,    44,   -82,     8,   -82,     8,     8,
-      41,    41,    47,    48,    50,    37,   -82,    51,    41,    54,
-     -82,    57,    65,    59,   -82,    22,   -82,   -82,   -82,   -82,
-     -82,     8,    70,    41,   -82,   -82
+      -2,     1,   -78,    16,     2,   -78,    17,   -78,   -78,   -78,
+       4,    25,   -78,   -78,    42,   -78,    15,    21,    13,   -78,
+     -78,   -78,    12,   -78,     9,    26,    35,    29,     6,   -78,
+       6,     6,     6,    35,    18,    14,    28,   -78,     6,     6,
+       6,     6,    33,   -78,    50,    29,   -78,   -78,   -78,   -78,
+     -78,   -78,   -78,   -78,    30,    31,   -78,   -78,   -78,    36,
+     -78,   -78,   -78,    36,    36,    36,    34,    41,    56,    35,
+      -4,     5,   -78,    36,    36,     6,   -78,   -78,     6,     6,
+      46,    39,   -78,    29,   -78,    29,    29,    36,    36,    37,
+      40,    43,    30,   -78,    49,   -78,    62,    63,    59,   -78,
+       6,   -78,   -78,   -78,   -78,    29,    64,    36,   -78,   -78
     };
   }
 
@@ -946,16 +1024,15 @@ public class Parser
     {
        0,     0,     2,     0,     0,     4,     7,     1,     3,     5,
        0,     0,     8,     9,     0,     6,     0,     0,     0,    10,
-      11,    12,     0,    13,     0,     0,    24,    32,     0,    20,
-       0,     0,     0,    24,     0,     0,    25,    26,     0,     0,
-      49,     0,     0,    37,     0,    33,    34,    36,    38,    39,
-      40,    41,    42,    60,    59,     0,    56,    57,    58,    23,
-      52,    53,    54,    17,    16,    18,    14,     0,     0,     0,
-       0,     0,     0,    48,    50,    51,     0,    22,    35,    63,
-      63,     0,    63,     0,    29,    28,    32,    27,    32,    32,
-      43,    65,     0,    64,     0,     0,    55,     0,    15,     0,
-      21,     0,     0,    46,    62,     0,    61,    19,    30,    31,
-      44,    32,     0,    66,    47,    45
+      11,    12,     0,    13,     0,     0,    21,    29,     0,    17,
+       0,     0,     0,    21,     0,     0,    22,    23,     0,     0,
+      46,     0,     0,    34,     0,    30,    31,    33,    35,    36,
+      37,    38,    39,    58,    57,     0,    54,    55,    56,    20,
+      49,    50,    51,    16,    15,    14,     0,     0,     0,     0,
+       0,     0,    45,    47,    48,     0,    19,    32,    61,    61,
+       0,    26,    25,    29,    24,    29,    29,    40,    63,     0,
+      62,     0,    53,    52,     0,    18,     0,     0,    43,    60,
+       0,    59,    27,    28,    41,    29,     0,    64,    44,    42
     };
   }
 
@@ -965,10 +1042,10 @@ public class Parser
   {
     return new byte[]
     {
-     -82,   -82,   -82,    76,   -82,   -82,   -82,    67,   -82,   -82,
-     -82,   -82,    49,   -82,    13,   -82,   -82,   -81,   -82,    52,
-     -82,   -82,   -82,   -82,   -82,   -82,   -82,   -82,   -28,   -82,
-     -82,     5,   -45,   -82
+     -78,   -78,   -78,    70,   -78,   -78,   -78,    61,   -78,   -78,
+     -78,    44,   -78,     7,   -78,   -78,   -77,   -78,    38,   -78,
+     -78,   -78,   -78,   -78,   -78,   -78,   -78,   -28,   -78,   -78,
+      -1,     3,   -78
     };
   }
 
@@ -978,10 +1055,10 @@ public class Parser
   {
     return new byte[]
     {
-       0,     3,     4,     5,    11,    14,    19,    43,    66,    21,
-      22,    29,    35,    36,    37,   100,    23,    44,    45,    46,
-      47,    48,    49,    50,   112,    51,    73,    52,    91,    60,
-      61,    62,    92,    93
+       0,     3,     4,     5,    11,    14,    19,    43,    21,    22,
+      29,    35,    36,    37,    95,    23,    44,    45,    46,    47,
+      48,    49,    50,   106,    51,    72,    52,    88,    60,    61,
+      62,    89,    90
     };
   }
 
@@ -993,16 +1070,15 @@ public class Parser
   {
     return new byte[]
     {
-      59,     1,    63,    64,     1,   101,    88,   102,   103,    30,
-      71,    72,    74,    75,    27,    16,    89,     6,    38,    81,
-      39,     7,    10,    40,    41,    42,    31,    81,    12,    32,
-     114,    53,    28,     2,    13,    94,     8,    97,    26,    54,
-      55,    56,    57,    58,    15,    16,    17,    18,    90,    24,
-      25,    33,    34,    68,    65,    98,    76,    70,    69,    77,
-      86,    85,    95,   109,    79,    81,    80,    82,    83,    99,
-      84,   110,   108,   111,   105,   104,   115,   113,   106,   107,
-       9,    20,    67,    87,     0,     0,    96,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    78
+      59,     1,    63,    64,    65,     1,    96,    85,    97,    98,
+      70,    71,    73,    74,    30,    53,     7,    27,    86,     6,
+      80,    10,    12,    54,    55,    56,    57,    58,   108,    80,
+      13,    31,    24,     2,    32,    28,    16,     8,    25,    38,
+      26,    39,    68,    67,    40,    41,    42,    87,    15,    16,
+      17,    18,    34,    33,    69,    75,    76,    78,    79,    82,
+      80,    83,    81,    92,    94,    99,   100,   102,   103,   104,
+     109,   101,   107,   105,     9,    20,    84,    66,     0,    93,
+       0,     0,    91,    77
     };
   }
 
@@ -1011,16 +1087,15 @@ private static final byte[] yycheck_ = yycheck_init();
   {
     return new byte[]
     {
-      28,     3,    30,    31,     3,    86,    11,    88,    89,     5,
-      38,    39,    40,    41,     5,     7,    13,    18,    10,    24,
-      12,     0,     4,    15,    16,    17,    22,    24,    18,    25,
-     111,     9,    23,    35,     5,    80,    35,    82,    27,    17,
-      18,    19,    20,    21,     6,     7,     8,     9,    76,    17,
-      17,    27,    17,    25,    18,    83,    22,    26,    28,     6,
-       5,    18,    17,     6,    27,    24,    27,    27,    22,    25,
-      28,     6,    18,    14,    26,    28,     6,   105,    28,    28,
-       4,    14,    33,    70,    -1,    -1,    81,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    45
+      28,     3,    30,    31,    32,     3,    83,    11,    85,    86,
+      38,    39,    40,    41,     5,     9,     0,     5,    13,    18,
+      24,     4,    18,    17,    18,    19,    20,    21,   105,    24,
+       5,    22,    17,    35,    25,    23,     7,    35,    17,    10,
+      27,    12,    28,    25,    15,    16,    17,    75,     6,     7,
+       8,     9,    17,    27,    26,    22,     6,    27,    27,    18,
+      24,     5,    28,    17,    25,    28,    26,    18,     6,     6,
+       6,    28,   100,    14,     4,    14,    69,    33,    -1,    80,
+      -1,    -1,    79,    45
     };
   }
 
@@ -1033,16 +1108,15 @@ private static final byte[] yycheck_ = yycheck_init();
     {
        0,     3,    35,    37,    38,    39,    18,     0,    35,    39,
        4,    40,    18,     5,    41,     6,     7,     8,     9,    42,
-      43,    45,    46,    52,    17,    17,    27,     5,    23,    47,
-       5,    22,    25,    27,    17,    48,    49,    50,    10,    12,
-      15,    16,    17,    43,    53,    54,    55,    56,    57,    58,
-      59,    61,    63,     9,    17,    18,    19,    20,    21,    64,
-      65,    66,    67,    64,    64,    18,    44,    48,    25,    28,
-      26,    64,    64,    62,    64,    64,    22,     6,    55,    27,
-      27,    24,    27,    22,    28,    18,     5,    50,    11,    13,
-      64,    64,    68,    69,    68,    17,    67,    68,    64,    25,
-      51,    53,    53,    53,    28,    26,    28,    28,    18,     6,
-       6,    14,    60,    64,    53,     6
+      43,    44,    45,    51,    17,    17,    27,     5,    23,    46,
+       5,    22,    25,    27,    17,    47,    48,    49,    10,    12,
+      15,    16,    17,    43,    52,    53,    54,    55,    56,    57,
+      58,    60,    62,     9,    17,    18,    19,    20,    21,    63,
+      64,    65,    66,    63,    63,    63,    47,    25,    28,    26,
+      63,    63,    61,    63,    63,    22,     6,    54,    27,    27,
+      24,    28,    18,     5,    49,    11,    13,    63,    63,    67,
+      68,    67,    17,    66,    25,    50,    52,    52,    52,    28,
+      26,    28,    18,     6,     6,    14,    59,    63,    52,     6
     };
   }
 
@@ -1053,12 +1127,12 @@ private static final byte[] yycheck_ = yycheck_init();
     return new byte[]
     {
        0,    36,    37,    37,    38,    38,    39,    40,    40,    41,
-      41,    42,    42,    42,    43,    43,    43,    43,    44,    44,
-      45,    46,    47,    47,    48,    48,    49,    49,    50,    51,
-      51,    52,    53,    53,    54,    54,    55,    55,    56,    56,
-      56,    56,    56,    57,    58,    59,    60,    60,    61,    62,
-      62,    63,    64,    64,    64,    64,    65,    65,    65,    65,
-      65,    66,    67,    68,    68,    69,    69
+      41,    42,    42,    42,    43,    43,    43,    44,    45,    46,
+      46,    47,    47,    48,    48,    49,    50,    50,    51,    52,
+      52,    53,    53,    54,    54,    55,    55,    55,    55,    55,
+      56,    57,    58,    59,    59,    60,    61,    61,    62,    63,
+      63,    63,    63,    63,    64,    64,    64,    64,    64,    65,
+      66,    67,    67,    68,    68
     };
   }
 
@@ -1069,12 +1143,12 @@ private static final byte[] yycheck_ = yycheck_init();
     return new byte[]
     {
        0,     2,     1,     2,     1,     2,     6,     0,     2,     0,
-       2,     1,     1,     1,     4,     6,     4,     4,     1,     4,
-       2,     6,     3,     2,     0,     1,     1,     3,     3,     0,
-       2,     7,     0,     1,     1,     2,     1,     1,     1,     1,
-       1,     1,     1,     3,     5,     6,     0,     2,     2,     0,
-       1,     2,     1,     1,     1,     3,     1,     1,     1,     1,
-       1,     4,     4,     0,     1,     1,     3
+       2,     1,     1,     1,     4,     4,     4,     2,     6,     3,
+       2,     0,     1,     1,     3,     3,     0,     2,     7,     0,
+       1,     1,     2,     1,     1,     1,     1,     1,     1,     1,
+       3,     5,     6,     0,     2,     2,     0,     1,     2,     1,
+       1,     1,     3,     3,     1,     1,     1,     1,     1,     4,
+       4,     0,     1,     1,     3
     };
   }
 
@@ -1133,12 +1207,12 @@ private static final byte[] yycheck_ = yycheck_init();
   }
 
 
-  private static final int YYLAST_ = 97;
+  private static final int YYLAST_ = 83;
   private static final int YYEMPTY_ = -2;
   private static final int YYFINAL_ = 7;
   private static final int YYNTOKENS_ = 36;
 
 
 }
-/* "parser.y":193  */
+/* "parser.y":190  */
 

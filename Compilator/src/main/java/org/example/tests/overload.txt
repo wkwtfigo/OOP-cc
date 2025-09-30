@@ -4,6 +4,6 @@ class OverloadExample is
 
     this() is
         var a is 5  // 6
-        var b : Real(2.0)    // 2.5
+        var b : true   // 2.5
     end
 end

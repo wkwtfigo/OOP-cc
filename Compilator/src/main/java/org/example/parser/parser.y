@@ -1,6 +1,8 @@
 %language "Java"
 %define api.package "org.example.parser"
 %define api.parser.class {Parser}
+%define api.parser.public
+%define parse.error verbose
 %define api.value.type {Object}
 
 %token TOK_CLASS TOK_EXTENDS TOK_IS
@@ -33,7 +35,7 @@ program
 
 class_list
     : class_declaration
-    | class_list class_declaration
+    | class_list class_declaration 
     ;
 
 class_declaration
@@ -57,15 +59,9 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON type_expression
-    | TOK_VAR TOK_ID TOK_COLON type_expression TOK_ASSIGN expression
+    : TOK_VAR TOK_ID TOK_COLON expression
     | TOK_VAR TOK_ID TOK_ASSIGN expression
     | TOK_VAR TOK_ID TOK_IS expression
-    ;
-
-type_expression
-    : TOK_TYPE_ID
-    | TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR
     ;
 
 method_declaration
@@ -162,6 +158,7 @@ expression
     | constructor_invocation
     | method_invocation
     | expression TOK_DOT method_invocation
+    | expression TOK_DOT TOK_ID
     ;
 
 primary

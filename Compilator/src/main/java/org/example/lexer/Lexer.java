@@ -343,7 +343,7 @@ public class Lexer implements Parser.Lexer {
     @Override
     public int yylex() throws IOException {
         if (eofReturned) {
-            return Parser.Lexer.TOK_EOF;
+            return 0;
         }
 
         Token previous = this.currentToken;
@@ -353,19 +353,6 @@ public class Lexer implements Parser.Lexer {
         this.currentToken.setPreviousToken(previous);
     }
         int tokenCode = tokenTypeToCode(currentToken.getType());
-        
-
-        /*
-        
-         */
-        System.out.printf(
-            "yylex: %s (%s) at line %d, col %d [prev=%s]%n",
-            currentToken.getType(),
-            currentToken.getLexeme(),
-            currentToken.getLine(),
-            currentToken.getColumn(),
-            previous != null ? previous.getType() + "(" + previous.getLexeme() + ")" : "null"
-        );
 
         if (currentToken.getType() == TokenType.TOK_EOF) {
             eofReturned = true;
