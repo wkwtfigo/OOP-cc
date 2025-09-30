@@ -58,6 +58,9 @@ member_declaration
 
 variable_declaration
     : TOK_VAR TOK_ID TOK_COLON type_expression
+    | TOK_VAR TOK_ID TOK_COLON type_expression TOK_ASSIGN expression
+    | TOK_VAR TOK_ID TOK_ASSIGN expression
+    | TOK_VAR TOK_ID TOK_IS expression
     ;
 
 type_expression
