@@ -176,14 +176,25 @@ public class ASTPrinter implements ASTVisitor {
     
     @Override
     public void visit(AssignmentNode node) {
-        printWithIndent("Assignment: ", node.varName);
+        printWithIndent("Assignment:", "");
         indentLevel++;
-        if (node.expression != null) {
-            printWithIndent("Expression: ", "");
-            indentLevel++;
-            node.expression.accept(this);
-            indentLevel--;
+
+        // Левый операнд (может быть IdentifierNode или MemberAccessNode)
+        printWithIndent("Left:", "");
+        indentLevel++;
+        if (node.left != null) {
+            node.left.accept(this);
         }
+        indentLevel--;
+
+        // Правый операнд (выражение)
+        printWithIndent("Right:", "");
+        indentLevel++;
+        if (node.right != null) {
+            node.right.accept(this);
+        }
+        indentLevel--;
+
         indentLevel--;
     }
     

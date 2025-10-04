@@ -155,11 +155,11 @@ class BodyNode extends ASTNode {
 
 // Statements
 class AssignmentNode extends StatementNode {
-    public String varName;
-    public ExpressionNode expression;
-    public AssignmentNode(String name, ExpressionNode expr) { 
-        this.varName = name; 
-        this.expression = expr; 
+    public ExpressionNode left;   // левый операнд может быть IdentifierNode или MemberAccessNode
+    public ExpressionNode right;  // выражение справа
+    public AssignmentNode(ExpressionNode left, ExpressionNode right) { 
+        this.left = left; 
+        this.right = right; 
     }
 
     @Override

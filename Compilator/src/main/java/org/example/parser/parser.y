@@ -138,7 +138,13 @@ statement
     ;
 
 assignment
-    : TOK_ID TOK_ASSIGN expression { $$ = new AssignmentNode(((Token)$1).getLexeme(), (ExpressionNode)$3); }
+    : lvalue TOK_ASSIGN expression
+        { $$ = new AssignmentNode((ExpressionNode)$1, (ExpressionNode)$3); }
+    ;
+
+lvalue
+    : TOK_ID { $$ = new IdentifierNode(((Token)$1).getLexeme()); }
+    | lvalue TOK_DOT TOK_ID { $$ = new MemberAccessNode((ExpressionNode)$1, new IdentifierNode(((Token)$3).getLexeme())); }
     ;
 
 while_loop
