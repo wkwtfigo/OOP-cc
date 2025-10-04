@@ -3,7 +3,9 @@ package org.example.parser;
 import java.util.List;
 
 // Base nodes
-abstract class ASTNode {}
+abstract class ASTNode {
+    public abstract void accept(ASTVisitor visitor);
+}
 
 abstract class ExpressionNode extends ASTNode {}
 
@@ -17,6 +19,10 @@ abstract class MemberNode extends ASTNode {}
 class ProgramNode extends ASTNode {
     public List<ClassDeclNode> classes;
     public ProgramNode(List<ClassDeclNode> classes) { this.classes = classes; }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 // Class declaration
@@ -25,9 +31,13 @@ class ClassDeclNode extends MemberNode {
     public String extendsClass;
     public List<MemberNode> members;
     public ClassDeclNode(String name, String extendsClass, List<MemberNode> members) {
-        this.className = name; 
-        this.extendsClass = extendsClass; 
+        this.className = name;
+        this.extendsClass = extendsClass;
         this.members = members;
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -45,6 +55,10 @@ class VarDeclNode extends MemberNode implements BodyElementNode {
         this.initializer = init; 
         this.declType = declType;
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 // Method declaration
@@ -54,6 +68,10 @@ class MethodDeclNode extends MemberNode {
     public MethodDeclNode(MethodHeaderNode header, MethodBodyNode body) {
         this.header = header; 
         this.body = body;
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -65,6 +83,10 @@ class MethodHeaderNode extends ASTNode {
         this.methodName = name; 
         this.parameters = params; 
         this.returnType = returnType;
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -84,6 +106,11 @@ class MethodBodyNode extends ASTNode {
         this.arrowExpression = expr; 
         this.isArrow = isArrow; 
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 // Parameter declaration
@@ -93,6 +120,10 @@ class ParamDeclNode extends ASTNode {
     public ParamDeclNode(String name, String type) { 
         this.paramName = name; 
         this.paramType = type; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -104,6 +135,10 @@ class ConstructorDeclNode extends MemberNode {
         this.parameters = params; 
         this.body = body;
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 // Body and statements
@@ -111,6 +146,10 @@ class BodyNode extends ASTNode {
     public List<BodyElementNode> elements;
     public BodyNode(List<BodyElementNode> elements) { 
         this.elements = elements; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -122,6 +161,11 @@ class AssignmentNode extends StatementNode {
         this.varName = name; 
         this.expression = expr; 
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 class WhileLoopNode extends StatementNode {
@@ -130,6 +174,10 @@ class WhileLoopNode extends StatementNode {
     public WhileLoopNode(ExpressionNode cond, BodyNode body) { 
         this.condition = cond; 
         this.body = body; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -142,12 +190,21 @@ class IfStatementNode extends StatementNode {
         this.thenBody = thenBody; 
         this.elseBody = elseBody;
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 class ReturnNode extends StatementNode {
     public ExpressionNode expression;
     public ReturnNode(ExpressionNode expr) { 
-        this.expression = expr; 
+        this.expression = expr;
+
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -155,6 +212,10 @@ class PrintNode extends StatementNode {
     public ExpressionNode expression;
     public PrintNode(ExpressionNode expr) { 
         this.expression = expr; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -166,6 +227,10 @@ class MemberAccessNode extends ExpressionNode {
         this.target = target; 
         this.member = member;
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 class ConstructorInvocationNode extends ExpressionNode {
@@ -174,6 +239,10 @@ class ConstructorInvocationNode extends ExpressionNode {
     public ConstructorInvocationNode(String className, List<ExpressionNode> args) {
         this.className = className; 
         this.arguments = args;
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -184,6 +253,10 @@ class MethodInvocationNode extends ExpressionNode {
         this.target = target; 
         this.arguments = args;
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 // Primary expressions
@@ -192,14 +265,28 @@ class IdentifierNode extends ExpressionNode {
     public IdentifierNode(String name) { 
         this.name = name; 
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
-class ThisNode extends ExpressionNode {}
+class ThisNode extends ExpressionNode {
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+}
 
 class IntLiteralNode extends ExpressionNode {
     public Integer value;
-    public IntLiteralNode(Integer value) { 
+    public IntLiteralNode(Integer value) {
         this.value = value; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }
 
@@ -208,11 +295,19 @@ class RealLiteralNode extends ExpressionNode {
     public RealLiteralNode(Double value) { 
         this.value = value; 
     }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }
 
 class BoolLiteralNode extends ExpressionNode {
     public Boolean value;
     public BoolLiteralNode(Boolean value) { 
         this.value = value; 
+    }
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
     }
 }

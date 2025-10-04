@@ -423,6 +423,11 @@ public class Parser
    * The object doing lexical analysis for us.
    */
   private Lexer yylexer;
+  
+  /**
+   * The root node of the parsed AST.
+   */
+  private ProgramNode rootNode;
 
 
 
@@ -447,6 +452,12 @@ public class Parser
    * The number of syntax errors so far.
    */
   public final int getNumberOfErrors() { return yynerrs; }
+  
+  /**
+   * Get the root node of the parsed AST.
+   * @return the root ProgramNode, or null if parsing failed
+   */
+  public final ProgramNode getRootNode() { return rootNode; }
 
   /**
    * Print an error message via the lexer.
@@ -1091,7 +1102,20 @@ public class Parser
 
         /* Accept?  */
         if (yystate == YYFINAL_)
-          return true;
+          {
+            // Save the root node from the stack
+            // Search through the stack to find ProgramNode
+            if (yystack.height >= 0) {
+              for (int i = 0; i <= yystack.height; i++) {
+                Object value = yystack.valueAt(i);
+                if (value instanceof ProgramNode) {
+                  rootNode = (ProgramNode) value;
+                  break;
+                }
+              }
+            }
+            return true;
+          }
 
         /* Take a decision.  First try without lookahead.  */
         yyn = yypact_[yystate];
