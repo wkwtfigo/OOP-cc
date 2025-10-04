@@ -74,8 +74,11 @@ public class ASTPrinter implements ASTVisitor {
     public void visit(VarDeclNode node) {
         printWithIndent("VarDecl: ", node.varName);
         indentLevel++;
-        if (node.typeName != null) {
-            printWithIndent("Type: ", node.typeName);
+        if (node.type != null) {
+            printWithIndent("Type: ", "");
+            indentLevel++;
+            node.type.accept(this);  // рекурсивно печатаем TypeNode или GenericTypeNode
+            indentLevel--;
         }
         printWithIndent("DeclType: ", node.declType.toString());
         if (node.initializer != null) {
@@ -141,8 +144,13 @@ public class ASTPrinter implements ASTVisitor {
     
     @Override
     public void visit(ParamDeclNode node) {
-        printWithIndent("Param: ", node.paramName + " : " + node.paramType);
-    }
+        printWithIndent("Param: ", node.paramName + " : ");
+        indentLevel++;
+        if (node.paramType != null) {
+            node.paramType.accept(this);  // рекурсивно печатаем TypeNode или GenericTypeNode
+        }
+        indentLevel--;
+}
     
     @Override
     public void visit(ConstructorDeclNode node) {
@@ -197,6 +205,27 @@ public class ASTPrinter implements ASTVisitor {
 
         indentLevel--;
     }
+
+    @Override
+    public void visit(TypeNode node) {
+        printWithIndent("Type: ", node.name);
+    }
+
+    @Override
+    public void visit(GenericTypeNode node) {
+        printLine("GenericType: " + node.baseType);
+        indentLevel++;
+        if (node.parameter != null) {
+            printWithIndent("Parameter: ", "");
+            indentLevel++;
+            node.parameter.accept(this);
+            indentLevel--;
+        } else {
+            printWithIndent("Parameter: ", "null");
+        }
+        indentLevel--;
+    }
+
     
     @Override
     public void visit(WhileLoopNode node) {

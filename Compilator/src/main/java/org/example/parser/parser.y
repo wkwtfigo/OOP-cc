@@ -11,7 +11,7 @@ import org.example.lexer.Token;
 import org.example.parser.*;
 %}
 
-%token TOK_CLASS TOK_EXTENDS TOK_IS
+%token TOK_CLASS TOK_EXTENDS TOK_IS TOK_LIST TOK_ARRAY
 %token TOK_END TOK_VAR TOK_METHOD TOK_THIS
 %token TOK_WHILE TOK_LOOP TOK_IF TOK_THEN
 %token TOK_ELSE TOK_RETURN TOK_PRINT
@@ -66,9 +66,29 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.COLON); }
-    | TOK_VAR TOK_ID TOK_ASSIGN expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.ASSIGN); }
-    | TOK_VAR TOK_ID TOK_IS expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.IS); }
+    : TOK_VAR TOK_ID TOK_COLON type_name constructor_call_opt
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.COLON); }
+    | TOK_VAR TOK_ID TOK_ASSIGN type_name constructor_call_opt 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.ASSIGN); }
+    | TOK_VAR TOK_ID TOK_IS type_name constructor_call_opt 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.IS); }
+    | TOK_VAR TOK_ID TOK_COLON expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.COLON); }
+    | TOK_VAR TOK_ID TOK_ASSIGN expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.ASSIGN); }
+    | TOK_VAR TOK_ID TOK_IS expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.IS); }
+    ;
+
+constructor_call_opt
+    : /* empty */ { $$ = null; }
+    | TOK_LPAR argument_list_opt TOK_RPAR { $$ = new ConstructorInvocationNode(null, (List<ExpressionNode>)$2); }
+    ;
+
+type_name
+    : TOK_TYPE_ID                            { $$ = new TypeNode(((Token)$1).getLexeme()); }
+    | TOK_LIST TOK_LBRACK type_name TOK_RBRACK { $$ = new GenericTypeNode("List", (TypeNode)$3); }
+    | TOK_ARRAY TOK_LBRACK type_name TOK_RBRACK { $$ = new GenericTypeNode("Array", (TypeNode)$3); }
     ;
 
 method_declaration
@@ -99,7 +119,7 @@ parameter_list
     ;
 
 parameter_declaration
-    : TOK_ID TOK_COLON TOK_TYPE_ID { $$ = new ParamDeclNode(((Token)$1).getLexeme(), ((Token)$3).getLexeme()); }
+    : TOK_ID TOK_COLON type_name { $$ = new ParamDeclNode(((Token)$1).getLexeme(), (TypeNode)$3); }
     ;
 
 optional_return_type

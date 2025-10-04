@@ -24,4 +24,6 @@ public interface ASTVisitor {
   void visit(IntLiteralNode node);
   void visit(RealLiteralNode node);
   void visit(BoolLiteralNode node);
+  void visit(TypeNode node);
+  void visit(GenericTypeNode node);
 }

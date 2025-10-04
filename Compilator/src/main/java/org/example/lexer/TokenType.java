@@ -7,6 +7,8 @@ public enum TokenType {
     TOK_WHILE, TOK_LOOP, TOK_IF, TOK_THEN, 
     TOK_ELSE, TOK_RETURN, TOK_PRINT,
 
+    TOK_LIST, TOK_ARRAY,
+
     // Identifiers
     TOK_ID, // other 
     TOK_TYPE_ID, // Integer, Real, Boolean
