@@ -1,0 +1,34 @@
+class MethodExample is
+    var a : Integer(2)
+
+    method getA() : Integer => a
+
+    method incA() is 
+        a := a.Plus(1)
+    end
+
+    method add(x: Integer, y: Integer) : Integer => x.Plus(y)
+    method sub(x: Integer, y: Integer) : Integer => x.Minus(y)
+    method mul(x: Integer, y: Integer) : Integer => x.Mult(y)
+    method div(x: Integer, y: Integer) : Integer => x.Div(y)
+    method rem(x: Integer, y: Integer) : Integer => x.Rem(y)
+
+    this() is
+        a := Integer(2)
+    end
+end
+
+class Main is
+    this() is
+        var t : MethodExample()
+
+        t.incA()                  // a = 3
+        var r1 : t.getA()         // 3
+
+        var r2 : t.add(Integer(10), Integer(4))   // 14
+        var r3 : t.sub(Integer(10), Integer(4))   // 6
+        var r4 : t.mul(Integer(10), Integer(4))   // 40
+        var r5 : t.div(Integer(10), Integer(4))   // 2
+        var r6 : t.rem(Integer(10), Integer(4))   // 2
+    end
+end
