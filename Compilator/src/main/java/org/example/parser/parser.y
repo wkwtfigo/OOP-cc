@@ -8,6 +8,7 @@
 %{
 import java.util.*;
 import org.example.lexer.Token;
+import org.example.parser.*;
 %}
 
 %token TOK_CLASS TOK_EXTENDS TOK_IS
@@ -177,11 +178,11 @@ expression
     ;
 
 primary
-    : TOK_ID { $$ = new IdentifierNode(((Token)$1).getLexeme()); }
-    | TOK_INT_LIT { $$ = new IntLiteralNode((Integer)$1); }
-    | TOK_REAL_LIT { $$ = new RealLiteralNode((Double)$1); }
-    | TOK_BOOL_LIT { $$ = new BoolLiteralNode((Boolean)$1); }
-    | TOK_THIS { $$ = new ThisNode(); }
+    : TOK_ID        { $$ = new IdentifierNode(((Token)$1).getLexeme()); }
+    | TOK_INT_LIT   { $$ = new IntLiteralNode(Integer.parseInt(((Token)$1).getLexeme())); }
+    | TOK_REAL_LIT  { $$ = new RealLiteralNode(Double.parseDouble(((Token)$1).getLexeme())); }
+    | TOK_BOOL_LIT  { $$ = new BoolLiteralNode(Boolean.parseBoolean(((Token)$1).getLexeme())); }
+    | TOK_THIS      { $$ = new ThisNode(); }
     ;
 
 constructor_invocation
