@@ -8,7 +8,7 @@ import org.example.lexer.Lexer;
 
 public class test {
     public static void main(String[] args) throws IOException {
-      String code = Files.readString(Path.of("Compilator/src/main/java/org/example/tests/overload.txt"));
+      String code = Files.readString(Path.of("Compilator/src/main/java/org/example/tests/factorial.txt"));
       System.out.println("code = " + code);
       Lexer lexer = new Lexer(code);
       Parser parser = new Parser(lexer);

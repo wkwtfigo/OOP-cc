@@ -35,7 +35,7 @@ import org.example.parser.*;
 %%
 
 program
-    : TOK_EOF { $$ = new ProgramNode(null); }
+    : TOK_EOF { $$ = new ProgramNode(null);}
     | class_list TOK_EOF { $$ = new ProgramNode((List<ClassDeclNode>)$1); }
     ;
 
@@ -104,7 +104,7 @@ parameter_declaration
 
 optional_return_type
     : /* empty */ { $$ = null; }
-    | TOK_COLON TOK_TYPE_ID { $$ = ((Token)$2).getLexeme(); }
+    | TOK_COLON TOK_TYPE_ID { $$ = $2; }
     ;
 
 constructor_declaration

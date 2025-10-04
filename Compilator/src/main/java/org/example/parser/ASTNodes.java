@@ -7,7 +7,7 @@ abstract class ASTNode {}
 
 abstract class ExpressionNode extends ASTNode {}
 
-abstract class StatementNode extends ASTNode {}
+abstract class StatementNode extends ASTNode implements BodyElementNode {}
 
 interface BodyElementNode{}
 
