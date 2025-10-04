@@ -1,3 +1,0 @@
-class Base is
-  method foo(): Integer => Real(3.14)
-end

@@ -1,8 +1,0 @@
-// Должно работать:
-class MyClass is ... end      // MyClass -> TOK_TYPE_ID
-var x: MyClass              // MyClass -> TOK_TYPE_ID
-var y: Integer              // Integer -> TOK_TYPE_ID
-
-// Не должно ломать:
-class class                  // второе 'class' -> TOK_CLASS (ключевое слово)
-var z: UnknownType          // UnknownType -> TOK_ID (неизвестный тип)
