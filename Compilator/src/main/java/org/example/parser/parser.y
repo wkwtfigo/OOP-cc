@@ -32,13 +32,28 @@ import org.example.parser.*;
 
 %start program
 
+%code {
+  private ProgramNode rootNode;
+
+  public final ProgramNode getRootNode() { return rootNode; }
+}
+
 %%
 
 program
-    : TOK_EOF { $$ = new ProgramNode(null);}
-    | class_list TOK_EOF { $$ = new ProgramNode((List<ClassDeclNode>)$1); }
+    : class_list TOK_EOF
+        {
+          ProgramNode node = new ProgramNode((List<ClassDeclNode>)$1);
+          $$ = node;
+          rootNode = node;
+        }
+    | TOK_EOF
+        {
+          ProgramNode node = new ProgramNode(null);
+          $$ = node;
+          rootNode = node;
+        }
     ;
-
 class_list
     : class_declaration { $$ = new ArrayList<ClassDeclNode>(); ((List<ClassDeclNode>)$$).add((ClassDeclNode)$1); }
     | class_list class_declaration { ((List<ClassDeclNode>)$1).add((ClassDeclNode)$2); $$ = $1; }
