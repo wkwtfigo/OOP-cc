@@ -47,7 +47,6 @@ public class ASTTestRunner {
             System.err.println("Ошибка чтения файла: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("Ошибка: " + e.getMessage());
-            e.printStackTrace();
         }
     }
     

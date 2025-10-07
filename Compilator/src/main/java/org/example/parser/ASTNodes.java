@@ -271,6 +271,15 @@ class ConstructorInvocationNode extends ExpressionNode {
         this.className = className; 
         this.arguments = args;
     }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
     @Override
     public void accept(ASTVisitor visitor) {
         visitor.visit(this);
