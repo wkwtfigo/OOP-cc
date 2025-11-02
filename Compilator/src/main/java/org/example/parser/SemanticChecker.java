@@ -50,15 +50,17 @@ public class SemanticChecker implements ASTVisitor {
      */
     private static class VariableInfo {
         String name;
-        String typeName;
+        ASTNode type;  // Can be TypeNode or GenericTypeNode
         int declarationOrder;
         boolean isInitialized;
+        Integer arraySize;  // Size of array/list if determinable at compile time
         
-        VariableInfo(String name, String typeName, int order) {
+        VariableInfo(String name, ASTNode type, int order) {
             this.name = name;
-            this.typeName = typeName;
+            this.type = type;
             this.declarationOrder = order;
             this.isInitialized = false;
+            this.arraySize = null;
         }
     }
     
@@ -239,10 +241,66 @@ public class SemanticChecker implements ASTVisitor {
     
     /**
      * Extract array length from an expression (if it's a compile-time constant)
+     * Looks for patterns like:
+     * - List[Type](IntLiteral) - where IntLiteral is the size
+     * - List[Type](Integer(n)) - where Integer(n) is the size
+     * - Array[Type](IntLiteral) - where IntLiteral is the size
+     * - Array[Type](Integer(n)) - where Integer(n) is the size
+     * - variable identifier that was initialized with a known size
      */
     private Integer extractArrayLength(ExpressionNode expr) {
-        // If it's a constructor invocation like List[Integer](...), we might be able to determine length
-        // For now, return null to indicate we can't determine at compile time
+        // If it's an identifier, check if it's a variable with known array size
+        if (expr instanceof IdentifierNode) {
+            String varName = ((IdentifierNode) expr).name;
+            VariableInfo varInfo = lookupVariable(varName);
+            if (varInfo != null && varInfo.arraySize != null) {
+                return varInfo.arraySize;
+            }
+        }
+        
+        // If it's a constructor invocation like List[Type](size) or Array[Type](size)
+        if (expr instanceof ConstructorInvocationNode) {
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
+            // Check if arguments contain an integer value (IntLiteral or Integer(...))
+            if (cons.arguments != null && cons.arguments.size() > 0) {
+                ExpressionNode firstArg = cons.arguments.get(0);
+                return extractIntegerValue(firstArg);
+            }
+        }
+        
+        // If it's member access, try to get the target
+        if (expr instanceof MemberAccessNode) {
+            MemberAccessNode memberAccess = (MemberAccessNode) expr;
+            return extractArrayLength(memberAccess.target);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Extract integer value from an expression (if it's a compile-time constant)
+     * Supports:
+     * - IntLiteralNode (e.g., 12)
+     * - ConstructorInvocationNode with Integer (e.g., Integer(12))
+     */
+    private Integer extractIntegerValue(ExpressionNode expr) {
+        if (expr instanceof IntLiteralNode) {
+            return ((IntLiteralNode) expr).value;
+        }
+        
+        // Check for Integer(...) constructor
+        if (expr instanceof ConstructorInvocationNode) {
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
+            if ("Integer".equals(cons.className)) {
+                // Integer constructor should have one argument with an integer value
+                if (cons.arguments != null && cons.arguments.size() > 0) {
+                    ExpressionNode firstArg = cons.arguments.get(0);
+                    // Recursively extract value (supports nested Integer(Integer(...)) or IntLiteral)
+                    return extractIntegerValue(firstArg);
+                }
+            }
+        }
+        
         return null;
     }
     
@@ -250,10 +308,7 @@ public class SemanticChecker implements ASTVisitor {
      * Extract array index from an expression (if it's a compile-time constant)
      */
     private Integer extractConstantIndex(ExpressionNode expr) {
-        if (expr instanceof IntLiteralNode) {
-            return ((IntLiteralNode) expr).value;
-        }
-        return null;
+        return extractIntegerValue(expr);
     }
     
     /**
@@ -313,9 +368,20 @@ public class SemanticChecker implements ASTVisitor {
                     VarDeclNode varDecl = (VarDeclNode) member;
                     VariableInfo varInfo = new VariableInfo(
                         varDecl.varName, 
-                        varDecl.typeName, 
+                        varDecl.type, 
                         currentDeclarationOrder
                     );
+                    
+                    // Try to extract array size from initializer if it's List/Array with size
+                    // Supports both IntLiteral and Integer(...) constructors
+                    if (varDecl.initializer instanceof ConstructorInvocationNode) {
+                        ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
+                        if (cons.arguments != null && cons.arguments.size() > 0) {
+                            ExpressionNode firstArg = cons.arguments.get(0);
+                            varInfo.arraySize = extractIntegerValue(firstArg);
+                        }
+                    }
+                    
                     classInfo.fields.put(varDecl.varName, varInfo);
                     variableScopes.peek().put(varDecl.varName, varInfo);
                     declarationOrders.put(varDecl, currentDeclarationOrder);
@@ -420,9 +486,21 @@ public class SemanticChecker implements ASTVisitor {
                         VarDeclNode varDecl = (VarDeclNode) element;
                         VariableInfo varInfo = new VariableInfo(
                             varDecl.varName,
-                            varDecl.typeName,
+                            varDecl.type,
                             currentDeclarationOrder
                         );
+                        
+                        // Try to extract array size from initializer if it's List/Array with size
+                        if (varDecl.initializer instanceof ConstructorInvocationNode) {
+                            ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
+                            if (cons.arguments != null && cons.arguments.size() > 0) {
+                                ExpressionNode firstArg = cons.arguments.get(0);
+                                if (firstArg instanceof IntLiteralNode) {
+                                    varInfo.arraySize = ((IntLiteralNode) firstArg).value;
+                                }
+                            }
+                        }
+                        
                         variableScopes.peek().put(varDecl.varName, varInfo);
                         declarationOrders.put(varDecl, currentDeclarationOrder);
                         declarationOrders.put(varInfo, currentDeclarationOrder);
@@ -480,9 +558,21 @@ public class SemanticChecker implements ASTVisitor {
                         VarDeclNode varDecl = (VarDeclNode) element;
                         VariableInfo varInfo = new VariableInfo(
                             varDecl.varName,
-                            varDecl.typeName,
+                            varDecl.type,
                             currentDeclarationOrder
                         );
+                        
+                        // Try to extract array size from initializer if it's List/Array with size
+                        if (varDecl.initializer instanceof ConstructorInvocationNode) {
+                            ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
+                            if (cons.arguments != null && cons.arguments.size() > 0) {
+                                ExpressionNode firstArg = cons.arguments.get(0);
+                                if (firstArg instanceof IntLiteralNode) {
+                                    varInfo.arraySize = ((IntLiteralNode) firstArg).value;
+                                }
+                            }
+                        }
+                        
                         variableScopes.peek().put(varDecl.varName, varInfo);
                         declarationOrders.put(varDecl, currentDeclarationOrder);
                         declarationOrders.put(varInfo, currentDeclarationOrder);
@@ -518,13 +608,16 @@ public class SemanticChecker implements ASTVisitor {
     
     @Override
     public void visit(AssignmentNode node) {
-        // Check that variable is declared before assignment
-        checkVariableUsage(node.varName, node);
+        // Check left side (variable to assign to)
+        if (node.left != null) {
+            declarationOrders.put(node.left, currentDeclarationOrder++);
+            node.left.accept(this);
+        }
         
-        // Check expression
-        if (node.expression != null) {
-            declarationOrders.put(node.expression, currentDeclarationOrder++);
-            node.expression.accept(this);
+        // Check right side (expression to assign)
+        if (node.right != null) {
+            declarationOrders.put(node.right, currentDeclarationOrder++);
+            node.right.accept(this);
         }
     }
     
@@ -608,7 +701,13 @@ public class SemanticChecker implements ASTVisitor {
             // Check for array access pattern: arr.get(i) or similar
             if (methodInv.arguments != null && methodInv.arguments.size() == 1) {
                 ExpressionNode indexExpr = methodInv.arguments.get(0);
-                checkArrayBounds(node.target, indexExpr);
+                // Check if this is a get() method call
+                if (methodInv.target instanceof IdentifierNode) {
+                    String methodName = ((IdentifierNode) methodInv.target).name;
+                    if ("get".equals(methodName)) {
+                        checkArrayBounds(node.target, indexExpr);
+                    }
+                }
             }
         } else {
             // Other types - visit normally
@@ -693,6 +792,16 @@ public class SemanticChecker implements ASTVisitor {
     @Override
     public void visit(BoolLiteralNode node) {
         // Literals don't need checking
+    }
+
+    @Override
+    public void visit(TypeNode node) {
+
+    }
+
+    @Override
+    public void visit(GenericTypeNode node) {
+
     }
 }
 
