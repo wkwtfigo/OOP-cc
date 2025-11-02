@@ -46,15 +46,12 @@ public class test {
                     System.out.println("Семантических ошибок не найдено.");
 
                     System.out.println("=== Оптимизация ===");
-                    Optimizer optimizer = new Optimizer();
+                    checker.optimize(rootNode);
 
-                    optimizer.collectUsedIdentifiers(rootNode);
-                    ProgramNode optimizedRoot = (ProgramNode) optimizer.optimize(rootNode);
-
-                    System.out.println("=== AST после оптимизации ===");
-                    ASTPrinter optPrinter = new ASTPrinter();
-                    optimizedRoot.accept(optPrinter);
-                    System.out.println(optPrinter.getOutput());                    
+                    System.out.println("\n=== AST после оптимизаций ===");
+                    ASTPrinter optimizedPrinter = new ASTPrinter();
+                    rootNode.accept(optimizedPrinter);
+                    System.out.println(optimizedPrinter.getOutput());                
                 }
             } else {
                 System.out.println("Корневой узел AST не найден");
