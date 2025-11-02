@@ -12,6 +12,7 @@ public class Optimizer implements ASTVisitor {
 
     private Set<String> usedVars = new HashSet<>();
     private ASTNode result; // хранит результат после visit
+    private boolean isCollectingPhase = false;
 
     public ASTNode getResult() {
         return result;
@@ -21,13 +22,17 @@ public class Optimizer implements ASTVisitor {
     // Сбор используемых идентификаторов
     // ============================================================
     public void collectUsedIdentifiers(ASTNode node) {
+        isCollectingPhase = true;
+        usedVars.clear(); // Очищаем перед сбором
         if (node != null) node.accept(this);
+        isCollectingPhase = false;
     }
 
     // ============================================================
     // Оптимизация AST
     // ============================================================
     public ASTNode optimize(ASTNode node) {
+        isCollectingPhase = false;
         if (node != null) node.accept(this);
         return result;
     }
@@ -35,12 +40,21 @@ public class Optimizer implements ASTVisitor {
     // --------------------- Program ---------------------
     @Override
     public void visit(ProgramNode node) {
-        List<ClassDeclNode> newClasses = new ArrayList<>();
-        for (ClassDeclNode c : node.classes) {
-            c.accept(this);
-            newClasses.add((ClassDeclNode) result);
+        if (isCollectingPhase) {
+            // Фаза сбора: просто собираем идентификаторы
+            for (ClassDeclNode c : node.classes) {
+                c.accept(this);
+            }
+            result = node; // Не важно что возвращаем в фазе сбора
+        } else {
+            // Фаза оптимизации: создаем новые узлы
+            List<ClassDeclNode> newClasses = new ArrayList<>();
+            for (ClassDeclNode c : node.classes) {
+                c.accept(this);
+                newClasses.add((ClassDeclNode) result);
+            }
+            result = new ProgramNode(newClasses);
         }
-        result = new ProgramNode(newClasses);
     }
 
     // --------------------- Class ---------------------
@@ -57,21 +71,30 @@ public class Optimizer implements ASTVisitor {
     // --------------------- Variable ---------------------
     @Override
     public void visit(VarDeclNode node) {
-        if (!usedVars.contains(node.varName)) {
-            System.out.println("Removed unused variable: " + node.varName);
-            result = null;
-        } else {
-            ASTNode newType = null;
-            ExpressionNode newInit = null;
-            if (node.type != null) {
-                node.type.accept(this);
-                newType = result;
-            }
+        if (isCollectingPhase) {
+            // В фазе сбора: собираем идентификаторы из инициализатора
             if (node.initializer != null) {
                 node.initializer.accept(this);
-                newInit = (ExpressionNode) result;
             }
-            result = new VarDeclNode(node.varName, newType, newInit, node.declType);
+            result = node;
+        } else {
+            // В фазе оптимизации: удаляем неиспользуемые переменные
+            if (!usedVars.contains(node.varName)) {
+                System.out.println("Removed unused variable: " + node.varName);
+                result = null;
+            } else {
+                ASTNode newType = null;
+                ExpressionNode newInit = null;
+                if (node.type != null) {
+                    node.type.accept(this);
+                    newType = result;
+                }
+                if (node.initializer != null) {
+                    node.initializer.accept(this);
+                    newInit = (ExpressionNode) result;
+                }
+                result = new VarDeclNode(node.varName, newType, newInit, node.declType);
+            }
         }
     }
 
