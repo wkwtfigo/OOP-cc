@@ -11,7 +11,7 @@ import org.example.lexer.Token;
 import org.example.parser.*;
 %}
 
-%token TOK_CLASS TOK_EXTENDS TOK_IS
+%token TOK_CLASS TOK_EXTENDS TOK_IS TOK_LIST TOK_ARRAY
 %token TOK_END TOK_VAR TOK_METHOD TOK_THIS
 %token TOK_WHILE TOK_LOOP TOK_IF TOK_THEN
 %token TOK_ELSE TOK_RETURN TOK_PRINT
@@ -32,17 +32,41 @@ import org.example.parser.*;
 
 %start program
 
+%code {
+  private ProgramNode rootNode;
+
+  public final ProgramNode getRootNode() { return rootNode; }
+}
+
 %%
 
 program
-    : TOK_EOF { $$ = new ProgramNode(null);}
-    | class_list TOK_EOF { $$ = new ProgramNode((List<ClassDeclNode>)$1); }
+    : class_list TOK_EOF
+        {
+          ProgramNode node = new ProgramNode((List<ClassDeclNode>)$1);
+          $$ = node;
+          rootNode = node;
+        }
+    | TOK_EOF
+        {
+          ProgramNode node = new ProgramNode(null);
+          $$ = node;
+          rootNode = node;
+        }
     ;
 
 class_list
-    : class_declaration { $$ = new ArrayList<ClassDeclNode>(); ((List<ClassDeclNode>)$$).add((ClassDeclNode)$1); }
-    | class_list class_declaration { ((List<ClassDeclNode>)$1).add((ClassDeclNode)$2); $$ = $1; }
-    ;
+    : class_declaration
+        { 
+          List<ClassDeclNode> list = new ArrayList<>();
+          list.add((ClassDeclNode)$1);
+          $$ = list;
+        }
+    | class_list class_declaration
+        { 
+          ((List<ClassDeclNode>)$1).add((ClassDeclNode)$2);
+          $$ = $1;
+        }
 
 class_declaration
     : TOK_CLASS TOK_TYPE_ID optional_extends TOK_IS member_list TOK_END
@@ -56,8 +80,11 @@ optional_extends
 
 member_list
     : /* empty */ { $$ = new ArrayList<MemberNode>(); }
-    | member_list member_declaration { ((List<MemberNode>)$1).add((MemberNode)$2); $$ = $1; }
-    ;
+    | member_list member_declaration
+        {
+          ((List<MemberNode>)$1).add((MemberNode)$2);
+          $$ = $1;
+        }
 
 member_declaration
     : variable_declaration { $$ = (MemberNode)$1; } 
@@ -66,9 +93,67 @@ member_declaration
     ;
 
 variable_declaration
-    : TOK_VAR TOK_ID TOK_COLON expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.COLON); }
-    | TOK_VAR TOK_ID TOK_ASSIGN expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.ASSIGN); }
-    | TOK_VAR TOK_ID TOK_IS expression { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.IS); }
+    : TOK_VAR TOK_ID TOK_COLON type_name constructor_call_opt
+        { 
+          ASTNode typeNode = (ASTNode)$4;
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)$5;
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.COLON);
+        }
+    | TOK_VAR TOK_ID TOK_ASSIGN type_name constructor_call_opt
+        { 
+          ASTNode typeNode = (ASTNode)$4;
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)$5;
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.ASSIGN);
+        }
+    | TOK_VAR TOK_ID TOK_IS type_name constructor_call_opt
+        { 
+          ASTNode typeNode = (ASTNode)$4;
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)$5;
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          $$ = new VarDeclNode(((Token)$2).getLexeme(), (ASTNode)$4, (ExpressionNode)$5, VarDeclType.IS);
+        }
+    | TOK_VAR TOK_ID TOK_COLON expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.COLON); }
+    | TOK_VAR TOK_ID TOK_ASSIGN expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.ASSIGN); }
+    | TOK_VAR TOK_ID TOK_IS expression 
+        { $$ = new VarDeclNode(((Token)$2).getLexeme(), null, (ExpressionNode)$4, VarDeclType.IS); }
+
+constructor_call_opt
+    : /* empty */ { $$ = null; }
+    | TOK_LPAR argument_list_opt TOK_RPAR
+        { $$ = new ConstructorInvocationNode("__AUTO__", (List<ExpressionNode>)$2); }
+
+type_name
+    : TOK_TYPE_ID                            { $$ = new TypeNode(((Token)$1).getLexeme()); }
+    | TOK_LIST TOK_LBRACK type_name TOK_RBRACK { $$ = new GenericTypeNode("List", (TypeNode)$3); }
+    | TOK_ARRAY TOK_LBRACK type_name TOK_RBRACK { $$ = new GenericTypeNode("Array", (TypeNode)$3); }
     ;
 
 method_declaration
@@ -93,13 +178,19 @@ parameter_list_opt
 
 parameter_list
     : parameter_declaration
-        { $$ = new ArrayList<ParamDeclNode>(); ((List<ParamDeclNode>)$$).add((ParamDeclNode)$1); }
+        { 
+          List<ParamDeclNode> list = new ArrayList<>();
+          list.add((ParamDeclNode)$1);
+          $$ = list;
+        }
     | parameter_list TOK_COMMA parameter_declaration
-        { ((List<ParamDeclNode>)$1).add((ParamDeclNode)$3); $$ = $1; }
-    ;
+        {
+          ((List<ParamDeclNode>)$1).add((ParamDeclNode)$3);
+          $$ = $1;
+        }
 
 parameter_declaration
-    : TOK_ID TOK_COLON TOK_TYPE_ID { $$ = new ParamDeclNode(((Token)$1).getLexeme(), ((Token)$3).getLexeme()); }
+    : TOK_ID TOK_COLON type_name { $$ = new ParamDeclNode(((Token)$1).getLexeme(), (TypeNode)$3); }
     ;
 
 optional_return_type
@@ -119,10 +210,16 @@ body
 
 body_element_list
     : body_element
-        { $$ = new ArrayList<BodyElementNode>(); ((List<BodyElementNode>)$$).add((BodyElementNode)$1); }
+        { 
+          List<BodyElementNode> list = new ArrayList<>();
+          list.add((BodyElementNode)$1);
+          $$ = list;
+        }
     | body_element_list body_element
-        { ((List<BodyElementNode>)$1).add((BodyElementNode)$2); $$ = $1; }
-    ;
+        {
+          ((List<BodyElementNode>)$1).add((BodyElementNode)$2);
+          $$ = $1;
+        }
 
 body_element
     : statement { $$ = (BodyElementNode)$1; }
@@ -138,7 +235,13 @@ statement
     ;
 
 assignment
-    : TOK_ID TOK_ASSIGN expression { $$ = new AssignmentNode(((Token)$1).getLexeme(), (ExpressionNode)$3); }
+    : lvalue TOK_ASSIGN expression
+        { $$ = new AssignmentNode((ExpressionNode)$1, (ExpressionNode)$3); }
+    ;
+
+lvalue
+    : TOK_ID { $$ = new IdentifierNode(((Token)$1).getLexeme()); }
+    | lvalue TOK_DOT TOK_ID { $$ = new MemberAccessNode((ExpressionNode)$1, new IdentifierNode(((Token)$3).getLexeme())); }
     ;
 
 while_loop

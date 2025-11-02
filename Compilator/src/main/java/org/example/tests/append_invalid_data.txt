@@ -1,6 +1,6 @@
 class Test is 
-  this () is 
-    var l : List [Integer]
+  this() is 
+    var l : List[Integer]
     l := l.append(3.14)
   end
 end

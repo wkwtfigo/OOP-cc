@@ -46,13 +46,13 @@ enum VarDeclType { COLON, ASSIGN, IS }
 
 class VarDeclNode extends MemberNode implements BodyElementNode {
     public String varName;
-    public String typeName; // can be null
+    public ASTNode type;
     public ExpressionNode initializer;
     public VarDeclType declType;
-    public VarDeclNode(String name, String type, ExpressionNode init, VarDeclType declType) {
+    public VarDeclNode(String name, ASTNode type, ExpressionNode initializer, VarDeclType declType) {
         this.varName = name; 
-        this.typeName = type; 
-        this.initializer = init; 
+        this.type = type; 
+        this.initializer = initializer; 
         this.declType = declType;
     }
     @Override
@@ -116,11 +116,13 @@ class MethodBodyNode extends ASTNode {
 // Parameter declaration
 class ParamDeclNode extends ASTNode {
     public String paramName;
-    public String paramType;
-    public ParamDeclNode(String name, String type) { 
+    public ASTNode paramType; // TypeNode или GenericTypeNode
+
+    public ParamDeclNode(String name, ASTNode type) { 
         this.paramName = name; 
         this.paramType = type; 
     }
+
     @Override
     public void accept(ASTVisitor visitor) {
         visitor.visit(this);
@@ -153,13 +155,42 @@ class BodyNode extends ASTNode {
     }
 }
 
+class TypeNode extends ASTNode {
+    public String name;
+
+    public TypeNode(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+}
+
+class GenericTypeNode extends ASTNode {
+    public String baseType;     // "Array" или "List"
+    public TypeNode parameter;  // например, Integer
+
+    public GenericTypeNode(String baseType, TypeNode parameter) {
+        this.baseType = baseType;
+        this.parameter = parameter;
+    }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
+}
+
+
 // Statements
 class AssignmentNode extends StatementNode {
-    public String varName;
-    public ExpressionNode expression;
-    public AssignmentNode(String name, ExpressionNode expr) { 
-        this.varName = name; 
-        this.expression = expr; 
+    public ExpressionNode left;   // левый операнд может быть IdentifierNode или MemberAccessNode
+    public ExpressionNode right;  // выражение справа
+    public AssignmentNode(ExpressionNode left, ExpressionNode right) { 
+        this.left = left; 
+        this.right = right; 
     }
 
     @Override
@@ -240,6 +271,15 @@ class ConstructorInvocationNode extends ExpressionNode {
         this.className = className; 
         this.arguments = args;
     }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
     @Override
     public void accept(ASTVisitor visitor) {
         visitor.visit(this);

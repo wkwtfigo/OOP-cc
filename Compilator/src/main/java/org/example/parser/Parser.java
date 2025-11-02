@@ -92,69 +92,74 @@ public class Parser
     S_TOK_CLASS(3),                /* TOK_CLASS  */
     S_TOK_EXTENDS(4),              /* TOK_EXTENDS  */
     S_TOK_IS(5),                   /* TOK_IS  */
-    S_TOK_END(6),                  /* TOK_END  */
-    S_TOK_VAR(7),                  /* TOK_VAR  */
-    S_TOK_METHOD(8),               /* TOK_METHOD  */
-    S_TOK_THIS(9),                 /* TOK_THIS  */
-    S_TOK_WHILE(10),               /* TOK_WHILE  */
-    S_TOK_LOOP(11),                /* TOK_LOOP  */
-    S_TOK_IF(12),                  /* TOK_IF  */
-    S_TOK_THEN(13),                /* TOK_THEN  */
-    S_TOK_ELSE(14),                /* TOK_ELSE  */
-    S_TOK_RETURN(15),              /* TOK_RETURN  */
-    S_TOK_PRINT(16),               /* TOK_PRINT  */
-    S_TOK_ID(17),                  /* TOK_ID  */
-    S_TOK_TYPE_ID(18),             /* TOK_TYPE_ID  */
-    S_TOK_INT_LIT(19),             /* TOK_INT_LIT  */
-    S_TOK_REAL_LIT(20),            /* TOK_REAL_LIT  */
-    S_TOK_BOOL_LIT(21),            /* TOK_BOOL_LIT  */
-    S_TOK_ASSIGN(22),              /* TOK_ASSIGN  */
-    S_TOK_ARROW(23),               /* TOK_ARROW  */
-    S_TOK_DOT(24),                 /* TOK_DOT  */
-    S_TOK_COLON(25),               /* TOK_COLON  */
-    S_TOK_COMMA(26),               /* TOK_COMMA  */
-    S_TOK_LPAR(27),                /* TOK_LPAR  */
-    S_TOK_RPAR(28),                /* TOK_RPAR  */
-    S_TOK_LBRACK(29),              /* TOK_LBRACK  */
-    S_TOK_RBRACK(30),              /* TOK_RBRACK  */
-    S_TOK_LBRACE(31),              /* TOK_LBRACE  */
-    S_TOK_RBRACE(32),              /* TOK_RBRACE  */
-    S_TOK_LT(33),                  /* TOK_LT  */
-    S_TOK_RT(34),                  /* TOK_RT  */
-    S_TOK_EOF(35),                 /* TOK_EOF  */
-    S_YYACCEPT(36),                /* $accept  */
-    S_program(37),                 /* program  */
-    S_class_list(38),              /* class_list  */
-    S_class_declaration(39),       /* class_declaration  */
-    S_optional_extends(40),        /* optional_extends  */
-    S_member_list(41),             /* member_list  */
-    S_member_declaration(42),      /* member_declaration  */
-    S_variable_declaration(43),    /* variable_declaration  */
-    S_method_declaration(44),      /* method_declaration  */
-    S_method_header(45),           /* method_header  */
-    S_method_body(46),             /* method_body  */
-    S_parameter_list_opt(47),      /* parameter_list_opt  */
-    S_parameter_list(48),          /* parameter_list  */
-    S_parameter_declaration(49),   /* parameter_declaration  */
-    S_optional_return_type(50),    /* optional_return_type  */
-    S_constructor_declaration(51), /* constructor_declaration  */
-    S_body(52),                    /* body  */
-    S_body_element_list(53),       /* body_element_list  */
-    S_body_element(54),            /* body_element  */
-    S_statement(55),               /* statement  */
-    S_assignment(56),              /* assignment  */
-    S_while_loop(57),              /* while_loop  */
-    S_if_statement(58),            /* if_statement  */
-    S_optional_else(59),           /* optional_else  */
-    S_return_statement(60),        /* return_statement  */
-    S_return_expression_opt(61),   /* return_expression_opt  */
-    S_print_statement(62),         /* print_statement  */
-    S_expression(63),              /* expression  */
-    S_primary(64),                 /* primary  */
-    S_constructor_invocation(65),  /* constructor_invocation  */
-    S_method_invocation(66),       /* method_invocation  */
-    S_argument_list_opt(67),       /* argument_list_opt  */
-    S_argument_list(68);           /* argument_list  */
+    S_TOK_LIST(6),                 /* TOK_LIST  */
+    S_TOK_ARRAY(7),                /* TOK_ARRAY  */
+    S_TOK_END(8),                  /* TOK_END  */
+    S_TOK_VAR(9),                  /* TOK_VAR  */
+    S_TOK_METHOD(10),              /* TOK_METHOD  */
+    S_TOK_THIS(11),                /* TOK_THIS  */
+    S_TOK_WHILE(12),               /* TOK_WHILE  */
+    S_TOK_LOOP(13),                /* TOK_LOOP  */
+    S_TOK_IF(14),                  /* TOK_IF  */
+    S_TOK_THEN(15),                /* TOK_THEN  */
+    S_TOK_ELSE(16),                /* TOK_ELSE  */
+    S_TOK_RETURN(17),              /* TOK_RETURN  */
+    S_TOK_PRINT(18),               /* TOK_PRINT  */
+    S_TOK_ID(19),                  /* TOK_ID  */
+    S_TOK_TYPE_ID(20),             /* TOK_TYPE_ID  */
+    S_TOK_INT_LIT(21),             /* TOK_INT_LIT  */
+    S_TOK_REAL_LIT(22),            /* TOK_REAL_LIT  */
+    S_TOK_BOOL_LIT(23),            /* TOK_BOOL_LIT  */
+    S_TOK_ASSIGN(24),              /* TOK_ASSIGN  */
+    S_TOK_ARROW(25),               /* TOK_ARROW  */
+    S_TOK_DOT(26),                 /* TOK_DOT  */
+    S_TOK_COLON(27),               /* TOK_COLON  */
+    S_TOK_COMMA(28),               /* TOK_COMMA  */
+    S_TOK_LPAR(29),                /* TOK_LPAR  */
+    S_TOK_RPAR(30),                /* TOK_RPAR  */
+    S_TOK_LBRACK(31),              /* TOK_LBRACK  */
+    S_TOK_RBRACK(32),              /* TOK_RBRACK  */
+    S_TOK_LBRACE(33),              /* TOK_LBRACE  */
+    S_TOK_RBRACE(34),              /* TOK_RBRACE  */
+    S_TOK_LT(35),                  /* TOK_LT  */
+    S_TOK_RT(36),                  /* TOK_RT  */
+    S_TOK_EOF(37),                 /* TOK_EOF  */
+    S_YYACCEPT(38),                /* $accept  */
+    S_program(39),                 /* program  */
+    S_class_list(40),              /* class_list  */
+    S_class_declaration(41),       /* class_declaration  */
+    S_optional_extends(42),        /* optional_extends  */
+    S_member_list(43),             /* member_list  */
+    S_member_declaration(44),      /* member_declaration  */
+    S_variable_declaration(45),    /* variable_declaration  */
+    S_constructor_call_opt(46),    /* constructor_call_opt  */
+    S_type_name(47),               /* type_name  */
+    S_method_declaration(48),      /* method_declaration  */
+    S_method_header(49),           /* method_header  */
+    S_method_body(50),             /* method_body  */
+    S_parameter_list_opt(51),      /* parameter_list_opt  */
+    S_parameter_list(52),          /* parameter_list  */
+    S_parameter_declaration(53),   /* parameter_declaration  */
+    S_optional_return_type(54),    /* optional_return_type  */
+    S_constructor_declaration(55), /* constructor_declaration  */
+    S_body(56),                    /* body  */
+    S_body_element_list(57),       /* body_element_list  */
+    S_body_element(58),            /* body_element  */
+    S_statement(59),               /* statement  */
+    S_assignment(60),              /* assignment  */
+    S_lvalue(61),                  /* lvalue  */
+    S_while_loop(62),              /* while_loop  */
+    S_if_statement(63),            /* if_statement  */
+    S_optional_else(64),           /* optional_else  */
+    S_return_statement(65),        /* return_statement  */
+    S_return_expression_opt(66),   /* return_expression_opt  */
+    S_print_statement(67),         /* print_statement  */
+    S_expression(68),              /* expression  */
+    S_primary(69),                 /* primary  */
+    S_constructor_invocation(70),  /* constructor_invocation  */
+    S_method_invocation(71),       /* method_invocation  */
+    S_argument_list_opt(72),       /* argument_list_opt  */
+    S_argument_list(73);           /* argument_list  */
 
 
     private final int yycode_;
@@ -170,6 +175,8 @@ public class Parser
       SymbolKind.S_TOK_CLASS,
       SymbolKind.S_TOK_EXTENDS,
       SymbolKind.S_TOK_IS,
+      SymbolKind.S_TOK_LIST,
+      SymbolKind.S_TOK_ARRAY,
       SymbolKind.S_TOK_END,
       SymbolKind.S_TOK_VAR,
       SymbolKind.S_TOK_METHOD,
@@ -208,6 +215,8 @@ public class Parser
       SymbolKind.S_member_list,
       SymbolKind.S_member_declaration,
       SymbolKind.S_variable_declaration,
+      SymbolKind.S_constructor_call_opt,
+      SymbolKind.S_type_name,
       SymbolKind.S_method_declaration,
       SymbolKind.S_method_header,
       SymbolKind.S_method_body,
@@ -221,6 +230,7 @@ public class Parser
       SymbolKind.S_body_element,
       SymbolKind.S_statement,
       SymbolKind.S_assignment,
+      SymbolKind.S_lvalue,
       SymbolKind.S_while_loop,
       SymbolKind.S_if_statement,
       SymbolKind.S_optional_else,
@@ -283,18 +293,19 @@ public class Parser
     return new String[]
     {
   "\"end of file\"", "error", "\"invalid token\"", "TOK_CLASS",
-  "TOK_EXTENDS", "TOK_IS", "TOK_END", "TOK_VAR", "TOK_METHOD", "TOK_THIS",
-  "TOK_WHILE", "TOK_LOOP", "TOK_IF", "TOK_THEN", "TOK_ELSE", "TOK_RETURN",
-  "TOK_PRINT", "TOK_ID", "TOK_TYPE_ID", "TOK_INT_LIT", "TOK_REAL_LIT",
-  "TOK_BOOL_LIT", "TOK_ASSIGN", "TOK_ARROW", "TOK_DOT", "TOK_COLON",
-  "TOK_COMMA", "TOK_LPAR", "TOK_RPAR", "TOK_LBRACK", "TOK_RBRACK",
-  "TOK_LBRACE", "TOK_RBRACE", "TOK_LT", "TOK_RT", "TOK_EOF", "$accept",
-  "program", "class_list", "class_declaration", "optional_extends",
-  "member_list", "member_declaration", "variable_declaration",
-  "method_declaration", "method_header", "method_body",
+  "TOK_EXTENDS", "TOK_IS", "TOK_LIST", "TOK_ARRAY", "TOK_END", "TOK_VAR",
+  "TOK_METHOD", "TOK_THIS", "TOK_WHILE", "TOK_LOOP", "TOK_IF", "TOK_THEN",
+  "TOK_ELSE", "TOK_RETURN", "TOK_PRINT", "TOK_ID", "TOK_TYPE_ID",
+  "TOK_INT_LIT", "TOK_REAL_LIT", "TOK_BOOL_LIT", "TOK_ASSIGN", "TOK_ARROW",
+  "TOK_DOT", "TOK_COLON", "TOK_COMMA", "TOK_LPAR", "TOK_RPAR",
+  "TOK_LBRACK", "TOK_RBRACK", "TOK_LBRACE", "TOK_RBRACE", "TOK_LT",
+  "TOK_RT", "TOK_EOF", "$accept", "program", "class_list",
+  "class_declaration", "optional_extends", "member_list",
+  "member_declaration", "variable_declaration", "constructor_call_opt",
+  "type_name", "method_declaration", "method_header", "method_body",
   "parameter_list_opt", "parameter_list", "parameter_declaration",
   "optional_return_type", "constructor_declaration", "body",
-  "body_element_list", "body_element", "statement", "assignment",
+  "body_element_list", "body_element", "statement", "assignment", "lvalue",
   "while_loop", "if_statement", "optional_else", "return_statement",
   "return_expression_opt", "print_statement", "expression", "primary",
   "constructor_invocation", "method_invocation", "argument_list_opt",
@@ -328,66 +339,70 @@ public class Parser
     static final int TOK_EXTENDS = 259;
     /** Token TOK_IS, to be returned by the scanner.  */
     static final int TOK_IS = 260;
+    /** Token TOK_LIST, to be returned by the scanner.  */
+    static final int TOK_LIST = 261;
+    /** Token TOK_ARRAY, to be returned by the scanner.  */
+    static final int TOK_ARRAY = 262;
     /** Token TOK_END, to be returned by the scanner.  */
-    static final int TOK_END = 261;
+    static final int TOK_END = 263;
     /** Token TOK_VAR, to be returned by the scanner.  */
-    static final int TOK_VAR = 262;
+    static final int TOK_VAR = 264;
     /** Token TOK_METHOD, to be returned by the scanner.  */
-    static final int TOK_METHOD = 263;
+    static final int TOK_METHOD = 265;
     /** Token TOK_THIS, to be returned by the scanner.  */
-    static final int TOK_THIS = 264;
+    static final int TOK_THIS = 266;
     /** Token TOK_WHILE, to be returned by the scanner.  */
-    static final int TOK_WHILE = 265;
+    static final int TOK_WHILE = 267;
     /** Token TOK_LOOP, to be returned by the scanner.  */
-    static final int TOK_LOOP = 266;
+    static final int TOK_LOOP = 268;
     /** Token TOK_IF, to be returned by the scanner.  */
-    static final int TOK_IF = 267;
+    static final int TOK_IF = 269;
     /** Token TOK_THEN, to be returned by the scanner.  */
-    static final int TOK_THEN = 268;
+    static final int TOK_THEN = 270;
     /** Token TOK_ELSE, to be returned by the scanner.  */
-    static final int TOK_ELSE = 269;
+    static final int TOK_ELSE = 271;
     /** Token TOK_RETURN, to be returned by the scanner.  */
-    static final int TOK_RETURN = 270;
+    static final int TOK_RETURN = 272;
     /** Token TOK_PRINT, to be returned by the scanner.  */
-    static final int TOK_PRINT = 271;
+    static final int TOK_PRINT = 273;
     /** Token TOK_ID, to be returned by the scanner.  */
-    static final int TOK_ID = 272;
+    static final int TOK_ID = 274;
     /** Token TOK_TYPE_ID, to be returned by the scanner.  */
-    static final int TOK_TYPE_ID = 273;
+    static final int TOK_TYPE_ID = 275;
     /** Token TOK_INT_LIT, to be returned by the scanner.  */
-    static final int TOK_INT_LIT = 274;
+    static final int TOK_INT_LIT = 276;
     /** Token TOK_REAL_LIT, to be returned by the scanner.  */
-    static final int TOK_REAL_LIT = 275;
+    static final int TOK_REAL_LIT = 277;
     /** Token TOK_BOOL_LIT, to be returned by the scanner.  */
-    static final int TOK_BOOL_LIT = 276;
+    static final int TOK_BOOL_LIT = 278;
     /** Token TOK_ASSIGN, to be returned by the scanner.  */
-    static final int TOK_ASSIGN = 277;
+    static final int TOK_ASSIGN = 279;
     /** Token TOK_ARROW, to be returned by the scanner.  */
-    static final int TOK_ARROW = 278;
+    static final int TOK_ARROW = 280;
     /** Token TOK_DOT, to be returned by the scanner.  */
-    static final int TOK_DOT = 279;
+    static final int TOK_DOT = 281;
     /** Token TOK_COLON, to be returned by the scanner.  */
-    static final int TOK_COLON = 280;
+    static final int TOK_COLON = 282;
     /** Token TOK_COMMA, to be returned by the scanner.  */
-    static final int TOK_COMMA = 281;
+    static final int TOK_COMMA = 283;
     /** Token TOK_LPAR, to be returned by the scanner.  */
-    static final int TOK_LPAR = 282;
+    static final int TOK_LPAR = 284;
     /** Token TOK_RPAR, to be returned by the scanner.  */
-    static final int TOK_RPAR = 283;
+    static final int TOK_RPAR = 285;
     /** Token TOK_LBRACK, to be returned by the scanner.  */
-    static final int TOK_LBRACK = 284;
+    static final int TOK_LBRACK = 286;
     /** Token TOK_RBRACK, to be returned by the scanner.  */
-    static final int TOK_RBRACK = 285;
+    static final int TOK_RBRACK = 287;
     /** Token TOK_LBRACE, to be returned by the scanner.  */
-    static final int TOK_LBRACE = 286;
+    static final int TOK_LBRACE = 288;
     /** Token TOK_RBRACE, to be returned by the scanner.  */
-    static final int TOK_RBRACE = 287;
+    static final int TOK_RBRACE = 289;
     /** Token TOK_LT, to be returned by the scanner.  */
-    static final int TOK_LT = 288;
+    static final int TOK_LT = 290;
     /** Token TOK_RT, to be returned by the scanner.  */
-    static final int TOK_RT = 289;
+    static final int TOK_RT = 291;
     /** Token TOK_EOF, to be returned by the scanner.  */
-    static final int TOK_EOF = 290;
+    static final int TOK_EOF = 292;
 
     /** Deprecated, use YYEOF instead.  */
     public static final int EOF = YYEOF;
@@ -423,11 +438,6 @@ public class Parser
    * The object doing lexical analysis for us.
    */
   private Lexer yylexer;
-  
-  /**
-   * The root node of the parsed AST.
-   */
-  private ProgramNode rootNode;
 
 
 
@@ -452,12 +462,6 @@ public class Parser
    * The number of syntax errors so far.
    */
   public final int getNumberOfErrors() { return yynerrs; }
-  
-  /**
-   * Get the root node of the parsed AST.
-   * @return the root ProgramNode, or null if parsing failed
-   */
-  public final ProgramNode getRootNode() { return rootNode; }
 
   /**
    * Print an error message via the lexer.
@@ -596,449 +600,590 @@ public class Parser
 
     switch (yyn)
       {
-          case 2: /* program: TOK_EOF  */
+          case 2: /* program: class_list TOK_EOF  */
   if (yyn == 2)
-    /* "parser.y":38  */
-              { yyval = new ProgramNode(null);};
+    /* "parser.y":45  */
+        {
+          ProgramNode node = new ProgramNode((List<ClassDeclNode>)yystack.valueAt (1));
+          yyval = node;
+          rootNode = node;
+        };
   break;
 
 
-  case 3: /* program: class_list TOK_EOF  */
+  case 3: /* program: TOK_EOF  */
   if (yyn == 3)
-    /* "parser.y":39  */
-                         { yyval = new ProgramNode((List<ClassDeclNode>)yystack.valueAt (1)); };
+    /* "parser.y":51  */
+        {
+          ProgramNode node = new ProgramNode(null);
+          yyval = node;
+          rootNode = node;
+        };
   break;
 
 
   case 4: /* class_list: class_declaration  */
   if (yyn == 4)
-    /* "parser.y":43  */
-                        { yyval = new ArrayList<ClassDeclNode>(); ((List<ClassDeclNode>)yyval).add((ClassDeclNode)yystack.valueAt (0)); };
+    /* "parser.y":60  */
+        { 
+          List<ClassDeclNode> list = new ArrayList<>();
+          list.add((ClassDeclNode)yystack.valueAt (0));
+          yyval = list;
+        };
   break;
 
 
   case 5: /* class_list: class_list class_declaration  */
   if (yyn == 5)
-    /* "parser.y":44  */
-                                   { ((List<ClassDeclNode>)yystack.valueAt (1)).add((ClassDeclNode)yystack.valueAt (0)); yyval = yystack.valueAt (1); };
+    /* "parser.y":66  */
+        { 
+          ((List<ClassDeclNode>)yystack.valueAt (1)).add((ClassDeclNode)yystack.valueAt (0));
+          yyval = yystack.valueAt (1);
+        };
   break;
 
 
   case 6: /* class_declaration: TOK_CLASS TOK_TYPE_ID optional_extends TOK_IS member_list TOK_END  */
   if (yyn == 6)
-    /* "parser.y":49  */
+    /* "parser.y":73  */
         { yyval = new ClassDeclNode(((Token)yystack.valueAt (4)).getLexeme(), yystack.valueAt (3) == null ? null : (String)yystack.valueAt (3), (List<MemberNode>)yystack.valueAt (1)); };
   break;
 
 
   case 7: /* optional_extends: %empty  */
   if (yyn == 7)
-    /* "parser.y":53  */
+    /* "parser.y":77  */
                   { yyval = null; };
   break;
 
 
   case 8: /* optional_extends: TOK_EXTENDS TOK_TYPE_ID  */
   if (yyn == 8)
-    /* "parser.y":54  */
+    /* "parser.y":78  */
                               { yyval = ((Token)yystack.valueAt (0)).getLexeme(); };
   break;
 
 
   case 9: /* member_list: %empty  */
   if (yyn == 9)
-    /* "parser.y":58  */
+    /* "parser.y":82  */
                   { yyval = new ArrayList<MemberNode>(); };
   break;
 
 
   case 10: /* member_list: member_list member_declaration  */
   if (yyn == 10)
-    /* "parser.y":59  */
-                                     { ((List<MemberNode>)yystack.valueAt (1)).add((MemberNode)yystack.valueAt (0)); yyval = yystack.valueAt (1); };
+    /* "parser.y":84  */
+        {
+          ((List<MemberNode>)yystack.valueAt (1)).add((MemberNode)yystack.valueAt (0));
+          yyval = yystack.valueAt (1);
+        };
   break;
 
 
   case 11: /* member_declaration: variable_declaration  */
   if (yyn == 11)
-    /* "parser.y":63  */
+    /* "parser.y":90  */
                            { yyval = (MemberNode)yystack.valueAt (0); };
   break;
 
 
   case 12: /* member_declaration: method_declaration  */
   if (yyn == 12)
-    /* "parser.y":64  */
+    /* "parser.y":91  */
                          { yyval = (MemberNode)yystack.valueAt (0); };
   break;
 
 
   case 13: /* member_declaration: constructor_declaration  */
   if (yyn == 13)
-    /* "parser.y":65  */
+    /* "parser.y":92  */
                               { yyval = (MemberNode)yystack.valueAt (0); };
   break;
 
 
-  case 14: /* variable_declaration: TOK_VAR TOK_ID TOK_COLON expression  */
+  case 14: /* variable_declaration: TOK_VAR TOK_ID TOK_COLON type_name constructor_call_opt  */
   if (yyn == 14)
-    /* "parser.y":69  */
-                                          { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.COLON); };
+    /* "parser.y":97  */
+        { 
+          ASTNode typeNode = (ASTNode)yystack.valueAt (1);
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)yystack.valueAt (0);
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          yyval = new VarDeclNode(((Token)yystack.valueAt (3)).getLexeme(), (ASTNode)yystack.valueAt (1), (ExpressionNode)yystack.valueAt (0), VarDeclType.COLON);
+        };
   break;
 
 
-  case 15: /* variable_declaration: TOK_VAR TOK_ID TOK_ASSIGN expression  */
+  case 15: /* variable_declaration: TOK_VAR TOK_ID TOK_ASSIGN type_name constructor_call_opt  */
   if (yyn == 15)
-    /* "parser.y":70  */
-                                           { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.ASSIGN); };
+    /* "parser.y":112  */
+        { 
+          ASTNode typeNode = (ASTNode)yystack.valueAt (1);
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)yystack.valueAt (0);
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          yyval = new VarDeclNode(((Token)yystack.valueAt (3)).getLexeme(), (ASTNode)yystack.valueAt (1), (ExpressionNode)yystack.valueAt (0), VarDeclType.ASSIGN);
+        };
   break;
 
 
-  case 16: /* variable_declaration: TOK_VAR TOK_ID TOK_IS expression  */
+  case 16: /* variable_declaration: TOK_VAR TOK_ID TOK_IS type_name constructor_call_opt  */
   if (yyn == 16)
-    /* "parser.y":71  */
-                                       { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.IS); };
+    /* "parser.y":127  */
+        { 
+          ASTNode typeNode = (ASTNode)yystack.valueAt (1);
+          ConstructorInvocationNode cons = (ConstructorInvocationNode)yystack.valueAt (0);
+
+          if (cons != null && "__AUTO__".equals(cons.className)) {
+              if (typeNode instanceof TypeNode) {
+                  cons.className = ((TypeNode)typeNode).name;
+              } else if (typeNode instanceof GenericTypeNode) {
+                  cons.className = ((GenericTypeNode)typeNode).baseType;
+              }
+          }
+
+          yyval = new VarDeclNode(((Token)yystack.valueAt (3)).getLexeme(), (ASTNode)yystack.valueAt (1), (ExpressionNode)yystack.valueAt (0), VarDeclType.IS);
+        };
   break;
 
 
-  case 17: /* method_declaration: method_header method_body  */
+  case 17: /* variable_declaration: TOK_VAR TOK_ID TOK_COLON expression  */
   if (yyn == 17)
-    /* "parser.y":76  */
+    /* "parser.y":142  */
+        { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.COLON); };
+  break;
+
+
+  case 18: /* variable_declaration: TOK_VAR TOK_ID TOK_ASSIGN expression  */
+  if (yyn == 18)
+    /* "parser.y":144  */
+        { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.ASSIGN); };
+  break;
+
+
+  case 19: /* variable_declaration: TOK_VAR TOK_ID TOK_IS expression  */
+  if (yyn == 19)
+    /* "parser.y":146  */
+        { yyval = new VarDeclNode(((Token)yystack.valueAt (2)).getLexeme(), null, (ExpressionNode)yystack.valueAt (0), VarDeclType.IS); };
+  break;
+
+
+  case 20: /* constructor_call_opt: %empty  */
+  if (yyn == 20)
+    /* "parser.y":149  */
+                  { yyval = null; };
+  break;
+
+
+  case 21: /* constructor_call_opt: TOK_LPAR argument_list_opt TOK_RPAR  */
+  if (yyn == 21)
+    /* "parser.y":151  */
+        { yyval = new ConstructorInvocationNode("__AUTO__", (List<ExpressionNode>)yystack.valueAt (1)); };
+  break;
+
+
+  case 22: /* type_name: TOK_TYPE_ID  */
+  if (yyn == 22)
+    /* "parser.y":154  */
+                                             { yyval = new TypeNode(((Token)yystack.valueAt (0)).getLexeme()); };
+  break;
+
+
+  case 23: /* type_name: TOK_LIST TOK_LBRACK type_name TOK_RBRACK  */
+  if (yyn == 23)
+    /* "parser.y":155  */
+                                               { yyval = new GenericTypeNode("List", (TypeNode)yystack.valueAt (1)); };
+  break;
+
+
+  case 24: /* type_name: TOK_ARRAY TOK_LBRACK type_name TOK_RBRACK  */
+  if (yyn == 24)
+    /* "parser.y":156  */
+                                                { yyval = new GenericTypeNode("Array", (TypeNode)yystack.valueAt (1)); };
+  break;
+
+
+  case 25: /* method_declaration: method_header method_body  */
+  if (yyn == 25)
+    /* "parser.y":161  */
         { yyval = new MethodDeclNode((MethodHeaderNode)yystack.valueAt (1), (MethodBodyNode)yystack.valueAt (0)); };
   break;
 
 
-  case 18: /* method_header: TOK_METHOD TOK_ID TOK_LPAR parameter_list_opt TOK_RPAR optional_return_type  */
-  if (yyn == 18)
-    /* "parser.y":81  */
+  case 26: /* method_header: TOK_METHOD TOK_ID TOK_LPAR parameter_list_opt TOK_RPAR optional_return_type  */
+  if (yyn == 26)
+    /* "parser.y":166  */
       { yyval = new MethodHeaderNode(((Token)yystack.valueAt (4)).getLexeme(), (List<ParamDeclNode>)yystack.valueAt (2), yystack.valueAt (0) == null ? null : ((Token)yystack.valueAt (0)).getLexeme()); };
   break;
 
 
-  case 19: /* method_body: TOK_IS body TOK_END  */
-  if (yyn == 19)
-    /* "parser.y":85  */
+  case 27: /* method_body: TOK_IS body TOK_END  */
+  if (yyn == 27)
+    /* "parser.y":170  */
                           { yyval = new MethodBodyNode((BodyNode)yystack.valueAt (1), false); };
   break;
 
 
-  case 20: /* method_body: TOK_ARROW expression  */
-  if (yyn == 20)
-    /* "parser.y":86  */
+  case 28: /* method_body: TOK_ARROW expression  */
+  if (yyn == 28)
+    /* "parser.y":171  */
                            { yyval = new MethodBodyNode((ExpressionNode)yystack.valueAt (0), true); };
   break;
 
 
-  case 21: /* parameter_list_opt: %empty  */
-  if (yyn == 21)
-    /* "parser.y":90  */
+  case 29: /* parameter_list_opt: %empty  */
+  if (yyn == 29)
+    /* "parser.y":175  */
                   { yyval = new ArrayList<ParamDeclNode>(); };
   break;
 
 
-  case 22: /* parameter_list_opt: parameter_list  */
-  if (yyn == 22)
-    /* "parser.y":91  */
+  case 30: /* parameter_list_opt: parameter_list  */
+  if (yyn == 30)
+    /* "parser.y":176  */
                      { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 23: /* parameter_list: parameter_declaration  */
-  if (yyn == 23)
-    /* "parser.y":96  */
-        { yyval = new ArrayList<ParamDeclNode>(); ((List<ParamDeclNode>)yyval).add((ParamDeclNode)yystack.valueAt (0)); };
+  case 31: /* parameter_list: parameter_declaration  */
+  if (yyn == 31)
+    /* "parser.y":181  */
+        { 
+          List<ParamDeclNode> list = new ArrayList<>();
+          list.add((ParamDeclNode)yystack.valueAt (0));
+          yyval = list;
+        };
   break;
 
 
-  case 24: /* parameter_list: parameter_list TOK_COMMA parameter_declaration  */
-  if (yyn == 24)
-    /* "parser.y":98  */
-        { ((List<ParamDeclNode>)yystack.valueAt (2)).add((ParamDeclNode)yystack.valueAt (0)); yyval = yystack.valueAt (2); };
+  case 32: /* parameter_list: parameter_list TOK_COMMA parameter_declaration  */
+  if (yyn == 32)
+    /* "parser.y":187  */
+        {
+          ((List<ParamDeclNode>)yystack.valueAt (2)).add((ParamDeclNode)yystack.valueAt (0));
+          yyval = yystack.valueAt (2);
+        };
   break;
 
 
-  case 25: /* parameter_declaration: TOK_ID TOK_COLON TOK_TYPE_ID  */
-  if (yyn == 25)
-    /* "parser.y":102  */
-                                   { yyval = new ParamDeclNode(((Token)yystack.valueAt (2)).getLexeme(), ((Token)yystack.valueAt (0)).getLexeme()); };
+  case 33: /* parameter_declaration: TOK_ID TOK_COLON type_name  */
+  if (yyn == 33)
+    /* "parser.y":193  */
+                                 { yyval = new ParamDeclNode(((Token)yystack.valueAt (2)).getLexeme(), (TypeNode)yystack.valueAt (0)); };
   break;
 
 
-  case 26: /* optional_return_type: %empty  */
-  if (yyn == 26)
-    /* "parser.y":106  */
+  case 34: /* optional_return_type: %empty  */
+  if (yyn == 34)
+    /* "parser.y":197  */
                   { yyval = null; };
   break;
 
 
-  case 27: /* optional_return_type: TOK_COLON TOK_TYPE_ID  */
-  if (yyn == 27)
-    /* "parser.y":107  */
+  case 35: /* optional_return_type: TOK_COLON TOK_TYPE_ID  */
+  if (yyn == 35)
+    /* "parser.y":198  */
                             { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 28: /* constructor_declaration: TOK_THIS TOK_LPAR parameter_list_opt TOK_RPAR TOK_IS body TOK_END  */
-  if (yyn == 28)
-    /* "parser.y":112  */
+  case 36: /* constructor_declaration: TOK_THIS TOK_LPAR parameter_list_opt TOK_RPAR TOK_IS body TOK_END  */
+  if (yyn == 36)
+    /* "parser.y":203  */
         { yyval = new ConstructorDeclNode((List<ParamDeclNode>)yystack.valueAt (4), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
-  case 29: /* body: %empty  */
-  if (yyn == 29)
-    /* "parser.y":116  */
+  case 37: /* body: %empty  */
+  if (yyn == 37)
+    /* "parser.y":207  */
                   { yyval = new BodyNode(null); };
   break;
 
 
-  case 30: /* body: body_element_list  */
-  if (yyn == 30)
-    /* "parser.y":117  */
+  case 38: /* body: body_element_list  */
+  if (yyn == 38)
+    /* "parser.y":208  */
                         { yyval = new BodyNode((List<BodyElementNode>)yystack.valueAt (0)); };
   break;
 
 
-  case 31: /* body_element_list: body_element  */
-  if (yyn == 31)
-    /* "parser.y":122  */
-        { yyval = new ArrayList<BodyElementNode>(); ((List<BodyElementNode>)yyval).add((BodyElementNode)yystack.valueAt (0)); };
+  case 39: /* body_element_list: body_element  */
+  if (yyn == 39)
+    /* "parser.y":213  */
+        { 
+          List<BodyElementNode> list = new ArrayList<>();
+          list.add((BodyElementNode)yystack.valueAt (0));
+          yyval = list;
+        };
   break;
 
 
-  case 32: /* body_element_list: body_element_list body_element  */
-  if (yyn == 32)
-    /* "parser.y":124  */
-        { ((List<BodyElementNode>)yystack.valueAt (1)).add((BodyElementNode)yystack.valueAt (0)); yyval = yystack.valueAt (1); };
+  case 40: /* body_element_list: body_element_list body_element  */
+  if (yyn == 40)
+    /* "parser.y":219  */
+        {
+          ((List<BodyElementNode>)yystack.valueAt (1)).add((BodyElementNode)yystack.valueAt (0));
+          yyval = yystack.valueAt (1);
+        };
   break;
 
 
-  case 33: /* body_element: statement  */
-  if (yyn == 33)
-    /* "parser.y":128  */
+  case 41: /* body_element: statement  */
+  if (yyn == 41)
+    /* "parser.y":225  */
                 { yyval = (BodyElementNode)yystack.valueAt (0); };
   break;
 
 
-  case 34: /* body_element: variable_declaration  */
-  if (yyn == 34)
-    /* "parser.y":129  */
+  case 42: /* body_element: variable_declaration  */
+  if (yyn == 42)
+    /* "parser.y":226  */
                            { yyval = (BodyElementNode)yystack.valueAt (0); };
   break;
 
 
-  case 35: /* statement: assignment  */
-  if (yyn == 35)
-    /* "parser.y":133  */
+  case 43: /* statement: assignment  */
+  if (yyn == 43)
+    /* "parser.y":230  */
                  { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
-  case 36: /* statement: while_loop  */
-  if (yyn == 36)
-    /* "parser.y":134  */
+  case 44: /* statement: while_loop  */
+  if (yyn == 44)
+    /* "parser.y":231  */
                  { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
-  case 37: /* statement: if_statement  */
-  if (yyn == 37)
-    /* "parser.y":135  */
+  case 45: /* statement: if_statement  */
+  if (yyn == 45)
+    /* "parser.y":232  */
                    { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
-  case 38: /* statement: return_statement  */
-  if (yyn == 38)
-    /* "parser.y":136  */
+  case 46: /* statement: return_statement  */
+  if (yyn == 46)
+    /* "parser.y":233  */
                        { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
-  case 39: /* statement: print_statement  */
-  if (yyn == 39)
-    /* "parser.y":137  */
+  case 47: /* statement: print_statement  */
+  if (yyn == 47)
+    /* "parser.y":234  */
                       { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
-  case 40: /* assignment: TOK_ID TOK_ASSIGN expression  */
-  if (yyn == 40)
-    /* "parser.y":141  */
-                                   { yyval = new AssignmentNode(((Token)yystack.valueAt (2)).getLexeme(), (ExpressionNode)yystack.valueAt (0)); };
+  case 48: /* assignment: lvalue TOK_ASSIGN expression  */
+  if (yyn == 48)
+    /* "parser.y":239  */
+        { yyval = new AssignmentNode((ExpressionNode)yystack.valueAt (2), (ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
-  case 41: /* while_loop: TOK_WHILE expression TOK_LOOP body TOK_END  */
-  if (yyn == 41)
-    /* "parser.y":145  */
+  case 49: /* lvalue: TOK_ID  */
+  if (yyn == 49)
+    /* "parser.y":243  */
+             { yyval = new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme()); };
+  break;
+
+
+  case 50: /* lvalue: lvalue TOK_DOT TOK_ID  */
+  if (yyn == 50)
+    /* "parser.y":244  */
+                            { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme())); };
+  break;
+
+
+  case 51: /* while_loop: TOK_WHILE expression TOK_LOOP body TOK_END  */
+  if (yyn == 51)
+    /* "parser.y":248  */
                                                  { yyval = new WhileLoopNode((ExpressionNode)yystack.valueAt (3), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
-  case 42: /* if_statement: TOK_IF expression TOK_THEN body optional_else TOK_END  */
-  if (yyn == 42)
-    /* "parser.y":150  */
+  case 52: /* if_statement: TOK_IF expression TOK_THEN body optional_else TOK_END  */
+  if (yyn == 52)
+    /* "parser.y":253  */
         { yyval = new IfStatementNode((ExpressionNode)yystack.valueAt (4), (BodyNode)yystack.valueAt (2), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
-  case 43: /* optional_else: %empty  */
-  if (yyn == 43)
-    /* "parser.y":154  */
+  case 53: /* optional_else: %empty  */
+  if (yyn == 53)
+    /* "parser.y":257  */
                   { yyval = null; };
   break;
 
 
-  case 44: /* optional_else: TOK_ELSE body  */
-  if (yyn == 44)
-    /* "parser.y":155  */
+  case 54: /* optional_else: TOK_ELSE body  */
+  if (yyn == 54)
+    /* "parser.y":258  */
                     { yyval = (BodyNode)yystack.valueAt (0); };
   break;
 
 
-  case 45: /* return_statement: TOK_RETURN return_expression_opt  */
-  if (yyn == 45)
-    /* "parser.y":159  */
+  case 55: /* return_statement: TOK_RETURN return_expression_opt  */
+  if (yyn == 55)
+    /* "parser.y":262  */
                                        { yyval = new ReturnNode((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
-  case 46: /* return_expression_opt: %empty  */
-  if (yyn == 46)
-    /* "parser.y":163  */
+  case 56: /* return_expression_opt: %empty  */
+  if (yyn == 56)
+    /* "parser.y":266  */
                   { yyval = null; };
   break;
 
 
-  case 47: /* return_expression_opt: expression  */
-  if (yyn == 47)
-    /* "parser.y":164  */
+  case 57: /* return_expression_opt: expression  */
+  if (yyn == 57)
+    /* "parser.y":267  */
                  { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 48: /* print_statement: TOK_PRINT expression  */
-  if (yyn == 48)
-    /* "parser.y":168  */
+  case 58: /* print_statement: TOK_PRINT expression  */
+  if (yyn == 58)
+    /* "parser.y":271  */
                            { yyval = new PrintNode((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
-  case 49: /* expression: primary  */
-  if (yyn == 49)
-    /* "parser.y":172  */
+  case 59: /* expression: primary  */
+  if (yyn == 59)
+    /* "parser.y":275  */
               { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 50: /* expression: constructor_invocation  */
-  if (yyn == 50)
-    /* "parser.y":173  */
+  case 60: /* expression: constructor_invocation  */
+  if (yyn == 60)
+    /* "parser.y":276  */
                              { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 51: /* expression: method_invocation  */
-  if (yyn == 51)
-    /* "parser.y":174  */
+  case 61: /* expression: method_invocation  */
+  if (yyn == 61)
+    /* "parser.y":277  */
                         { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 52: /* expression: expression TOK_DOT method_invocation  */
-  if (yyn == 52)
-    /* "parser.y":176  */
+  case 62: /* expression: expression TOK_DOT method_invocation  */
+  if (yyn == 62)
+    /* "parser.y":279  */
         { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), (MethodInvocationNode)yystack.valueAt (0)); };
   break;
 
 
-  case 53: /* expression: expression TOK_DOT TOK_ID  */
-  if (yyn == 53)
-    /* "parser.y":177  */
+  case 63: /* expression: expression TOK_DOT TOK_ID  */
+  if (yyn == 63)
+    /* "parser.y":280  */
                                 { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
-  case 54: /* primary: TOK_ID  */
-  if (yyn == 54)
-    /* "parser.y":181  */
+  case 64: /* primary: TOK_ID  */
+  if (yyn == 64)
+    /* "parser.y":284  */
                     { yyval = new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme()); };
   break;
 
 
-  case 55: /* primary: TOK_INT_LIT  */
-  if (yyn == 55)
-    /* "parser.y":182  */
+  case 65: /* primary: TOK_INT_LIT  */
+  if (yyn == 65)
+    /* "parser.y":285  */
                     { yyval = new IntLiteralNode(Integer.parseInt(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
-  case 56: /* primary: TOK_REAL_LIT  */
-  if (yyn == 56)
-    /* "parser.y":183  */
+  case 66: /* primary: TOK_REAL_LIT  */
+  if (yyn == 66)
+    /* "parser.y":286  */
                     { yyval = new RealLiteralNode(Double.parseDouble(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
-  case 57: /* primary: TOK_BOOL_LIT  */
-  if (yyn == 57)
-    /* "parser.y":184  */
+  case 67: /* primary: TOK_BOOL_LIT  */
+  if (yyn == 67)
+    /* "parser.y":287  */
                     { yyval = new BoolLiteralNode(Boolean.parseBoolean(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
-  case 58: /* primary: TOK_THIS  */
-  if (yyn == 58)
-    /* "parser.y":185  */
+  case 68: /* primary: TOK_THIS  */
+  if (yyn == 68)
+    /* "parser.y":288  */
                     { yyval = new ThisNode(); };
   break;
 
 
-  case 59: /* constructor_invocation: TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR  */
-  if (yyn == 59)
-    /* "parser.y":190  */
+  case 69: /* constructor_invocation: TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR  */
+  if (yyn == 69)
+    /* "parser.y":293  */
         { yyval = new ConstructorInvocationNode(((Token)yystack.valueAt (3)).getLexeme(), (List<ExpressionNode>)yystack.valueAt (1)); };
   break;
 
 
-  case 60: /* method_invocation: TOK_ID TOK_LPAR argument_list_opt TOK_RPAR  */
-  if (yyn == 60)
-    /* "parser.y":195  */
+  case 70: /* method_invocation: TOK_ID TOK_LPAR argument_list_opt TOK_RPAR  */
+  if (yyn == 70)
+    /* "parser.y":298  */
         { yyval = new MethodInvocationNode(new IdentifierNode(((Token)yystack.valueAt (3)).getLexeme()), (List<ExpressionNode>)yystack.valueAt (1)); };
   break;
 
 
-  case 61: /* argument_list_opt: %empty  */
-  if (yyn == 61)
-    /* "parser.y":198  */
+  case 71: /* argument_list_opt: %empty  */
+  if (yyn == 71)
+    /* "parser.y":301  */
                   { yyval = new ArrayList<ExpressionNode>(); };
   break;
 
 
-  case 62: /* argument_list_opt: argument_list  */
-  if (yyn == 62)
-    /* "parser.y":199  */
+  case 72: /* argument_list_opt: argument_list  */
+  if (yyn == 72)
+    /* "parser.y":302  */
                     { yyval = yystack.valueAt (0); };
   break;
 
 
-  case 63: /* argument_list: expression  */
-  if (yyn == 63)
-    /* "parser.y":204  */
+  case 73: /* argument_list: expression  */
+  if (yyn == 73)
+    /* "parser.y":307  */
         { yyval = new ArrayList<ExpressionNode>(); ((List<ExpressionNode>)yyval).add((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
-  case 64: /* argument_list: argument_list TOK_COMMA expression  */
-  if (yyn == 64)
-    /* "parser.y":206  */
+  case 74: /* argument_list: argument_list TOK_COMMA expression  */
+  if (yyn == 74)
+    /* "parser.y":309  */
         { ((List<ExpressionNode>)yystack.valueAt (2)).add((ExpressionNode)yystack.valueAt (0)); yyval = yystack.valueAt (2); };
   break;
 
 
 
-/* "parser.java":1031  */
+/* "parser.java":1187  */
 
         default: break;
       }
@@ -1102,20 +1247,7 @@ public class Parser
 
         /* Accept?  */
         if (yystate == YYFINAL_)
-          {
-            // Save the root node from the stack
-            // Search through the stack to find ProgramNode
-            if (yystack.height >= 0) {
-              for (int i = 0; i <= yystack.height; i++) {
-                Object value = yystack.valueAt(i);
-                if (value instanceof ProgramNode) {
-                  rootNode = (ProgramNode) value;
-                  break;
-                }
-              }
-            }
-            return true;
-          }
+          return true;
 
         /* Take a decision.  First try without lookahead.  */
         yyn = yypact_[yystate];
@@ -1463,8 +1595,8 @@ public class Parser
     return yyvalue == yytable_ninf_;
   }
 
-  private static final byte yypact_ninf_ = -78;
-  private static final byte yytable_ninf_ = -1;
+  private static final byte yypact_ninf_ = -85;
+  private static final short yytable_ninf_ = -1;
 
 /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
    STATE-NUM.  */
@@ -1473,17 +1605,20 @@ public class Parser
   {
     return new byte[]
     {
-      -2,     1,   -78,    16,     2,   -78,    17,   -78,   -78,   -78,
-       4,    25,   -78,   -78,    42,   -78,    15,    21,    13,   -78,
-     -78,   -78,    12,   -78,     9,    26,    35,    29,     6,   -78,
-       6,     6,     6,    35,    18,    14,    28,   -78,     6,     6,
-       6,     6,    33,   -78,    50,    29,   -78,   -78,   -78,   -78,
-     -78,   -78,   -78,   -78,    30,    31,   -78,   -78,   -78,    36,
-     -78,   -78,   -78,    36,    36,    36,    34,    41,    56,    35,
-      -4,     5,   -78,    36,    36,     6,   -78,   -78,     6,     6,
-      46,    39,   -78,    29,   -78,    29,    29,    36,    36,    37,
-      40,    43,    30,   -78,    49,   -78,    62,    63,    59,   -78,
-       6,   -78,   -78,   -78,   -78,    29,    64,    36,   -78,   -78
+      -2,     8,   -85,    24,     4,   -85,    21,   -85,   -85,   -85,
+      12,    28,   -85,   -85,    65,   -85,    17,    27,    11,   -85,
+     -85,   -85,    13,   -85,     3,    18,    36,    53,    31,   -85,
+      38,    38,    38,    36,    39,    47,    40,   -85,    31,    31,
+      31,    31,   -85,   -85,    61,    53,   -85,   -85,   -85,     5,
+     -85,   -85,   -85,   -85,   -85,    49,    50,   -85,   -85,   -85,
+      54,   -85,   -85,   -85,    51,    52,    50,    55,    54,    55,
+      54,    55,    54,    56,    14,    76,    36,    -4,     0,   -85,
+      54,    54,   -85,   -85,    31,    66,    31,    31,    68,    14,
+      14,    31,   -85,   -85,   -85,    62,   -85,   -85,    53,   -85,
+      53,    53,    54,   -85,    54,    58,    64,    60,    49,   -85,
+      63,    67,    70,    73,   -85,    86,    88,    81,   -85,    31,
+     -85,   -85,   -85,   -85,   -85,   -85,   -85,    53,    90,    54,
+     -85,   -85
     };
   }
 
@@ -1495,17 +1630,20 @@ public class Parser
   {
     return new byte[]
     {
-       0,     0,     2,     0,     0,     4,     7,     1,     3,     5,
+       0,     0,     3,     0,     0,     4,     7,     1,     2,     5,
        0,     0,     8,     9,     0,     6,     0,     0,     0,    10,
-      11,    12,     0,    13,     0,     0,    21,    29,     0,    17,
-       0,     0,     0,    21,     0,     0,    22,    23,     0,     0,
-      46,     0,     0,    34,     0,    30,    31,    33,    35,    36,
-      37,    38,    39,    58,    54,     0,    55,    56,    57,    20,
-      49,    50,    51,    16,    15,    14,     0,     0,     0,     0,
-       0,     0,    45,    47,    48,     0,    19,    32,    61,    61,
-       0,    26,    25,    29,    24,    29,    29,    40,    63,     0,
-      62,     0,    53,    52,     0,    18,     0,     0,    43,    60,
-       0,    59,    27,    28,    41,    29,     0,    64,    44,    42
+      11,    12,     0,    13,     0,     0,    29,    37,     0,    25,
+       0,     0,     0,    29,     0,     0,    30,    31,     0,     0,
+      56,     0,    49,    42,     0,    38,    39,    41,    43,     0,
+      44,    45,    46,    47,    68,    64,     0,    65,    66,    67,
+      28,    59,    60,    61,     0,     0,    22,    20,    19,    20,
+      18,    20,    17,     0,     0,     0,     0,     0,     0,    55,
+      57,    58,    27,    40,     0,     0,    71,    71,     0,     0,
+       0,    71,    16,    15,    14,    34,    22,    33,    37,    32,
+      37,    37,    48,    50,    73,     0,    72,     0,    63,    62,
+       0,     0,     0,     0,    26,     0,     0,    53,    70,     0,
+      69,    23,    24,    21,    35,    36,    51,    37,     0,    74,
+      54,    52
     };
   }
 
@@ -1515,43 +1653,45 @@ public class Parser
   {
     return new byte[]
     {
-     -78,   -78,   -78,    70,   -78,   -78,   -78,    61,   -78,   -78,
-     -78,    44,   -78,     7,   -78,   -78,   -77,   -78,    38,   -78,
-     -78,   -78,   -78,   -78,   -78,   -78,   -78,   -28,   -78,   -78,
-      -1,     3,   -78
+     -85,   -85,   -85,    97,   -85,   -85,   -85,    89,   -32,   -26,
+     -85,   -85,   -85,    69,   -85,    29,   -85,   -85,   -84,   -85,
+      59,   -85,   -85,   -85,   -85,   -85,   -85,   -85,   -85,   -85,
+     -28,   -85,   -85,    19,   -68,   -85
     };
   }
 
 /* YYDEFGOTO[NTERM-NUM].  */
-  private static final byte[] yydefgoto_ = yydefgoto_init();
-  private static final byte[] yydefgoto_init()
+  private static final short[] yydefgoto_ = yydefgoto_init();
+  private static final short[] yydefgoto_init()
   {
-    return new byte[]
+    return new short[]
     {
-       0,     3,     4,     5,    11,    14,    19,    43,    21,    22,
-      29,    35,    36,    37,    95,    23,    44,    45,    46,    47,
-      48,    49,    50,   106,    51,    72,    52,    88,    60,    61,
-      62,    89,    90
+       0,     3,     4,     5,    11,    14,    19,    43,    92,    67,
+      21,    22,    29,    35,    36,    37,   114,    23,    44,    45,
+      46,    47,    48,    49,    50,    51,   128,    52,    79,    53,
+     104,    61,    62,    63,   105,   106
     };
   }
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
    positive, shift that token.  If negative, reduce the rule whose
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
-  private static final byte[] yytable_ = yytable_init();
-  private static final byte[] yytable_init()
+  private static final short[] yytable_ = yytable_init();
+  private static final short[] yytable_init()
   {
-    return new byte[]
+    return new short[]
     {
-      59,     1,    63,    64,    65,     1,    96,    85,    97,    98,
-      70,    71,    73,    74,    30,    53,     7,    27,    86,     6,
-      80,    10,    12,    54,    55,    56,    57,    58,   108,    80,
-      13,    31,    24,     2,    32,    28,    16,     8,    25,    38,
-      26,    39,    68,    67,    40,    41,    42,    87,    15,    16,
-      17,    18,    34,    33,    69,    75,    76,    78,    79,    82,
-      80,    83,    81,    92,    94,    99,   100,   102,   103,   104,
-     109,   101,   107,   105,     9,    20,    84,    66,     0,    93,
-       0,     0,    91,    77
+      60,     1,    68,    70,    72,    69,    71,     1,    30,   100,
+      77,    78,    80,    81,   115,   101,   116,   117,    27,   107,
+      64,    65,    88,   112,     7,    10,    88,    31,     6,    84,
+      32,    85,    12,    13,    96,     2,    24,    93,    28,    94,
+      26,     8,    54,   130,    64,    65,    25,    33,    97,    54,
+      55,    56,    57,    58,    59,    34,   102,    55,    66,    57,
+      58,    59,    16,   110,   111,    38,    74,    39,    76,    82,
+      40,    41,    42,    15,    16,    17,    18,    75,    86,    87,
+      88,    98,    89,    90,    91,   103,    95,   108,   118,   113,
+     120,   129,   119,   124,   125,   121,   126,   127,   131,   122,
+     123,     9,    73,    20,    83,    99,     0,   109
     };
   }
 
@@ -1560,15 +1700,17 @@ private static final byte[] yycheck_ = yycheck_init();
   {
     return new byte[]
     {
-      28,     3,    30,    31,    32,     3,    83,    11,    85,    86,
-      38,    39,    40,    41,     5,     9,     0,     5,    13,    18,
-      24,     4,    18,    17,    18,    19,    20,    21,   105,    24,
-       5,    22,    17,    35,    25,    23,     7,    35,    17,    10,
-      27,    12,    28,    25,    15,    16,    17,    75,     6,     7,
-       8,     9,    17,    27,    26,    22,     6,    27,    27,    18,
-      24,     5,    28,    17,    25,    28,    26,    18,     6,     6,
-       6,    28,   100,    14,     4,    14,    69,    33,    -1,    80,
-      -1,    -1,    79,    45
+      28,     3,    30,    31,    32,    31,    32,     3,     5,    13,
+      38,    39,    40,    41,    98,    15,   100,   101,     5,    87,
+       6,     7,    26,    91,     0,     4,    26,    24,    20,    24,
+      27,    26,    20,     5,    20,    37,    19,    69,    25,    71,
+      29,    37,    11,   127,     6,     7,    19,    29,    74,    11,
+      19,    20,    21,    22,    23,    19,    84,    19,    20,    21,
+      22,    23,     9,    89,    90,    12,    27,    14,    28,     8,
+      17,    18,    19,     8,     9,    10,    11,    30,    29,    29,
+      26,     5,    31,    31,    29,    19,    30,    19,    30,    27,
+      30,   119,    28,    20,     8,    32,     8,    16,     8,    32,
+      30,     4,    33,    14,    45,    76,    -1,    88
     };
   }
 
@@ -1579,17 +1721,20 @@ private static final byte[] yycheck_ = yycheck_init();
   {
     return new byte[]
     {
-       0,     3,    35,    37,    38,    39,    18,     0,    35,    39,
-       4,    40,    18,     5,    41,     6,     7,     8,     9,    42,
-      43,    44,    45,    51,    17,    17,    27,     5,    23,    46,
-       5,    22,    25,    27,    17,    47,    48,    49,    10,    12,
-      15,    16,    17,    43,    52,    53,    54,    55,    56,    57,
-      58,    60,    62,     9,    17,    18,    19,    20,    21,    63,
-      64,    65,    66,    63,    63,    63,    47,    25,    28,    26,
-      63,    63,    61,    63,    63,    22,     6,    54,    27,    27,
-      24,    28,    18,     5,    49,    11,    13,    63,    63,    67,
-      68,    67,    17,    66,    25,    50,    52,    52,    52,    28,
-      26,    28,    18,     6,     6,    14,    59,    63,    52,     6
+       0,     3,    37,    39,    40,    41,    20,     0,    37,    41,
+       4,    42,    20,     5,    43,     8,     9,    10,    11,    44,
+      45,    48,    49,    55,    19,    19,    29,     5,    25,    50,
+       5,    24,    27,    29,    19,    51,    52,    53,    12,    14,
+      17,    18,    19,    45,    56,    57,    58,    59,    60,    61,
+      62,    63,    65,    67,    11,    19,    20,    21,    22,    23,
+      68,    69,    70,    71,     6,     7,    20,    47,    68,    47,
+      68,    47,    68,    51,    27,    30,    28,    68,    68,    66,
+      68,    68,     8,    58,    24,    26,    29,    29,    26,    31,
+      31,    29,    46,    46,    46,    30,    20,    47,     5,    53,
+      13,    15,    68,    19,    68,    72,    73,    72,    19,    71,
+      47,    47,    72,    27,    54,    56,    56,    56,    30,    28,
+      30,    32,    32,    30,    20,     8,     8,    16,    64,    68,
+      56,     8
     };
   }
 
@@ -1599,13 +1744,14 @@ private static final byte[] yycheck_ = yycheck_init();
   {
     return new byte[]
     {
-       0,    36,    37,    37,    38,    38,    39,    40,    40,    41,
-      41,    42,    42,    42,    43,    43,    43,    44,    45,    46,
-      46,    47,    47,    48,    48,    49,    50,    50,    51,    52,
-      52,    53,    53,    54,    54,    55,    55,    55,    55,    55,
-      56,    57,    58,    59,    59,    60,    61,    61,    62,    63,
-      63,    63,    63,    63,    64,    64,    64,    64,    64,    65,
-      66,    67,    67,    68,    68
+       0,    38,    39,    39,    40,    40,    41,    42,    42,    43,
+      43,    44,    44,    44,    45,    45,    45,    45,    45,    45,
+      46,    46,    47,    47,    47,    48,    49,    50,    50,    51,
+      51,    52,    52,    53,    54,    54,    55,    56,    56,    57,
+      57,    58,    58,    59,    59,    59,    59,    59,    60,    61,
+      61,    62,    63,    64,    64,    65,    66,    66,    67,    68,
+      68,    68,    68,    68,    69,    69,    69,    69,    69,    70,
+      71,    72,    72,    73,    73
     };
   }
 
@@ -1615,10 +1761,11 @@ private static final byte[] yycheck_ = yycheck_init();
   {
     return new byte[]
     {
-       0,     2,     1,     2,     1,     2,     6,     0,     2,     0,
-       2,     1,     1,     1,     4,     4,     4,     2,     6,     3,
-       2,     0,     1,     1,     3,     3,     0,     2,     7,     0,
-       1,     1,     2,     1,     1,     1,     1,     1,     1,     1,
+       0,     2,     2,     1,     1,     2,     6,     0,     2,     0,
+       2,     1,     1,     1,     5,     5,     5,     4,     4,     4,
+       0,     3,     1,     4,     4,     2,     6,     3,     2,     0,
+       1,     1,     3,     3,     0,     2,     7,     0,     1,     1,
+       2,     1,     1,     1,     1,     1,     1,     1,     3,     1,
        3,     5,     6,     0,     2,     2,     0,     1,     2,     1,
        1,     1,     3,     3,     1,     1,     1,     1,     1,     4,
        4,     0,     1,     1,     3
@@ -1633,7 +1780,7 @@ private static final byte[] yycheck_ = yycheck_init();
   private static final SymbolKind yytranslate_(int t)
   {
     // Last valid token kind.
-    int code_max = 290;
+    int code_max = 292;
     if (t <= 0)
       return SymbolKind.S_YYEOF;
     else if (t <= code_max)
@@ -1675,17 +1822,25 @@ private static final byte[] yycheck_ = yycheck_init();
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
-      35
+      35,    36,    37
     };
   }
 
 
-  private static final int YYLAST_ = 83;
+  private static final int YYLAST_ = 107;
   private static final int YYEMPTY_ = -2;
   private static final int YYFINAL_ = 7;
-  private static final int YYNTOKENS_ = 36;
+  private static final int YYNTOKENS_ = 38;
 
+/* Unqualified %code blocks.  */
+/* "parser.y":35  */
+
+  private ProgramNode rootNode;
+
+  public final ProgramNode getRootNode() { return rootNode; }
+
+/* "parser.java":1843  */
 
 }
-/* "parser.y":209  */
+/* "parser.y":312  */
 

@@ -28,6 +28,8 @@ public class Lexer implements Parser.Lexer {
      */
     private int tokenTypeToCode(TokenType type) {
         return switch (type) {
+            case TOK_LIST -> Parser.Lexer.TOK_LIST;
+            case TOK_ARRAY -> Parser.Lexer.TOK_ARRAY;
             case TOK_CLASS -> Parser.Lexer.TOK_CLASS;
             case TOK_EXTENDS -> Parser.Lexer.TOK_EXTENDS;
             case TOK_IS -> Parser.Lexer.TOK_IS;
@@ -84,7 +86,9 @@ public class Lexer implements Parser.Lexer {
             Map.entry("return", TokenType.TOK_RETURN),
             Map.entry("true", TokenType.TOK_BOOL_LIT),
             Map.entry("false", TokenType.TOK_BOOL_LIT),
-            Map.entry("print", TokenType.TOK_PRINT)
+            Map.entry("print", TokenType.TOK_PRINT),
+            Map.entry("List", TokenType.TOK_LIST),
+            Map.entry("Array", TokenType.TOK_ARRAY)
     );
 
     // Built-in type identifiers
