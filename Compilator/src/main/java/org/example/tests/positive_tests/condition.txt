@@ -1,4 +1,4 @@
-class ConditionExample is
+class ConditionExample  is
     this() is
         var a : Integer(3)
         if a.Greater(Integer(2)) then

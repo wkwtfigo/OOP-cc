@@ -22,7 +22,6 @@ class Main is
     this() is
         var t : MethodExample()
 
-        t.incA()                  // a = 3
         var r1 : t.getA()         // 3
 
         var r2 : t.add(Integer(10), Integer(4))   // 14
