@@ -9,7 +9,10 @@ import org.example.lexer.Lexer;
 public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
-        String code = Files.readString(Path.of("Compilator/src/main/java/org/example/tests/loop.txt"));
+        String code = Files.readString(Path.of("/Users/azizvundirov/Projects" +
+                "/OOP-cc/Compilator/src/main/java/org/example/tests" +
+                "/constructor" +
+                ".txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -25,7 +28,7 @@ public class test {
         System.out.println("Ошибок: " + parser.getNumberOfErrors());
         System.out.println();
         
-        // Если парсинг успешен, выводим AST
+        // Если парсинг успешен, выводим AST и выполняем семантическую проверку
         if (parseResult) {
             System.out.println("=== AST ===");
             ProgramNode rootNode = parser.getRootNode();
@@ -33,6 +36,18 @@ public class test {
                 ASTPrinter printer = new ASTPrinter();
                 rootNode.accept(printer);
                 System.out.println(printer.getOutput());
+                
+                // Выполняем семантическую проверку
+                System.out.println("=== Семантическая проверка ===");
+                SemanticChecker checker = new SemanticChecker();
+                rootNode.accept(checker);
+                
+                if (checker.getErrorCount() > 0) {
+                    System.out.println("Найдено ошибок: " + checker.getErrorCount());
+                    checker.printErrors();
+                } else {
+                    System.out.println("Семантических ошибок не найдено.");
+                }
             } else {
                 System.out.println("Корневой узел AST не найден");
             }
