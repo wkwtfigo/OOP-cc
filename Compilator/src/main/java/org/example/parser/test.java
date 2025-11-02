@@ -9,10 +9,7 @@ import org.example.lexer.Lexer;
 public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
-        String code = Files.readString(Path.of("/Users/azizvundirov/Projects" +
-                "/OOP-cc/Compilator/src/main/java/org/example/tests" +
-                "/constructor" +
-                ".txt"));
+        String code = Files.readString(Path.of("Compilator\\src\\main\\java\\org\\example\\tests\\loop.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -47,6 +44,14 @@ public class test {
                     checker.printErrors();
                 } else {
                     System.out.println("Семантических ошибок не найдено.");
+
+                    System.out.println("\n=== Выполнение оптимизаций ===");
+                    checker.optimize(rootNode);
+                    
+                    System.out.println("\n=== AST после оптимизаций ===");
+                    ASTPrinter optimizedPrinter = new ASTPrinter();
+                    rootNode.accept(optimizedPrinter);
+                    System.out.println(optimizedPrinter.getOutput());
                 }
             } else {
                 System.out.println("Корневой узел AST не найден");
