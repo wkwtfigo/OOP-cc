@@ -6,5 +6,11 @@ class ConditionExample  is
         else
             a := a.Plus(1)
         end
+
+        if true then
+            print 1
+        else
+            print 2
+        end
     end
 end
