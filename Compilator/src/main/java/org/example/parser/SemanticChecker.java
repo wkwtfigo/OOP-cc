@@ -21,6 +21,9 @@ public class SemanticChecker implements ASTVisitor {
     private int currentDeclarationOrder = 0;
     private Map<Object, Integer> declarationOrders = new IdentityHashMap<>();
     
+    // Track the current body element being processed (for order comparison)
+    private BodyElementNode currentBodyElement = null;
+    
     // Built-in classes that don't need declaration checking
     // TODO: обсудить с Лизой
     private static final Set<String> BUILTIN_CLASSES = Set.of(
@@ -170,6 +173,17 @@ public class SemanticChecker implements ASTVisitor {
     }
     
     /**
+     * Check if a variable is a class field
+     */
+    private boolean isClassField(String varName) {
+        if (!currentClassScope.isEmpty()) {
+            ClassInfo classInfo = currentClassScope.peek();
+            return classInfo.fields.containsKey(varName);
+        }
+        return false;
+    }
+    
+    /**
      * Check if a variable is declared before use
      */
     private void checkVariableUsage(String varName, ASTNode usageNode) {
@@ -179,12 +193,32 @@ public class SemanticChecker implements ASTVisitor {
             return;
         }
         
-        // Check declaration order within the same scope
-        Integer varOrder = declarationOrders.get(varInfo);
-        Integer useOrder = declarationOrders.get(usageNode);
+        // Class fields are always available in methods and constructors
+        // Only check order for local variables within the same scope
+        if (isClassField(varName)) {
+            // Class fields can be used anywhere in methods/constructors
+            return;
+        }
         
-        if (varOrder != null && useOrder != null && varOrder > useOrder) {
-            reportError("Variable '" + varName + "' is used before declaration");
+        // Check declaration order for local variables only
+        // We compare the order of the variable declaration (from first pass)
+        // with the order of the body element that contains this usage (from second pass)
+        Integer varDeclOrder = varInfo.declarationOrder;
+        
+        // Get the order of the current body element (if any)
+        Integer bodyElementOrder = null;
+        if (currentBodyElement != null) {
+            bodyElementOrder = declarationOrders.get(currentBodyElement);
+        }
+        
+        // If we have both orders, check if variable was declared after the body element
+        // This would mean variable is used before declaration
+        if (varDeclOrder != null && bodyElementOrder != null) {
+            // If variable order is greater than body element order, 
+            // it means variable was declared later than the statement that uses it
+            if (varDeclOrder > bodyElementOrder) {
+                reportError("Variable '" + varName + "' is used before declaration");
+            }
         }
     }
     
@@ -496,9 +530,7 @@ public class SemanticChecker implements ASTVisitor {
                             ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
                             if (cons.arguments != null && cons.arguments.size() > 0) {
                                 ExpressionNode firstArg = cons.arguments.get(0);
-                                if (firstArg instanceof IntLiteralNode) {
-                                    varInfo.arraySize = ((IntLiteralNode) firstArg).value;
-                                }
+                                varInfo.arraySize = extractIntegerValue(firstArg);
                             }
                         }
                         
@@ -513,9 +545,11 @@ public class SemanticChecker implements ASTVisitor {
                 currentDeclarationOrder = 0;
                 for (BodyElementNode element : node.body.elements) {
                     declarationOrders.put(element, currentDeclarationOrder++);
+                    currentBodyElement = element; // Set current body element for order comparison
                     if (element instanceof ASTNode) {
                         ((ASTNode) element).accept(this);
                     }
+                    currentBodyElement = null; // Clear after processing
                 }
             }
         }
@@ -568,9 +602,7 @@ public class SemanticChecker implements ASTVisitor {
                             ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
                             if (cons.arguments != null && cons.arguments.size() > 0) {
                                 ExpressionNode firstArg = cons.arguments.get(0);
-                                if (firstArg instanceof IntLiteralNode) {
-                                    varInfo.arraySize = ((IntLiteralNode) firstArg).value;
-                                }
+                                varInfo.arraySize = extractIntegerValue(firstArg);
                             }
                         }
                         
@@ -585,9 +617,11 @@ public class SemanticChecker implements ASTVisitor {
                 currentDeclarationOrder = 0;
                 for (BodyElementNode element : node.body.elements) {
                     declarationOrders.put(element, currentDeclarationOrder++);
+                    currentBodyElement = element; // Set current body element for order comparison
                     if (element instanceof ASTNode) {
                         ((ASTNode) element).accept(this);
                     }
+                    currentBodyElement = null; // Clear after processing
                 }
             }
         }
@@ -763,13 +797,11 @@ public class SemanticChecker implements ASTVisitor {
     
     @Override
     public void visit(IdentifierNode node) {
+        // Set usage order BEFORE checking (so checkVariableUsage can compare orders)
+        declarationOrders.put(node, currentDeclarationOrder++);
+        
         // Check that variable is declared before use
         checkVariableUsage(node.name, node);
-        
-        // Check for potential array access patterns
-        // If this identifier is used in an array context, we'll handle bounds checking
-        // For now, we just track usage
-        declarationOrders.put(node, currentDeclarationOrder++);
     }
     
     @Override

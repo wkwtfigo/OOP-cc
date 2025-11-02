@@ -367,7 +367,9 @@ public class Lexer implements Parser.Lexer {
 
     @Override
     public void yyerror(String msg) {
-        System.out.println("Error at line " + currentToken.getLine() +
-                ", column " + currentToken.getColumn() + ", lexeme: " + currentToken.getLexeme() + ": " + msg);
+        String comment = "Error at line " + currentToken.getLine() +
+                ", column " + currentToken.getColumn() + ", lexeme: " + currentToken.getLexeme() + ": " + msg;
+        throw new LexerException(comment, new Location(currentToken.getLine()
+                ,currentToken.getColumn()));
     }
 }
