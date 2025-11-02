@@ -222,6 +222,7 @@ public class SemanticChecker implements ASTVisitor {
         if (methodInfo == null) { //TODO
             // Don't report error - might be a method on an object type (like Integer.Plus)
             // or a built-in method
+            System.out.println("нет такого метода... Или он базовый " + methodName);
             return;
         }
         

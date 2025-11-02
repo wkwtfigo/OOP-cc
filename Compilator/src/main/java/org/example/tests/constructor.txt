@@ -3,7 +3,7 @@ class ConstructorExample is
     var b : Integer(0)
 
     this() is
-        a := c
+        a := Solve(c)
         b := Integer(2)
     end
 
