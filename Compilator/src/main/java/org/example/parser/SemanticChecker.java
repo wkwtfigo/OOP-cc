@@ -24,7 +24,8 @@ public class SemanticChecker implements ASTVisitor {
     // Built-in classes that don't need declaration checking
     // TODO: обсудить с Лизой
     private static final Set<String> BUILTIN_CLASSES = Set.of(
-        "Integer", "Real", "Boolean", "String", "List", "Object", "AnyValue"
+        "Integer", "Real", "Boolean",  "List","AnyValue", "Class", "AnyRef",
+            "Array"
     );
     
     /**
