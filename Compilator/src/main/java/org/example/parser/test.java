@@ -9,7 +9,7 @@ import org.example.lexer.Lexer;
 public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
-        String code = Files.readString(Path.of("/Users/azizvundirov/Projects/OOP-cc/Compilator/src/main/java/org/example/tests/change_final_field.txt"));
+        String code = Files.readString(Path.of("Compilator/src/main/java/org/example/tests/negative_tests/wrong_return_type.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();

@@ -4,7 +4,6 @@ class ConstructorExample is
     var l : List[Integer](Integer (1))
 
     this() is
-        a := l.get(Integer(121))
         b := Integer(2)
     end
 

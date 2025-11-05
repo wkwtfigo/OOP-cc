@@ -1,6 +1,12 @@
 package org.example.parser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 /**
  * Semantic checker that validates the AST for semantic errors:
@@ -785,25 +791,27 @@ public class SemanticChecker implements ASTVisitor {
 
   private boolean checkMethodExistence(MemberAccessNode node) {
     if (node.target instanceof IdentifierNode && node.member instanceof MethodInvocationNode m) {
-      String classVarName = ((IdentifierNode) node.target).name;
-      VariableInfo classVarInfo = lookupVariable(classVarName);
-      if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
-        String className = c.className;
-        ExpressionNode method = m.target;
-        String methodName = ((IdentifierNode) method).name;
-        ClassInfo classInfo = lookupClass(className);
-        if (BUILTIN_CLASSES.contains(classInfo.name)) {
-          System.out.println(
-                  "Method exist in predifine class hopefully " + classInfo.name);
-          return true;
+        String classVarName = ((IdentifierNode) node.target).name;
+        VariableInfo classVarInfo = lookupVariable(classVarName);
+        if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
+            String className = c.className;
+            ExpressionNode method = m.target;
+            String methodName = ((IdentifierNode) method).name;
+            if (BUILTIN_CLASSES.contains(className)) {
+                return true;
+            }
+            ClassInfo classInfo = lookupClass(className);
+            if (classInfo == null) {
+                System.out.println("Unknown class: " + className);
+                return false;
+            }
+
+            return classInfo.methods.containsKey(methodName);
         }
-        return classInfo.methods.containsKey(methodName);
-      }
     }
       if (node.target instanceof ConstructorInvocationNode t &&node.member instanceof MethodInvocationNode m) {
         String className = t.className;
         if (BUILTIN_CLASSES.contains(className)){
-          System.out.println("Method exist in predifine class hopefully" + className);
           return true;
         }
         ClassInfo classInfo = lookupClass(className);
