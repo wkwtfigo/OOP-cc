@@ -195,6 +195,8 @@ public class SemanticChecker implements ASTVisitor {
         
         // Class fields are always available in methods and constructors
         // Only check order for local variables within the same scope
+        //TODO: Забыл чекнуть что переменная может быть classfield у
+        // вызываемого класса
         if (isClassField(varName)) {
             // Class fields can be used anywhere in methods/constructors
             return;
@@ -409,6 +411,7 @@ public class SemanticChecker implements ASTVisitor {
                     
                     // Try to extract array size from initializer if it's List/Array with size
                     // Supports both IntLiteral and Integer(...) constructors
+                    // TODO: тут должен быть List или Array...
                     if (varDecl.initializer instanceof ConstructorInvocationNode) {
                         ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
                         if (cons.arguments != null && cons.arguments.size() > 0) {
@@ -593,7 +596,7 @@ public class SemanticChecker implements ASTVisitor {
                         VarDeclNode varDecl = (VarDeclNode) element;
                         VariableInfo varInfo = new VariableInfo(
                             varDecl.varName,
-                            varDecl.type,
+                            varDecl.initializer,
                             currentDeclarationOrder
                         );
                         
@@ -721,6 +724,7 @@ public class SemanticChecker implements ASTVisitor {
         if (node.member instanceof IdentifierNode) {
             // Field access - check if field exists (might be a built-in method)
             // Don't check as variable - it's a field/method name
+            if (checkClassField(node)) reportError("У класса нет поля " + ((IdentifierNode) node.member).name );
         } else if (node.member instanceof MethodInvocationNode) {
             // Method call on an object - don't check member as variable
             MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
@@ -752,7 +756,25 @@ public class SemanticChecker implements ASTVisitor {
             }
         }
     }
-    
+
+    private boolean checkClassField(MemberAccessNode node) {
+        if (node.target instanceof IdentifierNode && node.member instanceof IdentifierNode) {
+            String classVarName = ((IdentifierNode) node.target).name;
+            VariableInfo classVarInfo = lookupVariable(classVarName);
+            if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
+                String className = c.className;
+                String fieldName = ((IdentifierNode) node.member).name;
+                ClassInfo classInfo = lookupClass(className);
+                if (!classInfo.fields.containsKey(fieldName)) {
+                    reportError("В классе '" + className + "' нет поля '" + fieldName + "'");
+                    return false;
+                }
+                return true;
+            }
+        }
+        return false;
+        }
+
     @Override
     public void visit(ConstructorInvocationNode node) {
         // Check that class is declared
