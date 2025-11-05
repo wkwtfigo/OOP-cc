@@ -2,10 +2,11 @@ class ConditionExample  is
     this() is
         var a : Integer(3)
         var b : Real(2.3)
-        if a.Greater(Integer(2)) then
-            a := a.Minus(1)
+
+        if true then
+            print 1
         else
-            a := a.Plus(1)
+            print 2
         end
     end
 end
