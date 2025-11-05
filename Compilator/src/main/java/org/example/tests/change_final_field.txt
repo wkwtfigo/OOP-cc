@@ -5,8 +5,10 @@ end
 class Test is
     this() is 
       var a : A()
+      var res : a.foo()
       var b : Integer(1)
-      a.c := Integer(5).Plus(Integer(3))
+      a.c := Integer(5).Plus(Integer(3)) // final field modified here ->
+
     end
 
 end
