@@ -492,21 +492,31 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
                     constructor.arguments.set(i, foldConstantExpression(constructor.arguments.get(i)));
                 }
             }
+
+            String className = constructor.className; 
+            if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof IntLiteralNode) {
+                if ("Integer".equals(className)) {
+                    int value = ((IntLiteralNode) constructor.arguments.get(0)).value;
+                    System.out.println("Constant folding: Integer() -> IntLiteral(" + value + ")");
+                    return new IntLiteralNode(value);
+                }
+            } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof RealLiteralNode) {
+                if ("Double".equals(className)) {
+                    double value = ((RealLiteralNode) constructor.arguments.get(0)).value;
+                    System.out.println("Constant folding: Double() -> RealLiteral(" + value + ")");
+                    return new RealLiteralNode(value);
+                }
+            } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof BoolLiteralNode) {
+                if ("Boolean".equals(className)) {
+                    boolean value = ((BoolLiteralNode) constructor.arguments.get(0)).value;
+                    System.out.println("Constant folding: Boolean() -> BoolLiteral(" + value + ")");
+                    return new BoolLiteralNode(value);
+                }
+            }
         }
 
-        // Сворачиваем целочисленные операции
-        if (isConstantExpression(expr)) {
-            Object constantValue = evaluateConstantExpression(expr);
-            if (constantValue instanceof Integer) {
-                System.out.println("Constant folding: simplified expression to IntLiteral(" + constantValue + ")");
-                return new IntLiteralNode((Integer) constantValue);
-            } else if (constantValue instanceof Boolean) {
-                System.out.println("Constant folding: simplified expression to BoolLiteral(" + constantValue + ")");
-                return new BoolLiteralNode((Boolean) constantValue);
-            } else if (constantValue instanceof Double) {
-                System.out.println("Constant folding: simplified expression to RealLiteral(" + constantValue + ")");
-                return new RealLiteralNode((Double) constantValue);
-            }
+        if (expr instanceof IntLiteralNode || expr instanceof RealLiteralNode || expr instanceof BoolLiteralNode) {
+            return expr;
         }
 
         return expr;

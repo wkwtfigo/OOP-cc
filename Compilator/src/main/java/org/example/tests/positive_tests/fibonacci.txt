@@ -12,5 +12,6 @@ class Main is
     this() is
         var f : Fibonacci()
         var res : f.fib(Integer(6))   // 8
+        var b : Integer(5)
     end
 end
