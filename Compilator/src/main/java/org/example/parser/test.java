@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/negative_tests/size_out_of_bound.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/negative_tests/unreachable_after_return.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();

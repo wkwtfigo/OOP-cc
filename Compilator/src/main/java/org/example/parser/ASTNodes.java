@@ -168,11 +168,12 @@ class TypeNode extends ASTNode {
     }
 }
 
-class GenericTypeNode extends ASTNode {
+class GenericTypeNode extends TypeNode {
     public String baseType;     // "Array" или "List"
     public TypeNode parameter;  // например, Integer
 
     public GenericTypeNode(String baseType, TypeNode parameter) {
+        super(baseType);
         this.baseType = baseType;
         this.parameter = parameter;
     }
