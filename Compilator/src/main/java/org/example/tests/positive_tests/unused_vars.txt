@@ -8,9 +8,6 @@ class Test is
       var b : Integer(1)
       a.a := Integer(5).Plus(Integer(3))
       var i : Integer(1)
-      while false loop 
-        i := i.Plus(Integer(1))
-      end
     end
 
 end

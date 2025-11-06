@@ -1,0 +1,16 @@
+class MethodExample is
+    var a : Integer(2)
+
+    method getA() : Integer => a
+
+    method incA(b : Array[Integer]) : Integer is 
+        var max : Integer(1)
+        b := a.Plus(1)
+        return max
+        var i : a.Plus(74)
+    end
+
+    this() is
+        a := Integer(2)
+    end
+end
