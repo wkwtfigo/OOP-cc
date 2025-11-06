@@ -5,9 +5,9 @@ class MethodExample is
 
     method incA(b : Array[Integer]) : Integer is 
         var max : Integer(1)
-        b := a.Plus(1)
+        b := a
         return max
-        var i : a.Plus(74)
+        var i : a
     end
 
     this() is

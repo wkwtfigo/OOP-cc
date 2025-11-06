@@ -4,9 +4,7 @@ end
 
 class Test is
   this() is
-    var class : Base()
-    class.foo(Real(1.1))
-
-
+    var a : Base()
+    a := a.foo(Real(1.1))
   end
 end
