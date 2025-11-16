@@ -295,7 +295,8 @@ constructor_invocation
 
 method_invocation
     : TOK_ID TOK_LPAR argument_list_opt TOK_RPAR
-        { $$ = new MethodInvocationNode(new IdentifierNode(((Token)$1).getLexeme()), (List<ExpressionNode>)$3); }
+        { $$ = new MethodInvocationNode(new IdentifierNode(((Token)$1).getLexeme()), ((Token)$1).getLexeme(), (List<ExpressionNode>)$3); }
+    ;
 
 argument_list_opt
     : /* empty */ { $$ = new ArrayList<ExpressionNode>(); }
