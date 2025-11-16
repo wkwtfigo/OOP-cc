@@ -109,7 +109,16 @@ public class Optimizer implements ASTOptimizerVisitor {
                     cons.arguments.set(i, foldConstantExpression(cons.arguments.get(i)));
                 }
             }
-            return cons;
+            if (cons.arguments.size() == 1) {
+                ExpressionNode arg = cons.arguments.get(0);
+                if (arg instanceof IntLiteralNode && "Integer".equals(cons.className)) {
+                    return new IntLiteralNode(((IntLiteralNode) arg).value);
+                } else if (arg instanceof RealLiteralNode && "Double".equals(cons.className)) {
+                    return new RealLiteralNode(((RealLiteralNode) arg).value);
+                } else if (arg instanceof BoolLiteralNode && "Boolean".equals(cons.className)) {
+                    return new BoolLiteralNode(((BoolLiteralNode) arg).value);
+                }
+            }
         } else if (expr instanceof MemberAccessNode) {
             MemberAccessNode ma = (MemberAccessNode) expr;
             ma.target = foldConstantExpression(ma.target);
@@ -340,42 +349,47 @@ public class Optimizer implements ASTOptimizerVisitor {
     }
 
     /**
-     * Optimization 2: Unreachable Code Elimination
-     * Remove code that will never be executed
+     * Combined Optimization: Unreachable Code Elimination + Remove Unused Variables
+     * Выполняет обе оптимизации за один проход по AST
      */
-    private void eliminateUnreachableCode(ASTNode node) {
+    private void combinedOptimization(ASTNode node) {
+        collectUsedIdentifiers(node);
+        eliminateUnreachableCodeWithVarCleanup(node);
+    }
+
+    private void eliminateUnreachableCodeWithVarCleanup(ASTNode node) {
         if (node instanceof ProgramNode) {
             ProgramNode program = (ProgramNode) node;
             if (program.classes != null) {
                 for (ClassDeclNode classDecl : program.classes) {
-                    eliminateUnreachableCode(classDecl);
+                    eliminateUnreachableCodeWithVarCleanup(classDecl);
                 }
             }
         } else if (node instanceof ClassDeclNode) {
             ClassDeclNode classDecl = (ClassDeclNode) node;
             if (classDecl.members != null) {
                 for (MemberNode member : classDecl.members) {
-                    eliminateUnreachableCode(member);
+                    eliminateUnreachableCodeWithVarCleanup(member);
                 }
             }
         } else if (node instanceof MethodDeclNode) {
             MethodDeclNode methodDecl = (MethodDeclNode) node;
             inReturnContext = false;
             if (methodDecl.body != null) {
-                eliminateUnreachableCode(methodDecl.body);
+                eliminateUnreachableCodeWithVarCleanup(methodDecl.body);
             }
         } else if (node instanceof ConstructorDeclNode) {
             ConstructorDeclNode constructor = (ConstructorDeclNode) node;
             inReturnContext = false;
             if (constructor.body != null) {
-                eliminateUnreachableCode(constructor.body);
+                eliminateUnreachableCodeWithVarCleanup(constructor.body);
             }
         } else if (node instanceof MethodBodyNode) {
             MethodBodyNode body = (MethodBodyNode) node;
             if (body.isArrow) {
                 inReturnContext = true;
             } else if (body.body != null) {
-                eliminateUnreachableCode(body.body);
+                eliminateUnreachableCodeWithVarCleanup(body.body);
             }
         } else if (node instanceof BodyNode) {
             BodyNode body = (BodyNode) node;
@@ -386,6 +400,14 @@ public class Optimizer implements ASTOptimizerVisitor {
                 for (BodyElementNode element : body.elements) {
                     if (foundUnreachable) {
                         continue;
+                    }
+
+                    // Пропускаем неиспользуемые объявления переменных
+                    if (enableRemoveUnusedVariables && element instanceof VarDeclNode) {
+                        VarDeclNode varDecl = (VarDeclNode) element;
+                        if (!usedVariables.contains(varDecl.varName)) {
+                            continue; // Пропускаем неиспользуемую переменную
+                        }
                     }
 
                     newElements.add(element);
@@ -409,7 +431,13 @@ public class Optimizer implements ASTOptimizerVisitor {
                                         // Заменяем if на содержимое else ветки
                                         newElements.remove(newElements.size() - 1); // Удаляем if
                                         if (ifStmt.elseBody.elements != null) {
-                                            newElements.addAll(ifStmt.elseBody.elements);
+                                            for (BodyElementNode elseElement : ifStmt.elseBody.elements) {
+                                                if (!(enableRemoveUnusedVariables &&
+                                                        elseElement instanceof VarDeclNode &&
+                                                        !usedVariables.contains(((VarDeclNode) elseElement).varName))) {
+                                                    newElements.add(elseElement);
+                                                }
+                                            }
                                         }
                                     } else {
                                         newElements.remove(newElements.size() - 1); // Удаляем if полностью
@@ -417,55 +445,46 @@ public class Optimizer implements ASTOptimizerVisitor {
                                 }
                             }
                         }
-                    }
-                    // Если это while с константным false условием, удаляем весь цикл
-                    else if (element instanceof WhileLoopNode) {
+                    } else if (element instanceof WhileLoopNode) {
                         WhileLoopNode whileLoop = (WhileLoopNode) element;
                         if (isConstantExpression(whileLoop.condition)) {
                             Object conditionValue = evaluateConstantExpression(whileLoop.condition);
                             if (conditionValue instanceof Boolean && !(Boolean) conditionValue) {
-                                newElements.remove(newElements.size() - 1); // Удаляем цикл
+                                newElements.remove(newElements.size() - 1);
                             } else if (conditionValue instanceof Boolean && (Boolean) conditionValue) {
                                 continue;
                             }
                         }
                     }
                 }
-
-                // Заменяем элементы на оптимизированный список
                 body.elements = newElements;
 
-                // Рекурсивно обрабатываем оставшиеся элементы
                 for (BodyElementNode element : newElements) {
                     if (element instanceof WhileLoopNode) {
-                        eliminateUnreachableCode(((WhileLoopNode) element).body);
+                        eliminateUnreachableCodeWithVarCleanup(((WhileLoopNode) element).body);
                     } else if (element instanceof IfStatementNode) {
                         IfStatementNode ifStmt = (IfStatementNode) element;
-                        eliminateUnreachableCode(ifStmt.thenBody);
+                        eliminateUnreachableCodeWithVarCleanup(ifStmt.thenBody);
                         if (ifStmt.elseBody != null) {
-                            eliminateUnreachableCode(ifStmt.elseBody);
+                            eliminateUnreachableCodeWithVarCleanup(ifStmt.elseBody);
                         }
                     }
                 }
             }
+        } else if (node instanceof IfStatementNode) {
+            IfStatementNode ifStmt = (IfStatementNode) node;
+            if (ifStmt.thenBody != null)
+                eliminateUnreachableCodeWithVarCleanup(ifStmt.thenBody);
+            if (ifStmt.elseBody != null)
+                eliminateUnreachableCodeWithVarCleanup(ifStmt.elseBody);
+        } else if (node instanceof WhileLoopNode) {
+            WhileLoopNode whileLoop = (WhileLoopNode) node;
+            if (whileLoop.body != null)
+                eliminateUnreachableCodeWithVarCleanup(whileLoop.body);
         }
     }
 
-    /**
-     * Optimization 3: Remove Unused Variables
-     * Remove variables that are declared but never used
-     */
-    private void removeUnusedVariables(ASTNode node) {
-        // Фаза 1: сбор всех используемых идентификаторов
-        collectUsedIdentifiers(node);
-
-        // Фаза 2: удаление неиспользуемых переменных
-        removeUnusedVarDeclarations(node);
-    }
-
-    /**
-     * Phase 1: Collect all used variable names
-     */
+    // Метод collectUsedIdentifiers остается без изменений
     private void collectUsedIdentifiers(ASTNode node) {
         if (node == null)
             return;
@@ -575,84 +594,12 @@ public class Optimizer implements ASTOptimizerVisitor {
         }
     }
 
-    /**
-     * Phase 2: Remove unused variable declarations
-     */
-    private void removeUnusedVarDeclarations(ASTNode node) {
-        if (node instanceof ProgramNode) {
-            ProgramNode program = (ProgramNode) node;
-            if (program.classes != null) {
-                for (ClassDeclNode classDecl : program.classes) {
-                    removeUnusedVarDeclarations(classDecl);
-                }
-            }
-        } else if (node instanceof ClassDeclNode) {
-            ClassDeclNode classDecl = (ClassDeclNode) node;
-            if (classDecl.members != null) {
-                for (MemberNode member : classDecl.members) {
-                    removeUnusedVarDeclarations(member);
-                }
-            }
-        } else if (node instanceof MethodDeclNode) {
-            MethodDeclNode methodDecl = (MethodDeclNode) node;
-            if (methodDecl.body != null) {
-                removeUnusedVarDeclarations(methodDecl.body);
-            }
-        } else if (node instanceof ConstructorDeclNode) {
-            ConstructorDeclNode constructor = (ConstructorDeclNode) node;
-            if (constructor.body != null) {
-                removeUnusedVarDeclarations(constructor.body);
-            }
-        } else if (node instanceof MethodBodyNode) {
-            MethodBodyNode body = (MethodBodyNode) node;
-            if (!body.isArrow && body.body != null) {
-                removeUnusedVarDeclarations(body.body);
-            }
-        } else if (node instanceof BodyNode) {
-            BodyNode body = (BodyNode) node;
-            if (body.elements != null) {
-                List<BodyElementNode> elementsToRemove = new ArrayList<>();
-
-                for (BodyElementNode element : body.elements) {
-                    if (element instanceof VarDeclNode) {
-                        VarDeclNode varDecl = (VarDeclNode) element;
-                        if (!usedVariables.contains(varDecl.varName)) {
-                            elementsToRemove.add(element);
-                        }
-                    }
-                }
-
-                body.elements.removeAll(elementsToRemove);
-
-                // Рекурсивно обрабатываем оставшиеся элементы
-                for (BodyElementNode element : body.elements) {
-                    if (element instanceof ASTNode) {
-                        removeUnusedVarDeclarations((ASTNode) element);
-                    }
-                }
-            }
-        } else if (node instanceof IfStatementNode) {
-            IfStatementNode ifStmt = (IfStatementNode) node;
-            if (ifStmt.thenBody != null)
-                removeUnusedVarDeclarations(ifStmt.thenBody);
-            if (ifStmt.elseBody != null)
-                removeUnusedVarDeclarations(ifStmt.elseBody);
-        } else if (node instanceof WhileLoopNode) {
-            WhileLoopNode whileLoop = (WhileLoopNode) node;
-            if (whileLoop.body != null)
-                removeUnusedVarDeclarations(whileLoop.body);
-        }
-    }
-
     public ProgramNode optimize(ProgramNode program) {
         if (enableConstantFolding) {
             constantFolding(program);
         }
-        if (enableUnreachableCodeElimination) {
-            eliminateUnreachableCode(program);
-        }
-        if (enableRemoveUnusedVariables) {
-            removeUnusedVariables(program);
+        if (enableUnreachableCodeElimination || enableRemoveUnusedVariables) {
+            combinedOptimization(program);
         }
         return (ProgramNode) program.accept(this);
     }
