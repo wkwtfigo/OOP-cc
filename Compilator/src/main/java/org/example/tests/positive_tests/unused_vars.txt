@@ -1,16 +1,15 @@
 class A is
   var a : Integer(2)
+
+  this() is
+    print a
+  end
 end
 
 class Main is
     this() is 
       var a : A()
       var b : Boolean(false).Or(false)
-      a.a := Integer(5).Plus(Integer(3))
       var i : Integer(1).Plus(b)
     end
 end
-
-
-
-

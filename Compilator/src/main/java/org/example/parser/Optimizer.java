@@ -406,7 +406,9 @@ public class Optimizer implements ASTOptimizerVisitor {
                     if (enableRemoveUnusedVariables && element instanceof VarDeclNode) {
                         VarDeclNode varDecl = (VarDeclNode) element;
                         if (!usedVariables.contains(varDecl.varName)) {
-                            continue; // Пропускаем неиспользуемую переменную
+                            if (!hasSideEffects(varDecl.initializer)) {
+                                continue; // безопасно удалить
+                            }
                         }
                     }
 
@@ -592,6 +594,112 @@ public class Optimizer implements ASTOptimizerVisitor {
                 collectUsedIdentifiers(varDecl.initializer);
             }
         }
+    }
+
+    private boolean hasSideEffects(ASTNode node) {
+        if (node == null)
+            return false;
+
+        // --- Literals and identifiers ---
+        if (node instanceof IntLiteralNode)
+            return false;
+        if (node instanceof RealLiteralNode)
+            return false;
+        if (node instanceof BoolLiteralNode)
+            return false;
+        if (node instanceof IdentifierNode)
+            return false;
+
+        // --- Print has side effects ---
+        if (node instanceof PrintNode)
+            return true;
+
+        // --- Assignments always have side effects ---
+        if (node instanceof AssignmentNode)
+            return true;
+
+        // --- Member access: check nested nodes ---
+        if (node instanceof MemberAccessNode) {
+            MemberAccessNode ma = (MemberAccessNode) node;
+            return hasSideEffects(ma.target)
+                    || (ma.member instanceof ASTNode && hasSideEffects((ASTNode) ma.member));
+        }
+
+        // --- Method invocation ---
+        if (node instanceof MethodInvocationNode) {
+            MethodInvocationNode mi = (MethodInvocationNode) node;
+
+            // numeric/boolean operations are pure
+            if (isPureMethod(mi.methodName)) {
+                // but evaluate args anyway (they may contain side effects!)
+                if (hasSideEffects(mi.target))
+                    return true;
+                for (ExpressionNode arg : mi.arguments) {
+                    if (hasSideEffects(arg))
+                        return true;
+                }
+                return false; // pure
+            }
+
+            // other methods → assumed to have side effects
+            return true;
+        }
+
+        // --- Constructor invocation ---
+        if (node instanceof ConstructorInvocationNode) {
+            ConstructorInvocationNode ci = (ConstructorInvocationNode) node;
+
+            // For safety: always assume constructors have side effects
+            for (ExpressionNode arg : ci.arguments) {
+                if (hasSideEffects(arg))
+                    return true;
+            }
+            return true;
+        }
+
+        // --- If and While ---
+        if (node instanceof IfStatementNode) {
+            IfStatementNode ifs = (IfStatementNode) node;
+            return hasSideEffects(ifs.condition)
+                    || hasSideEffects(ifs.thenBody)
+                    || (ifs.elseBody != null && hasSideEffects(ifs.elseBody));
+        }
+
+        if (node instanceof WhileLoopNode) {
+            WhileLoopNode w = (WhileLoopNode) node;
+            return true; // loops always considered side-effects
+        }
+
+        // --- Bodies ---
+        if (node instanceof BodyNode) {
+            BodyNode b = (BodyNode) node;
+            for (BodyElementNode elem : b.elements) {
+                if (elem instanceof ASTNode && hasSideEffects((ASTNode) elem))
+                    return true;
+            }
+            return false;
+        }
+
+        if (node instanceof MethodBodyNode) {
+            MethodBodyNode mb = (MethodBodyNode) node;
+            if (mb.isArrow)
+                return hasSideEffects(mb.arrowExpression);
+            return hasSideEffects(mb.body);
+        }
+
+        // default
+        return true; // be conservative
+    }
+
+    // Pure built-in methods
+    private boolean isPureMethod(String name) {
+        return name.equals("Plus")
+                || name.equals("Minus")
+                || name.equals("Mult")
+                || name.equals("Div")
+                || name.equals("Or")
+                || name.equals("And")
+                || name.equals("Not");
     }
 
     public ProgramNode optimize(ProgramNode program) {
