@@ -2,14 +2,13 @@ class A is
   var a : Integer(2)
 end
 
-class Test is
+class Main is
     this() is 
       var a : A()
-      var b : Integer(1).Minus(8)
+      var b : Boolean(false).Or(false)
       a.a := Integer(5).Plus(Integer(3))
       var i : Integer(1).Plus(b)
     end
-
 end
 
 

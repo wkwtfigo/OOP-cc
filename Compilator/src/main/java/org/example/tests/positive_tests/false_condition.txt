@@ -1,4 +1,4 @@
-class ConditionExample  is
+class Main is
     this() is
         var a : Integer(3)
         var b : Real(2.3)

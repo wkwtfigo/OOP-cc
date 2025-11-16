@@ -3,11 +3,11 @@ class A is
   method foo2() : Integer => Integer(10).Div(foo1())
 end
 
-class B extends A is
+class Main extends A is
   method foo1() : Integer => 0
 
   this() is
-    var a : B()
+    var a : Main()
     a := a.foo2()
   end
 end

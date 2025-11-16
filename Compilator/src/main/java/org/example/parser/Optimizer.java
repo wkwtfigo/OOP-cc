@@ -109,16 +109,7 @@ public class Optimizer implements ASTOptimizerVisitor {
                     cons.arguments.set(i, foldConstantExpression(cons.arguments.get(i)));
                 }
             }
-            if (cons.arguments.size() == 1) {
-                ExpressionNode arg = cons.arguments.get(0);
-                if (arg instanceof IntLiteralNode && "Integer".equals(cons.className)) {
-                    return new IntLiteralNode(((IntLiteralNode) arg).value);
-                } else if (arg instanceof RealLiteralNode && "Double".equals(cons.className)) {
-                    return new RealLiteralNode(((RealLiteralNode) arg).value);
-                } else if (arg instanceof BoolLiteralNode && "Boolean".equals(cons.className)) {
-                    return new BoolLiteralNode(((BoolLiteralNode) arg).value);
-                }
-            }
+            return cons;
         } else if (expr instanceof MemberAccessNode) {
             MemberAccessNode ma = (MemberAccessNode) expr;
             ma.target = foldConstantExpression(ma.target);
@@ -126,9 +117,20 @@ public class Optimizer implements ASTOptimizerVisitor {
                 ma.member = foldConstantExpression((ExpressionNode) ma.member);
             }
 
-            if (ma.target instanceof IntLiteralNode && ma.member instanceof MethodInvocationNode) {
+            if ((ma.target instanceof IntLiteralNode ||
+                    ma.target instanceof RealLiteralNode ||
+                    ma.target instanceof BoolLiteralNode) &&
+                    ma.member instanceof MethodInvocationNode) {
+
                 MethodInvocationNode mi = (MethodInvocationNode) ma.member;
-                mi.target = new IntLiteralNode(((IntLiteralNode) ma.target).value);
+
+                if (ma.target instanceof IntLiteralNode)
+                    mi.target = new IntLiteralNode(((IntLiteralNode) ma.target).value);
+                else if (ma.target instanceof RealLiteralNode)
+                    mi.target = new RealLiteralNode(((RealLiteralNode) ma.target).value);
+                else if (ma.target instanceof BoolLiteralNode)
+                    mi.target = new BoolLiteralNode(((BoolLiteralNode) ma.target).value);
+
                 return foldConstantExpression(mi);
             }
         } else if (expr instanceof MethodInvocationNode) {
@@ -140,7 +142,6 @@ public class Optimizer implements ASTOptimizerVisitor {
                 }
             }
 
-            // Вычисляем константу, если возможно
             Object val = evaluateConstantExpression(mi);
             if (val instanceof Integer)
                 return new IntLiteralNode((Integer) val);

@@ -396,6 +396,11 @@ public class SemanticChecker implements ASTVisitor {
         classDecl.accept(this);
       }
     }
+
+    // --- Проверка наличия класса main ---
+    if (!classes.containsKey("Main")) {
+      reportError("Entry point error: class 'Main' not found");
+    }
   }
 
   @Override

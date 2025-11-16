@@ -1,4 +1,4 @@
-class MethodExample is
+class Main is
     var a : Integer(2)
 
     method getA() : Integer => a
