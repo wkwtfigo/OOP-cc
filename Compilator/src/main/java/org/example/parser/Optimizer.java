@@ -126,10 +126,9 @@ public class Optimizer implements ASTOptimizerVisitor {
                 ma.member = foldConstantExpression((ExpressionNode) ma.member);
             }
 
-            // Попытка свести MemberAccess с MethodInvocation к константе
             if (ma.target instanceof IntLiteralNode && ma.member instanceof MethodInvocationNode) {
                 MethodInvocationNode mi = (MethodInvocationNode) ma.member;
-                mi.target = new IntLiteralNode(((IntLiteralNode) ma.target).value); // target для вычисления
+                mi.target = new IntLiteralNode(((IntLiteralNode) ma.target).value);
                 return foldConstantExpression(mi);
             }
         } else if (expr instanceof MethodInvocationNode) {
@@ -141,38 +140,14 @@ public class Optimizer implements ASTOptimizerVisitor {
                 }
             }
 
-            if (isConstantExpression(mi)) {
-                Object targetVal = evaluateConstantExpression(mi.target);
-                Object argVal = mi.arguments.isEmpty() ? null : evaluateConstantExpression(mi.arguments.get(0));
-
-                if (targetVal instanceof Integer && argVal instanceof Integer) {
-                    int t = (Integer) targetVal;
-                    int a = (Integer) argVal;
-                    switch (mi.methodName) {
-                        case "Plus":
-                            return new IntLiteralNode(t + a);
-                        case "Minus":
-                            return new IntLiteralNode(t - a);
-                        case "Mult":
-                            return new IntLiteralNode(t * a);
-                        case "Div":
-                            return new IntLiteralNode(a != 0 ? t / a : 0);
-                    }
-                } else if (targetVal instanceof Double && argVal instanceof Double) {
-                    double t = (Double) targetVal;
-                    double a = (Double) argVal;
-                    switch (mi.methodName) {
-                        case "Plus":
-                            return new RealLiteralNode(t + a);
-                        case "Minus":
-                            return new RealLiteralNode(t - a);
-                        case "Mult":
-                            return new RealLiteralNode(t * a);
-                        case "Div":
-                            return new RealLiteralNode(t / a);
-                    }
-                }
-            }
+            // Вычисляем константу, если возможно
+            Object val = evaluateConstantExpression(mi);
+            if (val instanceof Integer)
+                return new IntLiteralNode((Integer) val);
+            if (val instanceof Double)
+                return new RealLiteralNode((Double) val);
+            if (val instanceof Boolean)
+                return new BoolLiteralNode((Boolean) val);
         } else if (expr instanceof IntLiteralNode || expr instanceof RealLiteralNode
                 || expr instanceof BoolLiteralNode) {
             return expr;
@@ -227,16 +202,75 @@ public class Optimizer implements ASTOptimizerVisitor {
     private Object evaluateConstantExpression(ExpressionNode expr) {
         if (expr instanceof IntLiteralNode)
             return ((IntLiteralNode) expr).value;
+
         if (expr instanceof RealLiteralNode)
             return ((RealLiteralNode) expr).value;
+
         if (expr instanceof BoolLiteralNode)
             return ((BoolLiteralNode) expr).value;
+
         if (expr instanceof MethodInvocationNode) {
             MethodInvocationNode mi = (MethodInvocationNode) expr;
             Object targetVal = evaluateConstantExpression(mi.target);
             Object argVal = mi.arguments.isEmpty() ? null : evaluateConstantExpression(mi.arguments.get(0));
-            if (targetVal instanceof Integer && argVal instanceof Integer) {
-                int t = (Integer) targetVal, a = (Integer) argVal;
+
+            if (targetVal instanceof Integer) {
+                int intVal = (Integer) targetVal;
+                if (argVal instanceof Integer) {
+                    int a = (Integer) argVal;
+                    switch (mi.methodName) {
+                        case "Plus":
+                            return intVal + a;
+                        case "Minus":
+                            return intVal - a;
+                        case "Mult":
+                            return intVal * a;
+                        case "Div":
+                            return a != 0 ? intVal / a : 0;
+                        case "Rem":
+                            return a != 0 ? intVal % a : 0;
+                        case "Less":
+                            return intVal < a;
+                        case "LessEqual":
+                            return intVal <= a;
+                        case "Greater":
+                            return intVal > a;
+                        case "GreaterEqual":
+                            return intVal >= a;
+                        case "Equal":
+                            return intVal == a;
+                    }
+                } else if (argVal instanceof Double) {
+                    double t = (double) intVal;
+                    double a = (Double) argVal;
+                    switch (mi.methodName) {
+                        case "Plus":
+                            return t + a;
+                        case "Minus":
+                            return t - a;
+                        case "Mult":
+                            return t * a;
+                        case "Div":
+                            return t / a;
+                        case "Less":
+                            return t < a;
+                        case "LessEqual":
+                            return t <= a;
+                        case "Greater":
+                            return t > a;
+                        case "GreaterEqual":
+                            return t >= a;
+                        case "Equal":
+                            return t == a;
+                    }
+                }
+            }
+
+            // Real operations
+            if (targetVal instanceof Double) {
+                double t = (Double) targetVal;
+                double a = argVal instanceof Double ? (Double) argVal
+                        : (argVal instanceof Integer ? (Integer) argVal : 0.0);
                 switch (mi.methodName) {
                     case "Plus":
                         return t + a;
@@ -245,9 +279,61 @@ public class Optimizer implements ASTOptimizerVisitor {
                     case "Mult":
                         return t * a;
                     case "Div":
-                        return a != 0 ? t / a : 0;
+                        return a != 0.0 ? t / a : 0.0;
+                    case "Less":
+                        return t < a;
+                    case "LessEqual":
+                        return t <= a;
+                    case "Greater":
+                        return t > a;
+                    case "GreaterEqual":
+                        return t >= a;
+                    case "Equal":
+                        return t == a;
                 }
             }
+
+            // Boolean operations
+            if (targetVal instanceof Boolean) {
+                boolean t = (Boolean) targetVal;
+                boolean a = argVal instanceof Boolean ? (Boolean) argVal : false;
+                switch (mi.methodName) {
+                    case "And":
+                        return t && a;
+                    case "Or":
+                        return t || a;
+                    case "Xor":
+                        return t ^ a;
+                    case "Equal":
+                        return t == a;
+                }
+            }
+
+            // Unary operators
+            if (mi.methodName.equals("UnaryMinus") && targetVal instanceof Integer) {
+                return -((Integer) targetVal);
+            }
+            if (mi.methodName.equals("UnaryMinus") && targetVal instanceof Double) {
+                return -((Double) targetVal);
+            }
+            if (mi.methodName.equals("Not") && targetVal instanceof Boolean) {
+                return !((Boolean) targetVal);
+            }
+
+            // Conversions
+            if (mi.methodName.equals("toReal") && targetVal instanceof Integer) {
+                return ((Integer) targetVal).doubleValue();
+            }
+            if (mi.methodName.equals("toInteger") && targetVal instanceof Double) {
+                return ((Double) targetVal).intValue();
+            }
+            if (mi.methodName.equals("toBoolean") && targetVal instanceof Integer) {
+                return ((Integer) targetVal) != 0;
+            }
+            if (mi.methodName.equals("toInteger") && targetVal instanceof Boolean) {
+                return ((Boolean) targetVal) ? 1 : 0;
+            }
+
         }
         return null;
     }
