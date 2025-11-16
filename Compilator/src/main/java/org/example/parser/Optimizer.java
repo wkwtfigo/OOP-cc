@@ -101,49 +101,80 @@ public class Optimizer implements ASTOptimizerVisitor {
         if (expr == null)
             return null;
 
-        // Рекурсивно сворачиваем подвыражения
-        if (expr instanceof MemberAccessNode) {
-            MemberAccessNode memberAccess = (MemberAccessNode) expr;
-            memberAccess.target = foldConstantExpression(memberAccess.target);
-            if (memberAccess.member instanceof ExpressionNode) {
-                memberAccess.member = foldConstantExpression((ExpressionNode) memberAccess.member);
+        // Рекурсивно обрабатываем подвыражения
+        if (expr instanceof ConstructorInvocationNode) {
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
+            if (cons.arguments != null) {
+                for (int i = 0; i < cons.arguments.size(); i++) {
+                    cons.arguments.set(i, foldConstantExpression(cons.arguments.get(i)));
+                }
+            }
+            if (cons.arguments.size() == 1) {
+                ExpressionNode arg = cons.arguments.get(0);
+                if (arg instanceof IntLiteralNode && "Integer".equals(cons.className)) {
+                    return new IntLiteralNode(((IntLiteralNode) arg).value);
+                } else if (arg instanceof RealLiteralNode && "Double".equals(cons.className)) {
+                    return new RealLiteralNode(((RealLiteralNode) arg).value);
+                } else if (arg instanceof BoolLiteralNode && "Boolean".equals(cons.className)) {
+                    return new BoolLiteralNode(((BoolLiteralNode) arg).value);
+                }
+            }
+        } else if (expr instanceof MemberAccessNode) {
+            MemberAccessNode ma = (MemberAccessNode) expr;
+            ma.target = foldConstantExpression(ma.target);
+            if (ma.member instanceof ExpressionNode) {
+                ma.member = foldConstantExpression((ExpressionNode) ma.member);
+            }
+
+            // Попытка свести MemberAccess с MethodInvocation к константе
+            if (ma.target instanceof IntLiteralNode && ma.member instanceof MethodInvocationNode) {
+                MethodInvocationNode mi = (MethodInvocationNode) ma.member;
+                mi.target = new IntLiteralNode(((IntLiteralNode) ma.target).value); // target для вычисления
+                return foldConstantExpression(mi);
             }
         } else if (expr instanceof MethodInvocationNode) {
-            MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-            methodCall.target = foldConstantExpression(methodCall.target);
-            if (methodCall.arguments != null) {
-                for (int i = 0; i < methodCall.arguments.size(); i++) {
-                    methodCall.arguments.set(i, foldConstantExpression(methodCall.arguments.get(i)));
-                }
-            }
-        } else if (expr instanceof ConstructorInvocationNode) {
-            ConstructorInvocationNode constructor = (ConstructorInvocationNode) expr;
-            if (constructor.arguments != null) {
-                for (int i = 0; i < constructor.arguments.size(); i++) {
-                    constructor.arguments.set(i, foldConstantExpression(constructor.arguments.get(i)));
+            MethodInvocationNode mi = (MethodInvocationNode) expr;
+            mi.target = foldConstantExpression(mi.target);
+            if (mi.arguments != null) {
+                for (int i = 0; i < mi.arguments.size(); i++) {
+                    mi.arguments.set(i, foldConstantExpression(mi.arguments.get(i)));
                 }
             }
 
-            String className = constructor.className;
-            if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof IntLiteralNode) {
-                if ("Integer".equals(className)) {
-                    int value = ((IntLiteralNode) constructor.arguments.get(0)).value;
-                    return new IntLiteralNode(value);
-                }
-            } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof RealLiteralNode) {
-                if ("Double".equals(className)) {
-                    double value = ((RealLiteralNode) constructor.arguments.get(0)).value;
-                    return new RealLiteralNode(value);
-                }
-            } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof BoolLiteralNode) {
-                if ("Boolean".equals(className)) {
-                    boolean value = ((BoolLiteralNode) constructor.arguments.get(0)).value;
-                    return new BoolLiteralNode(value);
+            if (isConstantExpression(mi)) {
+                Object targetVal = evaluateConstantExpression(mi.target);
+                Object argVal = mi.arguments.isEmpty() ? null : evaluateConstantExpression(mi.arguments.get(0));
+
+                if (targetVal instanceof Integer && argVal instanceof Integer) {
+                    int t = (Integer) targetVal;
+                    int a = (Integer) argVal;
+                    switch (mi.methodName) {
+                        case "Plus":
+                            return new IntLiteralNode(t + a);
+                        case "Minus":
+                            return new IntLiteralNode(t - a);
+                        case "Mult":
+                            return new IntLiteralNode(t * a);
+                        case "Div":
+                            return new IntLiteralNode(a != 0 ? t / a : 0);
+                    }
+                } else if (targetVal instanceof Double && argVal instanceof Double) {
+                    double t = (Double) targetVal;
+                    double a = (Double) argVal;
+                    switch (mi.methodName) {
+                        case "Plus":
+                            return new RealLiteralNode(t + a);
+                        case "Minus":
+                            return new RealLiteralNode(t - a);
+                        case "Mult":
+                            return new RealLiteralNode(t * a);
+                        case "Div":
+                            return new RealLiteralNode(t / a);
+                    }
                 }
             }
-        }
-
-        if (expr instanceof IntLiteralNode || expr instanceof RealLiteralNode || expr instanceof BoolLiteralNode) {
+        } else if (expr instanceof IntLiteralNode || expr instanceof RealLiteralNode
+                || expr instanceof BoolLiteralNode) {
             return expr;
         }
 
@@ -158,26 +189,33 @@ public class Optimizer implements ASTOptimizerVisitor {
             return true;
         }
 
-        // Проверяем операции с константами
+        if (expr instanceof ConstructorInvocationNode) {
+            ConstructorInvocationNode constructor = (ConstructorInvocationNode) expr;
+            if (constructor.arguments != null) {
+                return constructor.arguments.stream().allMatch(this::isConstantExpression);
+            }
+        }
+
+        if (expr instanceof MemberAccessNode) {
+            MemberAccessNode memberAccess = (MemberAccessNode) expr;
+            return isConstantExpression(memberAccess.target)
+                    && (memberAccess.member instanceof ExpressionNode
+                            ? isConstantExpression((ExpressionNode) memberAccess.member)
+                            : true);
+        }
+
         if (expr instanceof MethodInvocationNode) {
             MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-            // Проверяем только встроенные методы для констант
-            if (methodCall.target instanceof IdentifierNode) {
-                String methodName = ((IdentifierNode) methodCall.target).name;
-                if (methodCall.arguments != null && methodCall.arguments.size() == 1) {
-                    ExpressionNode arg = methodCall.arguments.get(0);
-                    if (isConstantExpression(arg)) {
-                        // Проверяем арифметические операции для Integer
-                        if (methodName.equals("Plus") || methodName.equals("Minus") ||
-                                methodName.equals("Mult") || methodName.equals("Div") ||
-                                methodName.equals("Less") || methodName.equals("LessEqual") ||
-                                methodName.equals("Greater") || methodName.equals("GreaterEqual") ||
-                                methodName.equals("Equal")) {
-                            return true;
-                        }
-                    }
+            ExpressionNode foldedTarget = methodCall.target;
+            if (!isConstantExpression(foldedTarget))
+                return false;
+            if (methodCall.arguments != null) {
+                for (ExpressionNode arg : methodCall.arguments) {
+                    if (!isConstantExpression(arg))
+                        return false;
                 }
             }
+            return true;
         }
 
         return false;
@@ -187,53 +225,30 @@ public class Optimizer implements ASTOptimizerVisitor {
      * Evaluate constant expression at compile time
      */
     private Object evaluateConstantExpression(ExpressionNode expr) {
-        if (expr instanceof IntLiteralNode) {
+        if (expr instanceof IntLiteralNode)
             return ((IntLiteralNode) expr).value;
-        } else if (expr instanceof BoolLiteralNode) {
-            return ((BoolLiteralNode) expr).value;
-        } else if (expr instanceof RealLiteralNode) {
+        if (expr instanceof RealLiteralNode)
             return ((RealLiteralNode) expr).value;
-        }
-
+        if (expr instanceof BoolLiteralNode)
+            return ((BoolLiteralNode) expr).value;
         if (expr instanceof MethodInvocationNode) {
-            MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-
-            if (methodCall.target instanceof IdentifierNode && methodCall.arguments != null
-                    && methodCall.arguments.size() == 1) {
-                String methodName = ((IdentifierNode) methodCall.target).name;
-                ExpressionNode arg = methodCall.arguments.get(0);
-
-                Object leftValue = evaluateConstantExpression(methodCall.target);
-                Object rightValue = evaluateConstantExpression(arg);
-
-                if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                    int left = (Integer) leftValue;
-                    int right = (Integer) rightValue;
-
-                    switch (methodName) {
-                        case "Plus":
-                            return left + right;
-                        case "Minus":
-                            return left - right;
-                        case "Mult":
-                            return left * right;
-                        case "Div":
-                            return right != 0 ? left / right : 0;
-                        case "Less":
-                            return left < right;
-                        case "LessEqual":
-                            return left <= right;
-                        case "Greater":
-                            return left > right;
-                        case "GreaterEqual":
-                            return left >= right;
-                        case "Equal":
-                            return left == right;
-                    }
+            MethodInvocationNode mi = (MethodInvocationNode) expr;
+            Object targetVal = evaluateConstantExpression(mi.target);
+            Object argVal = mi.arguments.isEmpty() ? null : evaluateConstantExpression(mi.arguments.get(0));
+            if (targetVal instanceof Integer && argVal instanceof Integer) {
+                int t = (Integer) targetVal, a = (Integer) argVal;
+                switch (mi.methodName) {
+                    case "Plus":
+                        return t + a;
+                    case "Minus":
+                        return t - a;
+                    case "Mult":
+                        return t * a;
+                    case "Div":
+                        return a != 0 ? t / a : 0;
                 }
             }
         }
-
         return null;
     }
 
