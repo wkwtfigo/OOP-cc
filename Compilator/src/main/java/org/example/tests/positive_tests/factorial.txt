@@ -11,7 +11,7 @@ end
 class Main is
     method start() is
         var f : Factorial()
-        var res : Integer = f.fact(Integer(5))
+        var res : f.fact(Integer(5))
         print res  // Должно вывести 120
     end
 end

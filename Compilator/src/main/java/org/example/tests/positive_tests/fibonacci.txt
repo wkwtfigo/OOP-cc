@@ -12,6 +12,7 @@ class Main is
     method start() is
         var f : Fibonacci()
         var res : f.fib(Integer(6))   // 8
+        print res
         var b : Integer(5)
     end
 end
