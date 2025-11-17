@@ -1,21 +1,63 @@
 package org.example.parser;
 
+/* 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.w3c.dom.TypeInfo;
 
 public class MyCodeGen implements ASTVisitor{
 
     // Собираемый Jasmin-код для текущего класса
-    private static StringBuilder jasminCode = new StringBuilder();
+    private StringBuilder jasminCode;
 
     // Текущее имя класса, для удобства генерации
     private String currentClassName;
 
     // Папка, куда будут записываться .j файлы
     private final String outputDir;
+    private int labelCounter = 0;
+
+    // Информация обо всех классах в программе
+    private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
+    // AST-узлы классов, чтобы потом к ним вернуться при генерации
+    private final Map<String, ClassDeclNode> classAstNodes = new HashMap<>();
+
+    // -------------------------
+    // Внутренние структуры для информации о классах
+    // -------------------------
+    private static class ClassInfo {
+        final String name;
+        final String superName; // internal name: java/lang/Object и т.п.
+        final Map<String, FieldInfo> fields = new HashMap<>();
+        final Map<String, MethodDeclNode> methods = new HashMap<>();
+        final java.util.List<ConstructorDeclNode> constructors = new java.util.ArrayList<>();
+        final java.util.List<ConstructorDeclNode> constructorsList = new java.util.ArrayList<>();
+
+        ClassInfo(String name, String superName) {
+            this.name = name;
+            this.superName = superName;
+        }
+    }
+
+    private static class FieldInfo {
+        final String name;
+        final String descriptor;
+
+        FieldInfo(String name, String descriptor) {
+            this.name = name;
+            this.descriptor = descriptor;
+        }
+    }
+
+    private String newLabel(String base) {
+        return base + "_" + (labelCounter++);
+    }
 
     public MyCodeGen() {
         this("out");
@@ -26,9 +68,6 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     private void emit(String line) {
-        if (jasminCode == null) {
-            jasminCode = new StringBuilder();
-        }
         jasminCode.append(line).append("\n");
     }
 
@@ -45,8 +84,6 @@ public class MyCodeGen implements ASTVisitor{
             System.out.println("Generated: " + out.getAbsolutePath());
         } catch (IOException e) {
             System.err.println("Error writing Jasmin file: " + e.getMessage());
-        } finally {
-            jasminCode = null; // сбросим builder после сохранения
         }
     }
 
@@ -55,78 +92,214 @@ public class MyCodeGen implements ASTVisitor{
         if (node == null || node.classes == null) {
             return;
         }
-        for (ClassDeclNode classNode : node.classes) {
-            classNode.accept(this);
+
+        // 1-й проход: регистрируем классы
+        for (ClassDeclNode classDecl : node.classes) {
+            registerClass(classDecl);
+        }
+
+        // 2-й проход: генерируем код по каждому классу
+        for (ClassDeclNode classDecl : node.classes) {
+            generateClass(classDecl);
         }
     }
 
-    @Override
-    public void visit(ClassDeclNode node) {
-        if (node == null) {
-            return;
+    // Первый проход: просто собираем информацию о классах
+    private void registerClass(ClassDeclNode node) {
+        if (node == null) return;
+
+        ClassInfo info = new ClassInfo(node.className,
+                                    node.extendsClass == null ? "java/lang/Object"
+                                                                : node.extendsClass.replace('.', '/'));
+        classInfoMap.put(node.className, info);
+        classAstNodes.put(node.className, node);
+
+        if (node.members == null) return;
+
+        for (MemberNode member : node.members) {
+            if (member instanceof VarDeclNode v) {
+                // поле
+                String desc = descriptorForTypeNode(v.type);
+                info.fields.put(v.varName, new FieldInfo(v.varName, desc));
+            } else if (member instanceof MethodDeclNode m) {
+                info.methods.put(m.header.methodName, m);
+            } else if (member instanceof ConstructorDeclNode c) {
+                info.constructors.add(c);
+            }
         }
+    }
+
+    // Второй проход: генерация Jasmin по классу
+    private void generateClass(ClassDeclNode node) {
+        if (node == null) return;
 
         currentClassName = node.className;
         jasminCode = new StringBuilder();
 
-        emit(".class public " + node.className);
+        ClassInfo info = classInfoMap.get(node.className);
 
-        String parent = node.extendsClass;
-        if (parent == null || parent.isEmpty()) {
-            emit(".super java/lang/Object");
-        } else {
-            emit(".super " + parent.replace('.', '/'));
-        }
+        // Заголовок класса
+        emit(".class public " + node.className);
+        String superInternal = (info != null ? info.superName : "java/lang/Object");
+        emit(".super " + superInternal);
         emit("");
-        
-        if (node.members != null) {
-            for (MemberNode member : node.members) {
-                if (member instanceof VarDeclNode) {
-                    VarDeclNode v = (VarDeclNode) member;
-                    String desc = descriptorForTypeNode(v.type);
-                    emit(".field public " + v.varName + " " + desc);
-                }
+
+        // Поля
+        if (info != null) {
+            for (FieldInfo f : info.fields.values()) {
+                emit(".field public " + f.name + " " + f.descriptor);
             }
         }
         emit("");
 
-        generateDefaultConstructorWithInitializers(node);
+        // Конструктор(ы)
+        if (info != null && !info.constructors.isEmpty()) {
+            for (ConstructorDeclNode ctor : info.constructors) {
+                generateConstructor(ctor, superInternal);
+            }
+        } else {
+            // Если конструкторов нет — генерируем дефолтный с инициализацией полей
+            generateDefaultConstructorWithInitializers(node, superInternal);
+        }
 
-        if (node.members != null) {
-            for (MemberNode member : node.members) {
-                if (member != null) member.accept(this);
+        // Методы
+        if (info != null) {
+            for (MethodDeclNode m : info.methods.values()) {
+                m.accept(this); // пока используем твой visit(MethodDeclNode)
             }
         }
 
         saveFile(node.className);
     }
 
-    // -------------------------
-    // Field initialization constructor
-    // -------------------------
+    @Override
+    public void visit(ClassDeclNode node) {
+        // Классы обрабатываем через visit(ProgramNode) → registerClass/generateClass
+    }
+
     private void generateDefaultConstructorWithInitializers(ClassDeclNode node) {
+        String superName = (node.extendsClass == null || node.extendsClass.isEmpty())
+                ? "java/lang/Object"
+                : node.extendsClass.replace('.', '/');
+        generateDefaultConstructorWithInitializers(node, superName);
+    }
+
+    private void generateDefaultConstructor() {
+        ConstructorSignature signature = new ConstructorSignature(Collections.emptyList(), false);
+        emit(".method public <init>()V");
+        emitLimits();
+        MethodContext ctx = new MethodContext(currentClassInfo, "<init>", VOID_TYPE, true);
+        methodStack.push(ctx);
+        localVarScopes.push(new HashMap<>());
+
+        emit("    aload_0");
+        emit("    invokespecial " + internalName(currentClassInfo.superName) + "/<init>()V");
+        emitFieldInitializers();
+        emit("    return");
+
+        localVarScopes.pop();
+        methodStack.pop();
+        emit(".end method");
+        emit("");
+    }
+
+    private void generateConstructor(ConstructorDeclNode constructor) {
+        List<TypeInfo> paramTypes = resolveParameterTypes(constructor.parameters);
+        String descriptor = buildDescriptor(paramTypes, VOID_TYPE);
+        emit(".method public <init>" + descriptor);
+        emitLimits();
+
+        MethodContext ctx = new MethodContext(currentClassInfo, "<init>", VOID_TYPE, true);
+        methodStack.push(ctx);
+        localVarScopes.push(new HashMap<>());
+        registerParameters(constructor.parameters, paramTypes, ctx);
+
+        emit("    aload_0");
+        emit("    invokespecial " + internalName(currentClassInfo.superName) + "/<init>()V");
+        emitFieldInitializers();
+
+        if (constructor.body != null) {
+            constructor.body.accept(this);
+        }
+        emit("    return");
+
+        localVarScopes.pop();
+        methodStack.pop();
+        emit(".end method");
+        emit("");
+    }
+
+    private void generateMethod(MethodDeclNode methodDecl) {
+        List<TypeInfo> paramTypes = resolveParameterTypes(methodDecl.header.parameters);
+        TypeInfo returnType = resolveReturnType(methodDecl.header.returnType);
+        String descriptor = buildDescriptor(paramTypes, returnType);
+        emit(".method public " + methodDecl.header.methodName + descriptor);
+        emitLimits();
+
+        MethodContext ctx = new MethodContext(currentClassInfo, methodDecl.header.methodName, returnType, false);
+        methodStack.push(ctx);
+        localVarScopes.push(new HashMap<>());
+        registerParameters(methodDecl.header.parameters, paramTypes, ctx);
+
+        if (methodDecl.body != null) {
+            if (methodDecl.body.isArrow && methodDecl.body.arrowExpression != null) {
+                TypeInfo exprType = generateExpression(methodDecl.body.arrowExpression);
+                emitReturn(exprType, ctx.returnType);
+            } else if (!methodDecl.body.isArrow && methodDecl.body.body != null) {
+                methodDecl.body.body.accept(this);
+                if (ctx.returnType.isVoid()) {
+                    emit("    return");
+                } else {
+                    emitDefaultReturn(ctx.returnType);
+                }
+            }
+        } else if (ctx.returnType.isVoid()) {
+            emit("    return");
+        } else {
+            emitDefaultReturn(ctx.returnType);
+        }
+        
+        localVarScopes.pop();
+        methodStack.pop();
+        emit(".end method");
+        emit("");
+    }
+
+    rivate void maybeGenerateProgramEntry(List<MethodDeclNode> methods) {
+        boolean hasStart = methods.stream()
+                .anyMatch(m -> "start".equals(m.header.methodName)
+                        && (m.header.parameters == null || m.header.parameters.isEmpty())
+                        && (m.header.returnType == null));
+        if (!"Main".equals(currentClassName) || !hasStart) {
+            return;
+        }
+        emit(".method public static main([Ljava/lang/String;)V");
+        emit("    .limit stack 4");
+        emit("    .limit locals 1");
+        emit("    new " + currentClassName);
+        emit("    dup");
+        emit("    invokespecial " + currentClassName + "/<init>()V");
+        emit("    invokevirtual " + currentClassName + "/start()V");
+        emit("    return");
+        emit(".end method");
+        emit("");
+    }
+
+    private void generateDefaultConstructorWithInitializers(ClassDeclNode node, String superInternal) {
         emit(".method public <init>()V");
         emit("    .limit stack 16");
         emit("    .limit locals 1");
 
-        // aload_0
         emit("    aload_0");
-        // invokespecial super.<init>()
-        String superName = (node.extendsClass == null || node.extendsClass.isEmpty()) ? "java/lang/Object" : node.extendsClass.replace('.', '/');
-        emit("    invokespecial " + superName + "/<init>()V");
+        emit("    invokespecial " + superInternal + "/<init>()V");
 
-        // For each field with initializer: aload_0, <generate initializer expression>, putfield Owner/field L...;
         if (node.members != null) {
             for (MemberNode member : node.members) {
-                if (!(member instanceof VarDeclNode)) continue;
-                VarDeclNode v = (VarDeclNode) member;
+                if (!(member instanceof VarDeclNode v)) continue;
                 if (v.initializer == null) continue;
 
-                // load "this"
                 emit("    aload_0");
-                // generate initializer expression (push value on stack)
                 generateExpression(v.initializer);
-                // putfield owner/field descriptor
                 String ownerInternal = currentClassName.replace('.', '/');
                 String desc = descriptorForTypeNode(v.type);
                 emit("    putfield " + ownerInternal + "/" + v.varName + " " + desc);
@@ -305,22 +478,21 @@ public class MyCodeGen implements ASTVisitor{
 
     @Override
     public void visit(VarDeclNode node) {
-        // This implements local variable declaration inside method bodies
-        // If localVars is null -> it was a class-level var (handled earlier)
-        if (localVars == null) {
-            // class-level var handled in ClassDeclNode
-            return;
-        }
-
-        int idx = currentLocalIndex++;
-        localVars.put(node.varName, idx);
-
-        // If initializer present, evaluate and store
+        // 1. Генерируем expression
         if (node.initializer != null) {
-            generateExpression(node.initializer);
-            emitStoreVar(idx);
+            node.initializer.accept(this);
+        } else {
+            emit("    aconst_null");
         }
+
+        // 2. Выдаём индекс
+        int index = currentLocalIndex++;
+        localVars.put(node.varName, index);
+
+        // 3. Сохраняем
+        emit("    astore " + index);
     }
+
 
     // =======================
     // METHOD DECLARATION
@@ -526,12 +698,49 @@ public class MyCodeGen implements ASTVisitor{
     @Override
     public void visit(WhileLoopNode node) {
 
+        String begin = newLabel("while_begin");
+        String end = newLabel("while_end");
+
+        emit(begin + ":");
+
+        node.condition.accept(this);
+        emit("    ifeq " + end);
+
+        visitBody(node.body);
+
+        emit("    goto " + begin);
+        emit(end + ":");
     }
+
 
     @Override
     public void visit(IfStatementNode node) {
 
+        String elseLabel = newLabel("else");
+        String endLabel = newLabel("endif");
+
+        // cond
+        node.condition.accept(this);
+
+        // ifeq → jump if false
+        emit("    ifeq " + elseLabel);
+
+        // then-body
+        visitBody(node.thenBody);
+
+        // goto end
+        emit("    goto " + endLabel);
+
+        // else:
+        emit(elseLabel + ":");
+
+        if (node.elseBody != null) {
+            visitBody(node.elseBody);
+        }
+
+        emit(endLabel + ":");
     }
+
 
     @Override
     public void visit(ReturnNode node) {
@@ -602,6 +811,12 @@ public class MyCodeGen implements ASTVisitor{
 
     }
 
+    private void visitBody(BodyNode body) {
+        for (BodyElementNode elem : body.elements) {
+            ((ASTNode)elem).accept(this);
+        }
+    }
+
     // -------------------------
     // Helpers: load/store locals
     // -------------------------
@@ -621,4 +836,11 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    private void emitFields(ClassInfo info) {
+        for (FieldInfo field : info.orderedFields) {
+            emit(".field public " + field.name + " " + descriptorForType(field.type));
+        }
+    }
+
 }
+*/
