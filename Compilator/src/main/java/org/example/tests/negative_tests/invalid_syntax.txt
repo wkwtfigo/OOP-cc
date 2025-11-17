@@ -1,2 +1,2 @@
-class Base is an ERROR
+class Main is an ERROR
   method foo (): Integer => Integer 

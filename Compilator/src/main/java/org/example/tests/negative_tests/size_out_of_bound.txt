@@ -1,4 +1,4 @@
-class ListTest is
+class Main is
     this() is
         var l : List[Integer](Integer(1))
         l := l.append(Integer(2))

@@ -2,7 +2,6 @@ package org.example.parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,7 @@ import java.util.Stack;
  * - Declarations before usage
  * - Array bounds checking
  */
-public class SemanticChecker implements ASTVisitor, ASTOptimizer {
+public class SemanticChecker implements ASTVisitor {
   private List<String> errors = new ArrayList<>();
   private int errorCount = 0;
 
@@ -34,9 +33,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
   // Built-in classes that don't need declaration checking
   // TODO: обсудить с Лизой
   private static final Set<String> BUILTIN_CLASSES = Set.of(
-          "Integer", "Real", "Boolean", "List", "AnyValue", "Class", "AnyRef",
-          "Array"
-  );
+      "Integer", "Real", "Boolean", "List", "AnyValue", "Class", "AnyRef",
+      "Array");
 
   /**
    * Information about a class
@@ -61,10 +59,10 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
    */
   private static class VariableInfo {
     String name;
-    ASTNode type;  // Can be TypeNode or GenericTypeNode
+    ASTNode type; // Can be TypeNode or GenericTypeNode
     int declarationOrder;
     boolean isInitialized;
-    Integer arraySize;  // Size of array/list if determinable at compile time
+    Integer arraySize; // Size of array/list if determinable at compile time
 
     VariableInfo(String name, ASTNode type, int order) {
       this.name = name;
@@ -85,8 +83,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
     int declarationOrder;
 
     MethodInfo(
-            String name, String returnType, List<ParamDeclNode> parameters,
-            int order) {
+        String name, String returnType, List<ParamDeclNode> parameters,
+        int order) {
       this.name = name;
       this.returnType = returnType;
       this.parameters = parameters;
@@ -204,7 +202,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
     // Class fields are always available in methods and constructors
     // Only check order for local variables within the same scope
-    //TODO: Забыл чекнуть что переменная может быть classfield у
+    // TODO: Забыл чекнуть что переменная может быть classfield у
     // вызываемого класса
     if (isClassField(varName)) {
       // Class fields can be used anywhere in methods/constructors
@@ -213,7 +211,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
     // Check declaration order for local variables only
     // We compare the order of the variable declaration (from first pass)
-    // with the order of the body element that contains this usage (from second pass)
+    // with the order of the body element that contains this usage (from second
+    // pass)
     Integer varDeclOrder = varInfo.declarationOrder;
 
     // Get the order of the current body element (if any)
@@ -249,7 +248,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
     }
 
     // For classes, we need to check if the class is declared before its usage
-    // Since classes are processed first, this check is mainly for forward references
+    // Since classes are processed first, this check is mainly for forward
+    // references
     Integer classOrder = classInfo.declarationOrder;
     Integer useOrder = declarationOrders.get(usageNode);
 
@@ -267,7 +267,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
     // Also, methods can call themselves recursively, so we allow that
 
     MethodInfo methodInfo = lookupMethod(methodName);
-    if (methodInfo == null) { //TODO
+    if (methodInfo == null) { // TODO
       // Don't report error - might be a method on an object type (like Integer.Plus)
       // or a built-in method
       System.out.println("нет такого метода... Или он базовый " + methodName);
@@ -341,7 +341,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         // Integer constructor should have one argument with an integer value
         if (cons.arguments != null && cons.arguments.size() > 0) {
           ExpressionNode firstArg = cons.arguments.get(0);
-          // Recursively extract value (supports nested Integer(Integer(...)) or IntLiteral)
+          // Recursively extract value (supports nested Integer(Integer(...)) or
+          // IntLiteral)
           return extractIntegerValue(firstArg);
         }
       }
@@ -361,7 +362,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
    * Check array bounds (if array access syntax exists)
    */
   private void checkArrayBounds(
-          ExpressionNode arrayExpr, ExpressionNode indexExpr) {
+      ExpressionNode arrayExpr, ExpressionNode indexExpr) {
     Integer index = extractConstantIndex(indexExpr);
     if (index != null) {
       if (index < 0) {
@@ -371,586 +372,9 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
       Integer length = extractArrayLength(arrayExpr);
       if (length != null && index >= length) {
         reportError(
-                "Array index out of bounds: index " + index + " >= length " + length);
+            "Array index out of bounds: index " + index + " >= length " + length);
       }
     }
-  }
-
-  // Flags for optimization management
-  private boolean enableConstantFolding = true;
-  private boolean enableUnreachableCodeElimination = true;
-
-  private boolean enableRemoveUnusedVariables = true;
-  private Set<String> usedVariables = new HashSet<>();
-
-  // 
-  private boolean inReturnContext = false;
-
-  /**
-   * Optimization 1: Constant Expression Simplification (Constant Folding)
-   * Simplify constant expressions during compilation
-   */
-  private void constantFolding(ASTNode node) {
-      if (node instanceof ProgramNode) {
-          ProgramNode program = (ProgramNode) node;
-          if (program.classes != null) {
-              for (ClassDeclNode classDecl : program.classes) {
-                  constantFolding(classDecl);
-              }
-          }
-      }
-      else if (node instanceof ClassDeclNode) {
-          ClassDeclNode classDecl = (ClassDeclNode) node;
-          if (classDecl.members != null) {
-              for (MemberNode member : classDecl.members) {
-                  constantFolding(member);
-              }
-          }
-      }
-      else if (node instanceof MethodDeclNode) {
-          MethodDeclNode methodDecl = (MethodDeclNode) node;
-          if (methodDecl.body != null) {
-              constantFolding(methodDecl.body);
-          }
-      }
-      else if (node instanceof ConstructorDeclNode) {
-          ConstructorDeclNode constructor = (ConstructorDeclNode) node;
-          if (constructor.body != null) {
-              constantFolding(constructor.body);
-          }
-      }
-      else if (node instanceof MethodBodyNode) {
-          MethodBodyNode body = (MethodBodyNode) node;
-          if (body.isArrow && body.arrowExpression != null) {
-              body.arrowExpression = foldConstantExpression(body.arrowExpression);
-          } else if (!body.isArrow && body.body != null) {
-              constantFolding(body.body);
-          }
-      }
-      else if (node instanceof BodyNode) {
-          BodyNode body = (BodyNode) node;
-          if (body.elements != null) {
-              for (int i = 0; i < body.elements.size(); i++) {
-                  BodyElementNode element = body.elements.get(i);
-                  if (element instanceof VarDeclNode) {
-                      VarDeclNode varDecl = (VarDeclNode) element;
-                      if (varDecl.initializer != null) {
-                          varDecl.initializer = foldConstantExpression(varDecl.initializer);
-                      }
-                  } else if (element instanceof AssignmentNode) {
-                      AssignmentNode assignment = (AssignmentNode) element;
-                      assignment.right = foldConstantExpression(assignment.right);
-                      if (assignment.left instanceof ExpressionNode) {
-                          assignment.left = foldConstantExpression((ExpressionNode) assignment.left);
-                      }
-                  } else if (element instanceof WhileLoopNode) {
-                      WhileLoopNode whileLoop = (WhileLoopNode) element;
-                      whileLoop.condition = foldConstantExpression(whileLoop.condition);
-                      constantFolding(whileLoop.body);
-                  } else if (element instanceof IfStatementNode) {
-                      IfStatementNode ifStmt = (IfStatementNode) element;
-                      ifStmt.condition = foldConstantExpression(ifStmt.condition);
-                      constantFolding(ifStmt.thenBody);
-                      if (ifStmt.elseBody != null) {
-                          constantFolding(ifStmt.elseBody);
-                      }
-                  } else if (element instanceof ReturnNode) {
-                      ReturnNode returnNode = (ReturnNode) element;
-                      if (returnNode.expression != null) {
-                          returnNode.expression = foldConstantExpression(returnNode.expression);
-                      }
-                  } else if (element instanceof PrintNode) {
-                      PrintNode printNode = (PrintNode) element;
-                      printNode.expression = foldConstantExpression(printNode.expression);
-                  }
-              }
-          }
-      }
-  }
-
-  /**
-   * Fold constant expressions to their simplified form
-   */
-  private ExpressionNode foldConstantExpression(ExpressionNode expr) {
-      if (expr == null) return null;
-
-      // Рекурсивно сворачиваем подвыражения
-      if (expr instanceof MemberAccessNode) {
-          MemberAccessNode memberAccess = (MemberAccessNode) expr;
-          memberAccess.target = foldConstantExpression(memberAccess.target);
-          if (memberAccess.member instanceof ExpressionNode) {
-              memberAccess.member = foldConstantExpression((ExpressionNode) memberAccess.member);
-          }
-      }
-      else if (expr instanceof MethodInvocationNode) {
-          MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-          methodCall.target = foldConstantExpression(methodCall.target);
-          if (methodCall.arguments != null) {
-              for (int i = 0; i < methodCall.arguments.size(); i++) {
-                  methodCall.arguments.set(i, foldConstantExpression(methodCall.arguments.get(i)));
-              }
-          }
-      }
-      else if (expr instanceof ConstructorInvocationNode) {
-          ConstructorInvocationNode constructor = (ConstructorInvocationNode) expr;
-          if (constructor.arguments != null) {
-              for (int i = 0; i < constructor.arguments.size(); i++) {
-                  constructor.arguments.set(i, foldConstantExpression(constructor.arguments.get(i)));
-              }
-          }
-
-          String className = constructor.className; 
-          if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof IntLiteralNode) {
-              if ("Integer".equals(className)) {
-                  int value = ((IntLiteralNode) constructor.arguments.get(0)).value;
-                  System.out.println("Constant folding: Integer() -> IntLiteral(" + value + ")");
-                  return new IntLiteralNode(value);
-              }
-          } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof RealLiteralNode) {
-              if ("Double".equals(className)) {
-                  double value = ((RealLiteralNode) constructor.arguments.get(0)).value;
-                  System.out.println("Constant folding: Double() -> RealLiteral(" + value + ")");
-                  return new RealLiteralNode(value);
-              }
-          } else if (constructor.arguments.size() == 1 && constructor.arguments.get(0) instanceof BoolLiteralNode) {
-              if ("Boolean".equals(className)) {
-                  boolean value = ((BoolLiteralNode) constructor.arguments.get(0)).value;
-                  System.out.println("Constant folding: Boolean() -> BoolLiteral(" + value + ")");
-                  return new BoolLiteralNode(value);
-              }
-          }
-      }
-
-      if (expr instanceof IntLiteralNode || expr instanceof RealLiteralNode || expr instanceof BoolLiteralNode) {
-          return expr;
-      }
-
-      return expr;
-  }
-
-  /**
-   * Check if expression is constant (can be evaluated at compile time)
-   */
-  private boolean isConstantExpression(ExpressionNode expr) {
-      if (expr instanceof IntLiteralNode || expr instanceof BoolLiteralNode || expr instanceof RealLiteralNode) {
-          return true;
-      }
-
-      // Проверяем операции с константами
-      if (expr instanceof MethodInvocationNode) {
-          MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-          // Проверяем только встроенные методы для констант
-          if (methodCall.target instanceof IdentifierNode) {
-              String methodName = ((IdentifierNode) methodCall.target).name;
-              if (methodCall.arguments != null && methodCall.arguments.size() == 1) {
-                  ExpressionNode arg = methodCall.arguments.get(0);
-                  if (isConstantExpression(arg)) {
-                      // Проверяем арифметические операции для Integer
-                      if (methodName.equals("Plus") || methodName.equals("Minus") || 
-                          methodName.equals("Mult") || methodName.equals("Div") ||
-                          methodName.equals("Less") || methodName.equals("LessEqual") ||
-                          methodName.equals("Greater") || methodName.equals("GreaterEqual") ||
-                          methodName.equals("Equal")) {
-                          return true;
-                      }
-                  }
-              }
-          }
-      }
-
-      return false;
-  }
-
-  /**
-   * Evaluate constant expression at compile time
-   */
-  private Object evaluateConstantExpression(ExpressionNode expr) {
-      if (expr instanceof IntLiteralNode) {
-          return ((IntLiteralNode) expr).value;
-      } else if (expr instanceof BoolLiteralNode) {
-          return ((BoolLiteralNode) expr).value;
-      } else if (expr instanceof RealLiteralNode) {
-          return ((RealLiteralNode) expr).value;
-      }
-
-      if (expr instanceof MethodInvocationNode) {
-          MethodInvocationNode methodCall = (MethodInvocationNode) expr;
-
-          if (methodCall.target instanceof IdentifierNode && methodCall.arguments != null && methodCall.arguments.size() == 1) {
-              String methodName = ((IdentifierNode) methodCall.target).name;
-              ExpressionNode arg = methodCall.arguments.get(0);
-
-              Object leftValue = evaluateConstantExpression(methodCall.target);
-              Object rightValue = evaluateConstantExpression(arg);
-
-              if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                  int left = (Integer) leftValue;
-                  int right = (Integer) rightValue;
-
-                  switch (methodName) {
-                      case "Plus": return left + right;
-                      case "Minus": return left - right;
-                      case "Mult": return left * right;
-                      case "Div": return right != 0 ? left / right : 0;
-                      case "Less": return left < right;
-                      case "LessEqual": return left <= right;
-                      case "Greater": return left > right;
-                      case "GreaterEqual": return left >= right;
-                      case "Equal": return left == right;
-                  }
-              }
-          }
-      }
-
-      return null;
-  }
-
-  /**
-   * Optimization 2: Unreachable Code Elimination
-   * Remove code that will never be executed
-   */
-  private void eliminateUnreachableCode(ASTNode node) {
-      if (node instanceof ProgramNode) {
-          ProgramNode program = (ProgramNode) node;
-          if (program.classes != null) {
-              for (ClassDeclNode classDecl : program.classes) {
-                  eliminateUnreachableCode(classDecl);
-              }
-          }
-      }
-      else if (node instanceof ClassDeclNode) {
-          ClassDeclNode classDecl = (ClassDeclNode) node;
-          if (classDecl.members != null) {
-              for (MemberNode member : classDecl.members) {
-                  eliminateUnreachableCode(member);
-              }
-          }
-      }
-      else if (node instanceof MethodDeclNode) {
-          MethodDeclNode methodDecl = (MethodDeclNode) node;
-          inReturnContext = false;
-          if (methodDecl.body != null) {
-              eliminateUnreachableCode(methodDecl.body);
-          }
-      }
-      else if (node instanceof ConstructorDeclNode) {
-          ConstructorDeclNode constructor = (ConstructorDeclNode) node;
-          inReturnContext = false;
-          if (constructor.body != null) {
-              eliminateUnreachableCode(constructor.body);
-          }
-      }
-      else if (node instanceof MethodBodyNode) {
-          MethodBodyNode body = (MethodBodyNode) node;
-          if (body.isArrow) {
-              System.out.println("Unreachable code: arrow method always returns, marking context as unreachable");
-              inReturnContext = true;
-          } else if (body.body != null) {
-              eliminateUnreachableCode(body.body);
-          }
-      }
-      else if (node instanceof BodyNode) {
-          BodyNode body = (BodyNode) node;
-          if (body.elements != null) {
-              List<BodyElementNode> newElements = new ArrayList<>();
-              boolean foundUnreachable = false;
-
-              for (BodyElementNode element : body.elements) {
-                  if (foundUnreachable) {
-                      // Пропускаем недостижимый код, но сообщаем об оптимизации
-                      System.out.println("Unreachable code: removing statement after return - " + 
-                                    element.getClass().getSimpleName());
-                      continue;
-                  }
-
-                  newElements.add(element);
-
-                  // Если это return statement, отмечаем что следующий код недостижим
-                  if (element instanceof ReturnNode) {
-                      System.out.println("Unreachable code: found return statement, marking subsequent code as unreachable");
-                      foundUnreachable = true;
-                  }
-                  // Если это if с константным условием, можем оптимизировать ветки
-                  else if (element instanceof IfStatementNode) {
-                      IfStatementNode ifStmt = (IfStatementNode) element;
-                      if (isConstantExpression(ifStmt.condition)) {
-                          Object conditionValue = evaluateConstantExpression(ifStmt.condition);
-                          if (conditionValue instanceof Boolean) {
-                              if ((Boolean) conditionValue) {
-                                  // Условие всегда true - оставляем только then ветку
-                                  System.out.println("If optimization: condition always true, removing else branch");
-                                  ifStmt.elseBody = null;
-                              } else {
-                                  // Условие всегда false - оставляем только else ветку, если есть
-                                  System.out.println("If optimization: condition always false, removing then branch");
-                                  if (ifStmt.elseBody != null) {
-                                      // Заменяем if на содержимое else ветки
-                                      newElements.remove(newElements.size() - 1); // Удаляем if
-                                      System.out.println("If optimization: replacing if with else branch content");
-                                      if (ifStmt.elseBody.elements != null) {
-                                          newElements.addAll(ifStmt.elseBody.elements);
-                                      }
-                                  } else {
-                                      newElements.remove(newElements.size() - 1); // Удаляем if полностью
-                                  }
-                              }
-                          }
-                      }
-                  }
-                  // Если это while с константным false условием, удаляем весь цикл
-                  else if (element instanceof WhileLoopNode) {
-                      WhileLoopNode whileLoop = (WhileLoopNode) element;
-                      if (isConstantExpression(whileLoop.condition)) {
-                          Object conditionValue = evaluateConstantExpression(whileLoop.condition);
-                          if (conditionValue instanceof Boolean && !(Boolean) conditionValue) {
-                              System.out.println("While optimization: condition always false, removing entire loop");
-                              newElements.remove(newElements.size() - 1); // Удаляем цикл
-                          } else if (conditionValue instanceof Boolean && (Boolean) conditionValue) {
-                              System.out.println("While optimization: condition always true - infinite loop (keeping as is)");
-                          }
-                      }
-                  }
-              }
-
-              // Заменяем элементы на оптимизированный список
-              body.elements = newElements;
-
-              // Рекурсивно обрабатываем оставшиеся элементы
-              for (BodyElementNode element : newElements) {
-                  if (element instanceof WhileLoopNode) {
-                      eliminateUnreachableCode(((WhileLoopNode) element).body);
-                  } else if (element instanceof IfStatementNode) {
-                      IfStatementNode ifStmt = (IfStatementNode) element;
-                      eliminateUnreachableCode(ifStmt.thenBody);
-                      if (ifStmt.elseBody != null) {
-                          eliminateUnreachableCode(ifStmt.elseBody);
-                      }
-                  }
-              }
-          }
-      }
-  }
-
-  /**
-   * Optimization 3: Remove Unused Variables
-   * Remove variables that are declared but never used
-   */
-  private void removeUnusedVariables(ASTNode node) {
-      // Фаза 1: сбор всех используемых идентификаторов
-      collectUsedIdentifiers(node);
-      
-      // Фаза 2: удаление неиспользуемых переменных
-      removeUnusedVarDeclarations(node);
-  }
-
-  /**
-  * Phase 1: Collect all used variable names
-  */
-  private void collectUsedIdentifiers(ASTNode node) {
-      if (node == null) return;
-
-      if (node instanceof IdentifierNode) {
-          String varName = ((IdentifierNode) node).name;
-          usedVariables.add(varName);
-      }
-
-      // Рекурсивно обходим дочерние узлы
-      if (node instanceof ProgramNode) {
-          ProgramNode program = (ProgramNode) node;
-          if (program.classes != null) {
-              for (ClassDeclNode classDecl : program.classes) {
-                  collectUsedIdentifiers(classDecl);
-              }
-          }
-      }
-      else if (node instanceof ClassDeclNode) {
-          ClassDeclNode classDecl = (ClassDeclNode) node;
-          if (classDecl.members != null) {
-              for (MemberNode member : classDecl.members) {
-                  collectUsedIdentifiers(member);
-              }
-          }
-      }
-      else if (node instanceof MethodDeclNode) {
-          MethodDeclNode methodDecl = (MethodDeclNode) node;
-          if (methodDecl.body != null) {
-              collectUsedIdentifiers(methodDecl.body);
-          }
-      }
-      else if (node instanceof ConstructorDeclNode) {
-          ConstructorDeclNode constructor = (ConstructorDeclNode) node;
-          if (constructor.body != null) {
-              collectUsedIdentifiers(constructor.body);
-          }
-      }
-      else if (node instanceof MethodBodyNode) {
-          MethodBodyNode body = (MethodBodyNode) node;
-          if (body.isArrow && body.arrowExpression != null) {
-              collectUsedIdentifiers(body.arrowExpression);
-          } else if (!body.isArrow && body.body != null) {
-              collectUsedIdentifiers(body.body);
-          }
-      }
-      else if (node instanceof BodyNode) {
-          BodyNode body = (BodyNode) node;
-          if (body.elements != null) {
-              for (BodyElementNode element : body.elements) {
-                  if (element instanceof ASTNode) {
-                      collectUsedIdentifiers((ASTNode) element);
-                  }
-              }
-          }
-      }
-      else if (node instanceof AssignmentNode) {
-          AssignmentNode assignment = (AssignmentNode) node;
-          if (assignment.left != null) collectUsedIdentifiers(assignment.left);
-          if (assignment.right != null) collectUsedIdentifiers(assignment.right);
-      }
-      else if (node instanceof WhileLoopNode) {
-          WhileLoopNode whileLoop = (WhileLoopNode) node;
-          if (whileLoop.condition != null) collectUsedIdentifiers(whileLoop.condition);
-          if (whileLoop.body != null) collectUsedIdentifiers(whileLoop.body);
-      }
-      else if (node instanceof IfStatementNode) {
-          IfStatementNode ifStmt = (IfStatementNode) node;
-          if (ifStmt.condition != null) collectUsedIdentifiers(ifStmt.condition);
-          if (ifStmt.thenBody != null) collectUsedIdentifiers(ifStmt.thenBody);
-          if (ifStmt.elseBody != null) collectUsedIdentifiers(ifStmt.elseBody);
-      }
-      else if (node instanceof ReturnNode) {
-          ReturnNode returnNode = (ReturnNode) node;
-          if (returnNode.expression != null) collectUsedIdentifiers(returnNode.expression);
-      }
-      else if (node instanceof PrintNode) {
-          PrintNode printNode = (PrintNode) node;
-          if (printNode.expression != null) collectUsedIdentifiers(printNode.expression);
-      }
-      else if (node instanceof MemberAccessNode) {
-          MemberAccessNode memberAccess = (MemberAccessNode) node;
-          if (memberAccess.target != null) collectUsedIdentifiers(memberAccess.target);
-          if (memberAccess.member instanceof ASTNode) {
-              collectUsedIdentifiers((ASTNode) memberAccess.member);
-          }
-      }
-      else if (node instanceof MethodInvocationNode) {
-          MethodInvocationNode methodCall = (MethodInvocationNode) node;
-          if (methodCall.target != null) collectUsedIdentifiers(methodCall.target);
-          if (methodCall.arguments != null) {
-              for (ExpressionNode arg : methodCall.arguments) {
-                  collectUsedIdentifiers(arg);
-              }
-          }
-      }
-      else if (node instanceof ConstructorInvocationNode) {
-          ConstructorInvocationNode constructor = (ConstructorInvocationNode) node;
-          if (constructor.arguments != null) {
-              for (ExpressionNode arg : constructor.arguments) {
-                  collectUsedIdentifiers(arg);
-              }
-          }
-      }
-      else if (node instanceof VarDeclNode) {
-          VarDeclNode varDecl = (VarDeclNode) node;
-          // В инициализаторе могут быть использованы другие переменные
-          if (varDecl.initializer != null) {
-              collectUsedIdentifiers(varDecl.initializer);
-          }
-      }
-  }
-
-  /**
-   * Phase 2: Remove unused variable declarations
-   */
-  private void removeUnusedVarDeclarations(ASTNode node) {
-      if (node instanceof ProgramNode) {
-          ProgramNode program = (ProgramNode) node;
-          if (program.classes != null) {
-              for (ClassDeclNode classDecl : program.classes) {
-                  removeUnusedVarDeclarations(classDecl);
-              }
-          }
-      }
-      else if (node instanceof ClassDeclNode) {
-          ClassDeclNode classDecl = (ClassDeclNode) node;
-          if (classDecl.members != null) {
-              for (MemberNode member : classDecl.members) {
-                  removeUnusedVarDeclarations(member);
-              }
-          }
-      }
-      else if (node instanceof MethodDeclNode) {
-          MethodDeclNode methodDecl = (MethodDeclNode) node;
-          if (methodDecl.body != null) {
-              removeUnusedVarDeclarations(methodDecl.body);
-          }
-      }
-      else if (node instanceof ConstructorDeclNode) {
-          ConstructorDeclNode constructor = (ConstructorDeclNode) node;
-          if (constructor.body != null) {
-              removeUnusedVarDeclarations(constructor.body);
-          }
-      }
-      else if (node instanceof MethodBodyNode) {
-          MethodBodyNode body = (MethodBodyNode) node;
-          if (!body.isArrow && body.body != null) {
-              removeUnusedVarDeclarations(body.body);
-          }
-      }
-      else if (node instanceof BodyNode) {
-          BodyNode body = (BodyNode) node;
-          if (body.elements != null) {
-              List<BodyElementNode> elementsToRemove = new ArrayList<>();
-              
-              for (BodyElementNode element : body.elements) {
-                  if (element instanceof VarDeclNode) {
-                      VarDeclNode varDecl = (VarDeclNode) element;
-                      if (!usedVariables.contains(varDecl.varName)) {
-                          System.out.println("Unused variable: removing variable '" + varDecl.varName + "'");
-                          elementsToRemove.add(element);
-                      }
-                  }
-              }
-              
-              // Удаляем неиспользуемые переменные
-              body.elements.removeAll(elementsToRemove);
-              
-              // Рекурсивно обрабатываем оставшиеся элементы
-              for (BodyElementNode element : body.elements) {
-                  if (element instanceof ASTNode) {
-                      removeUnusedVarDeclarations((ASTNode) element);
-                  }
-              }
-          }
-      }
-      else if (node instanceof IfStatementNode) {
-          IfStatementNode ifStmt = (IfStatementNode) node;
-          if (ifStmt.thenBody != null) removeUnusedVarDeclarations(ifStmt.thenBody);
-          if (ifStmt.elseBody != null) removeUnusedVarDeclarations(ifStmt.elseBody);
-      }
-      else if (node instanceof WhileLoopNode) {
-          WhileLoopNode whileLoop = (WhileLoopNode) node;
-          if (whileLoop.body != null) removeUnusedVarDeclarations(whileLoop.body);
-      }
-  }
-
-  @Override
-  public void optimize(ProgramNode program) {
-      System.out.println("=== Начало оптимизаций ===");
-
-      if (enableConstantFolding) {
-          constantFolding(program);
-      }
-
-      if (enableUnreachableCodeElimination) {
-          eliminateUnreachableCode(program);
-      }
-
-      if (enableRemoveUnusedVariables) {
-          usedVariables.clear();
-          removeUnusedVariables(program);
-      }
-
-      System.out.println("=== Оптимизации завершены ===");
   }
 
   @Override
@@ -960,9 +384,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
       currentDeclarationOrder = 0;
       for (ClassDeclNode classDecl : node.classes) {
         ClassInfo classInfo = new ClassInfo(
-                classDecl.className, classDecl.extendsClass,
-                currentDeclarationOrder++
-        );
+            classDecl.className, classDecl.extendsClass,
+            currentDeclarationOrder++);
         classes.put(classDecl.className, classInfo);
         declarationOrders.put(classDecl, classInfo.declarationOrder);
       }
@@ -972,6 +395,11 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         currentDeclarationOrder = 0; // Reset for each class scope
         classDecl.accept(this);
       }
+    }
+
+    // --- Проверка наличия класса main ---
+    if (!classes.containsKey("Main")) {
+      reportError("Entry point error: class 'Main' not found");
     }
   }
 
@@ -995,17 +423,15 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         if (member instanceof VarDeclNode) {
           VarDeclNode varDecl = (VarDeclNode) member;
           VariableInfo varInfo = new VariableInfo(
-                  varDecl.varName,
-                  varDecl.type,
-                  currentDeclarationOrder
-          );
+              varDecl.varName,
+              varDecl.type,
+              currentDeclarationOrder);
 
           // Try to extract array size from initializer if it's List/Array with size
           // Supports both IntLiteral and Integer(...) constructors
           // TODO: тут должен быть List или Array...
           if (varDecl.initializer instanceof ConstructorInvocationNode) {
-            ConstructorInvocationNode cons =
-                    (ConstructorInvocationNode) varDecl.initializer;
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
             if (cons.arguments != null && cons.arguments.size() > 0) {
               ExpressionNode firstArg = cons.arguments.get(0);
               varInfo.arraySize = extractIntegerValue(firstArg);
@@ -1014,18 +440,17 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
           classInfo.fields.put(varDecl.varName, varInfo);
           variableScopes.peek()
-                  .put(varDecl.varName, varInfo);
+              .put(varDecl.varName, varInfo);
           declarationOrders.put(varDecl, currentDeclarationOrder);
           declarationOrders.put(varInfo, currentDeclarationOrder);
           currentDeclarationOrder++;
         } else if (member instanceof MethodDeclNode) {
           MethodDeclNode methodDecl = (MethodDeclNode) member;
           MethodInfo methodInfo = new MethodInfo(
-                  methodDecl.header.methodName,
-                  methodDecl.header.returnType,
-                  methodDecl.header.parameters,
-                  currentDeclarationOrder
-          );
+              methodDecl.header.methodName,
+              methodDecl.header.returnType,
+              methodDecl.header.parameters,
+              currentDeclarationOrder);
           classInfo.methods.put(methodDecl.header.methodName, methodInfo);
           declarationOrders.put(methodDecl, currentDeclarationOrder);
           declarationOrders.put(methodInfo, currentDeclarationOrder);
@@ -1033,9 +458,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         } else if (member instanceof ConstructorDeclNode) {
           ConstructorDeclNode constructorDecl = (ConstructorDeclNode) member;
           ConstructorInfo constructorInfo = new ConstructorInfo(
-                  constructorDecl.parameters,
-                  currentDeclarationOrder
-          );
+              constructorDecl.parameters,
+              currentDeclarationOrder);
           classInfo.constructors.add(constructorInfo);
           declarationOrders.put(constructorDecl, currentDeclarationOrder);
           currentDeclarationOrder++;
@@ -1075,12 +499,11 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
     if (node.header != null && node.header.parameters != null) {
       for (ParamDeclNode param : node.header.parameters) {
         VariableInfo paramInfo = new VariableInfo(
-                param.paramName,
-                param.paramType,
-                currentDeclarationOrder
-        );
+            param.paramName,
+            param.paramType,
+            currentDeclarationOrder);
         variableScopes.peek()
-                .put(param.paramName, paramInfo);
+            .put(param.paramName, paramInfo);
         declarationOrders.put(param, currentDeclarationOrder);
         declarationOrders.put(paramInfo, currentDeclarationOrder);
         currentDeclarationOrder++;
@@ -1117,15 +540,13 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
           if (element instanceof VarDeclNode) {
             VarDeclNode varDecl = (VarDeclNode) element;
             VariableInfo varInfo = new VariableInfo(
-                    varDecl.varName,
-                    varDecl.type,
-                    currentDeclarationOrder
-            );
+                varDecl.varName,
+                varDecl.type,
+                currentDeclarationOrder);
 
             // Try to extract array size from initializer if it's List/Array with size
             if (varDecl.initializer instanceof ConstructorInvocationNode) {
-              ConstructorInvocationNode cons =
-                      (ConstructorInvocationNode) varDecl.initializer;
+              ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
               if (cons.arguments != null && cons.arguments.size() > 0) {
                 ExpressionNode firstArg = cons.arguments.get(0);
                 varInfo.arraySize = extractIntegerValue(firstArg);
@@ -1133,7 +554,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
             }
 
             variableScopes.peek()
-                    .put(varDecl.varName, varInfo);
+                .put(varDecl.varName, varInfo);
             declarationOrders.put(varDecl, currentDeclarationOrder);
             declarationOrders.put(varInfo, currentDeclarationOrder);
             currentDeclarationOrder++;
@@ -1144,8 +565,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         currentDeclarationOrder = 0;
         for (BodyElementNode element : node.body.elements) {
           declarationOrders.put(element, currentDeclarationOrder++);
-          currentBodyElement =
-                  element; // Set current body element for order comparison
+          currentBodyElement = element; // Set current body element for order comparison
           if (element instanceof ASTNode) {
             ((ASTNode) element).accept(this);
           }
@@ -1157,7 +577,8 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
   @Override
   public void visit(ParamDeclNode node) {
-    // Parameters are added to scope in visit(MethodDeclNode) or visit(ConstructorDeclNode)
+    // Parameters are added to scope in visit(MethodDeclNode) or
+    // visit(ConstructorDeclNode)
     // This method is called when visiting the parameter list itself
     // The actual adding to scope happens in the parent node visitor
   }
@@ -1172,12 +593,11 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
     if (node.parameters != null) {
       for (ParamDeclNode param : node.parameters) {
         VariableInfo paramInfo = new VariableInfo(
-                param.paramName,
-                param.paramType,
-                currentDeclarationOrder
-        );
+            param.paramName,
+            param.paramType,
+            currentDeclarationOrder);
         variableScopes.peek()
-                .put(param.paramName, paramInfo);
+            .put(param.paramName, paramInfo);
         declarationOrders.put(param, currentDeclarationOrder);
         declarationOrders.put(paramInfo, currentDeclarationOrder);
         currentDeclarationOrder++;
@@ -1193,15 +613,13 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
           if (element instanceof VarDeclNode) {
             VarDeclNode varDecl = (VarDeclNode) element;
             VariableInfo varInfo = new VariableInfo(
-                    varDecl.varName,
-                    varDecl.initializer,
-                    currentDeclarationOrder
-            );
+                varDecl.varName,
+                varDecl.initializer,
+                currentDeclarationOrder);
 
             // Try to extract array size from initializer if it's List/Array with size
             if (varDecl.initializer instanceof ConstructorInvocationNode) {
-              ConstructorInvocationNode cons =
-                      (ConstructorInvocationNode) varDecl.initializer;
+              ConstructorInvocationNode cons = (ConstructorInvocationNode) varDecl.initializer;
               if (cons.arguments != null && cons.arguments.size() > 0) {
                 ExpressionNode firstArg = cons.arguments.get(0);
                 varInfo.arraySize = extractIntegerValue(firstArg);
@@ -1209,7 +627,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
             }
 
             variableScopes.peek()
-                    .put(varDecl.varName, varInfo);
+                .put(varDecl.varName, varInfo);
             declarationOrders.put(varDecl, currentDeclarationOrder);
             declarationOrders.put(varInfo, currentDeclarationOrder);
             currentDeclarationOrder++;
@@ -1220,8 +638,7 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         currentDeclarationOrder = 0;
         for (BodyElementNode element : node.body.elements) {
           declarationOrders.put(element, currentDeclarationOrder++);
-          currentBodyElement =
-                  element; // Set current body element for order comparison
+          currentBodyElement = element; // Set current body element for order comparison
           if (element instanceof ASTNode) {
             ((ASTNode) element).accept(this);
           }
@@ -1329,12 +746,11 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
         reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
     } else if (node.member instanceof MethodInvocationNode) {
       // Method call on an object - don't check member as variable
-      if (!checkMethodExistence(node))
-      {
+      if (!checkMethodExistence(node)) {
         ExpressionNode method = ((MethodInvocationNode) node.member).target;
-        String methodName = ((IdentifierNode)method).name;
+        String methodName = ((IdentifierNode) method).name;
         reportError(
-                "У класса нет метода " + methodName);
+            "У класса нет метода " + methodName);
       }
 
       MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
@@ -1369,32 +785,32 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
   private boolean checkMethodExistence(MemberAccessNode node) {
     if (node.target instanceof IdentifierNode && node.member instanceof MethodInvocationNode m) {
-        String classVarName = ((IdentifierNode) node.target).name;
-        VariableInfo classVarInfo = lookupVariable(classVarName);
-        if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
-            String className = c.className;
-            ExpressionNode method = m.target;
-            String methodName = ((IdentifierNode) method).name;
-            if (BUILTIN_CLASSES.contains(className)) {
-                return true;
-            }
-            ClassInfo classInfo = lookupClass(className);
-            if (classInfo == null) {
-                System.out.println("Unknown class: " + className);
-                return false;
-            }
-
-            return classInfo.methods.containsKey(methodName);
-        }
-    }
-      if (node.target instanceof ConstructorInvocationNode t &&node.member instanceof MethodInvocationNode m) {
-        String className = t.className;
-        if (BUILTIN_CLASSES.contains(className)){
+      String classVarName = ((IdentifierNode) node.target).name;
+      VariableInfo classVarInfo = lookupVariable(classVarName);
+      if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
+        String className = c.className;
+        ExpressionNode method = m.target;
+        String methodName = ((IdentifierNode) method).name;
+        if (BUILTIN_CLASSES.contains(className)) {
           return true;
         }
         ClassInfo classInfo = lookupClass(className);
-        return classInfo.methods.containsKey(className);
+        if (classInfo == null) {
+          System.out.println("Unknown class: " + className);
+          return false;
+        }
+
+        return classInfo.methods.containsKey(methodName);
       }
+    }
+    if (node.target instanceof ConstructorInvocationNode t && node.member instanceof MethodInvocationNode m) {
+      String className = t.className;
+      if (BUILTIN_CLASSES.contains(className)) {
+        return true;
+      }
+      ClassInfo classInfo = lookupClass(className);
+      return classInfo.methods.containsKey(className);
+    }
 
     return false;
 
@@ -1501,4 +917,3 @@ public class SemanticChecker implements ASTVisitor, ASTOptimizer {
 
   }
 }
-
