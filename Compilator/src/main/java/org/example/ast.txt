@@ -1,0 +1,90 @@
+ Program:
+   Classes: [
+     [0]:
+       Class: ConditionExample
+         Members: [
+           [0]:
+             Constructor:
+               Parameters: []
+               Body:
+                 Body:
+                   Elements: [
+                     [0]:
+                       VarDecl: a
+                         DeclType: COLON
+                         Initializer:
+                           ConstructorInvocation: Integer
+                             Arguments: [
+                               [0]:
+                                 IntLiteral: 3
+                             ]
+                     [1]:
+                       VarDecl: b
+                         DeclType: COLON
+                         Initializer:
+                           ConstructorInvocation: Real
+                             Arguments: [
+                               [0]:
+                                 RealLiteral: 2.3
+                             ]
+                     [2]:
+                       IfStatement:
+                         Condition:
+                           MemberAccess:
+                             Target:
+                               Identifier: a
+                             Member:
+                               MethodInvocation:
+                                 Target:
+                                   Identifier: Greater
+                                 Arguments: [
+                                   [0]:
+                                     ConstructorInvocation: Integer
+                                       Arguments: [
+                                         [0]:
+                                           IntLiteral: 2
+                                       ]
+                                 ]
+                         ThenBody:
+                           Body:
+                             Elements: [
+                               [0]:
+                                 Assignment:
+                                   Left:
+                                     Identifier: a
+                                   Right:
+                                     MemberAccess:
+                                       Target:
+                                         Identifier: a
+                                       Member:
+                                         MethodInvocation:
+                                           Target:
+                                             Identifier: Minus
+                                           Arguments: [
+                                             [0]:
+                                               IntLiteral: 1
+                                           ]
+                             ]
+                         ElseBody:
+                           Body:
+                             Elements: [
+                               [0]:
+                                 Assignment:
+                                   Left:
+                                     Identifier: a
+                                   Right:
+                                     MemberAccess:
+                                       Target:
+                                         Identifier: a
+                                       Member:
+                                         MethodInvocation:
+                                           Target:
+                                             Identifier: Plus
+                                           Arguments: [
+                                             [0]:
+                                               IntLiteral: 1
+                                           ]
+                             ]
+                   ]
+         ]
+   ]

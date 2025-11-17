@@ -5,6 +5,8 @@ end
 class Test is
     this() is 
       var a : A()
+      var l : List[Integer] (12)
+      var asd : l.get(100)
       var b : Integer(1)
       a.a := Integer(5).Plus(Integer(3))
       var i : Integer(1)

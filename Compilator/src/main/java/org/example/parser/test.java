@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/unused_vars.txt"));
+                .readString(Path.of("/Users/azizvundirov/Projects/OOP-cc/Compilator/src/main/java/org/example/tests/positive_tests/print_100.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -53,6 +53,16 @@ public class test {
                     ASTPrinter optimizedPrinter = new ASTPrinter();
                     rootNode.accept(optimizedPrinter);
                     System.out.println(optimizedPrinter.getOutput());
+
+                    // Генерация кода
+                    System.out.println("\n=== Генерация кода ===");
+                    String outputDir = "target/generated-classes";
+                    CodeGenerator codeGenerator = new CodeGenerator(outputDir);
+                    rootNode.accept(codeGenerator);
+                    
+                    // Компиляция .j файлов в .class
+                    System.out.println("\n=== Компиляция Jasmin файлов ===");
+                    codeGenerator.compileJasminFiles();
                 }
             } else {
                 System.out.println("Корневой узел AST не найден");
