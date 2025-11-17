@@ -46,12 +46,15 @@ public class test {
                 } else {
                     System.out.println("Семантических ошибок не найдено.");
 
-                    System.out.println("=== Оптимизация ===");
-                    checker.optimize(rootNode);
+                    // === Оптимизация ===
+                    System.out.println("=== Оптимизация AST ===");
 
-                    System.out.println("\n=== AST после оптимизаций ===");
+                    Optimizer optimizer = new Optimizer();
+                    ProgramNode optimized = optimizer.optimize(rootNode);
+
                     ASTPrinter optimizedPrinter = new ASTPrinter();
-                    rootNode.accept(optimizedPrinter);
+                    optimized.accept(optimizedPrinter);
+
                     System.out.println(optimizedPrinter.getOutput());
 
                     // Генерация кода

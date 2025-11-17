@@ -1,4 +1,4 @@
-class Test is 
+class Main is 
   this() is 
     var l : List[Integer]
     l := l.append(3.14)

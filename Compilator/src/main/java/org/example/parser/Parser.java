@@ -1150,34 +1150,34 @@ public class Parser
   case 70: /* method_invocation: TOK_ID TOK_LPAR argument_list_opt TOK_RPAR  */
   if (yyn == 70)
     /* "parser.y":298  */
-        { yyval = new MethodInvocationNode(new IdentifierNode(((Token)yystack.valueAt (3)).getLexeme()), (List<ExpressionNode>)yystack.valueAt (1)); };
+        { yyval = new MethodInvocationNode(new IdentifierNode(((Token)yystack.valueAt (3)).getLexeme()), ((Token)yystack.valueAt (3)).getLexeme(), (List<ExpressionNode>)yystack.valueAt (1)); };
   break;
 
 
   case 71: /* argument_list_opt: %empty  */
   if (yyn == 71)
-    /* "parser.y":301  */
+    /* "parser.y":302  */
                   { yyval = new ArrayList<ExpressionNode>(); };
   break;
 
 
   case 72: /* argument_list_opt: argument_list  */
   if (yyn == 72)
-    /* "parser.y":302  */
+    /* "parser.y":303  */
                     { yyval = yystack.valueAt (0); };
   break;
 
 
   case 73: /* argument_list: expression  */
   if (yyn == 73)
-    /* "parser.y":307  */
+    /* "parser.y":308  */
         { yyval = new ArrayList<ExpressionNode>(); ((List<ExpressionNode>)yyval).add((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
   case 74: /* argument_list: argument_list TOK_COMMA expression  */
   if (yyn == 74)
-    /* "parser.y":309  */
+    /* "parser.y":310  */
         { ((List<ExpressionNode>)yystack.valueAt (2)).add((ExpressionNode)yystack.valueAt (0)); yyval = yystack.valueAt (2); };
   break;
 
@@ -1842,5 +1842,5 @@ private static final byte[] yycheck_ = yycheck_init();
 /* "parser.java":1843  */
 
 }
-/* "parser.y":312  */
+/* "parser.y":313  */
 

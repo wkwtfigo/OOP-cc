@@ -1,4 +1,4 @@
-class LoopExample is
+class Main is
     this() is
         var i : Integer(1)
         var sum : Integer(0)

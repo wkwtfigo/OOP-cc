@@ -1,4 +1,4 @@
-class OverloadExample is
+class Main is
     method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
 
