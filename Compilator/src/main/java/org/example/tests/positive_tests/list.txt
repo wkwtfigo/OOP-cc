@@ -1,5 +1,5 @@
 class Main is
-    this() is
+    method start() is
         var l : List[Integer](Integer(1))
         l := l.append(Integer(2))
         l := l.append(Integer(3))

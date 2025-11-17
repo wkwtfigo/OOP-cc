@@ -5,7 +5,7 @@ end
 class Main extends Base is
     method whoAmI() : Integer => Integer(2)
 
-    this() is
+    method start() is
         var x : Base(Main())
         var res : x.whoAmI()
     end

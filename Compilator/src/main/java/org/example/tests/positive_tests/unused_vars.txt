@@ -7,7 +7,7 @@ class A is
 end
 
 class Main is
-    this() is 
+    method start() is 
       var a : A()
       var b : Boolean(false).Or(false)
       var i : Integer(1).Plus(b)

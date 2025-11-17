@@ -19,7 +19,7 @@ class MethodExample is
 end
 
 class Main is
-    this() is
+    method start() is
         var t : MethodExample()
 
         var r1 : t.getA()         // 3

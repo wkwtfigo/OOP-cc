@@ -1,5 +1,5 @@
 class Main is
-    this() is
+    method start() is
         var i : Integer(1)
         var sum : Integer(0)
         while i.LessEqual(Integer(5)) loop

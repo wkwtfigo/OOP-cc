@@ -3,7 +3,7 @@ class Base is
 end
 
 class Main is
-  this() is
+  method start() is
     var a : Base()
     a := a.foo(Real(1.1))
   end

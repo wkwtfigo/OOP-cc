@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.example.runtime.BuiltinSupport;
-
 /**
  * Generates Jasmin assembly from the parsed AST.
  */
@@ -345,7 +343,7 @@ public class CodeGenerator implements ASTVisitor {
 
     private void emitFields(ClassInfo info) {
         for (FieldInfo field : info.orderedFields) {
-            emit(".field private " + field.name + " " + descriptorForType(field.type));
+            emit(".field public " + field.name + " " + descriptorForType(field.type));
         }
     }
 

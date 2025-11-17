@@ -5,4 +5,7 @@ class Main is
     var me := Boolean(true)
     var b := true
     /*
+
+    method start() is
+    end
 end

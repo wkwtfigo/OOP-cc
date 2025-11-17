@@ -9,8 +9,9 @@ class Factorial is
 end
 
 class Main is
-    this() is
+    method start() is
         var f : Factorial()
-        var res : f.fact(Integer(5))   // 120
+        var res : Integer = f.fact(Integer(5))
+        print res  // Должно вывести 120
     end
 end
