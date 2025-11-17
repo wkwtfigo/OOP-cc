@@ -36,29 +36,6 @@ public class SemanticChecker implements ASTVisitor {
       "Integer", "Real", "Boolean", "List", "AnyValue", "Class", "AnyRef",
       "Array");
 
-  private static final Map<String, Set<String>> BUILTIN_METHODS = Map.of(
-    "Integer", Set.of(
-        "UnaryMinus", "Plus", "Minus", "Mult", "Div", "Rem",
-        "Less", "LessEqual", "Greater", "GreaterEqual", "Equal",
-        "toReal", "toBoolean"
-    ),
-    "Real", Set.of(
-        "UnaryMinus", "Plus", "Minus", "Mult", "Div", "Rem",
-        "Less", "LessEqual", "Greater", "GreaterEqual", "Equal",
-        "toInteger"
-    ),
-    "Boolean", Set.of(
-        "Or", "And", "Xor", "Not", "toInteger"
-    ),
-    "Array", Set.of(
-        "get", "set", "Length", "toList"
-    ),
-    "List", Set.of(
-        "append", "head", "tail"
-    )
-  );
-
-
   /**
    * Information about a class
    */
@@ -807,62 +784,37 @@ public class SemanticChecker implements ASTVisitor {
   }
 
   private boolean checkMethodExistence(MemberAccessNode node) {
-    // Получаем имя класса
-    String className = getClassNameFromTarget(node.target);
-    // Получаем имя метода
-    String methodName = getMethodName(node.member);
-
-    if (className != null && methodName != null) {
-        if (BUILTIN_CLASSES.contains(className)) return true;
-
+    if (node.target instanceof IdentifierNode && node.member instanceof MethodInvocationNode m) {
+      String classVarName = ((IdentifierNode) node.target).name;
+      VariableInfo classVarInfo = lookupVariable(classVarName);
+      if (classVarInfo != null && classVarInfo.type instanceof ConstructorInvocationNode c) {
+        String className = c.className;
+        ExpressionNode method = m.target;
+        String methodName = ((IdentifierNode) method).name;
+        if (BUILTIN_CLASSES.contains(className)) {
+          return true;
+        }
         ClassInfo classInfo = lookupClass(className);
         if (classInfo == null) {
-            System.out.println("Unknown class: " + className);
-            return false;
+          System.out.println("Unknown class: " + className);
+          return false;
         }
+
         return classInfo.methods.containsKey(methodName);
+      }
+    }
+    if (node.target instanceof ConstructorInvocationNode t && node.member instanceof MethodInvocationNode m) {
+      String className = t.className;
+      if (BUILTIN_CLASSES.contains(className)) {
+        return true;
+      }
+      ClassInfo classInfo = lookupClass(className);
+      return classInfo.methods.containsKey(className);
     }
 
     return false;
-}
 
-private String getClassNameFromTarget(ExpressionNode target) {
-    if (target instanceof IdentifierNode id) {
-        // переменная
-        VariableInfo varInfo = lookupVariable(id.name);
-        if (varInfo != null) {
-            if (varInfo.type instanceof TypeNode t) return t.name;
-            if (varInfo.type instanceof ConstructorInvocationNode cons) return cons.className;
-        }
-        // если это метод текущего класса
-        MethodInfo methodInfo = lookupMethod(id.name);
-        if (methodInfo != null) return methodInfo.returnType;
-    } else if (target instanceof ConstructorInvocationNode cons) {
-        return cons.className;
-    } else if (target instanceof MemberAccessNode ma) {
-        String innerClass = getClassNameFromTarget(ma.target);
-        // можно ещё проверить, есть ли у innerClass метод ma.member
-        return innerClass;
-    } else if (target instanceof MethodInvocationNode mi) {
-        // возвращаем returnType метода
-        if (mi.target instanceof IdentifierNode id2) {
-            MethodInfo methodInfo = lookupMethod(id2.name);
-            if (methodInfo != null) return methodInfo.returnType;
-        }
-        // рекурсивно
-        return getClassNameFromTarget(mi.target);
-    }
-    return null;
-}
-
-
-private String getMethodName(ExpressionNode member) {
-    if (member instanceof IdentifierNode id) return id.name;
-    if (member instanceof MethodInvocationNode mi) return getMethodName(mi.target);
-    if (member instanceof MemberAccessNode ma) return getMethodName(ma.member);
-    return null;
-}
-
+  }
 
   private boolean checkClassField(MemberAccessNode node) {
     if (node.target instanceof IdentifierNode && node.member instanceof IdentifierNode) {

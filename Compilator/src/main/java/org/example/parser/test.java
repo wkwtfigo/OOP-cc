@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/factorial.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/condition.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -43,6 +43,23 @@ public class test {
                 if (checker.getErrorCount() > 0) {
                     System.out.println("Найдено ошибок: " + checker.getErrorCount());
                     checker.printErrors();
+
+                    // === Оптимизация ===
+                    System.out.println("=== Оптимизация AST ===");
+
+                    Optimizer optimizer = new Optimizer();
+                    ProgramNode optimized = optimizer.optimize(rootNode);
+
+                    ASTPrinter optimizedPrinter = new ASTPrinter();
+                    optimized.accept(optimizedPrinter);
+
+                    System.out.println(optimizedPrinter.getOutput());
+
+                    // Генерация кода
+                    System.out.println("\n=== Генерация кода ===");
+                    String outputDir = "target/generated-classes";
+                    MyCodeGen codeGenerator = new MyCodeGen(outputDir);
+                    rootNode.accept(codeGenerator);
                 } else {
                     System.out.println("Семантических ошибок не найдено.");
 
@@ -60,12 +77,12 @@ public class test {
                     // Генерация кода
                     System.out.println("\n=== Генерация кода ===");
                     String outputDir = "target/generated-classes";
-                    CodeGenerator codeGenerator = new CodeGenerator(outputDir);
+                    MyCodeGen codeGenerator = new MyCodeGen(outputDir);
                     rootNode.accept(codeGenerator);
 
                     // Компиляция .j файлов в .class
                     System.out.println("\n=== Компиляция Jasmin файлов ===");
-                    codeGenerator.compileJasminFiles();
+                    // codeGenerator.compileJasminFiles();
                 }
             } else {
                 System.out.println("Корневой узел AST не найден");
