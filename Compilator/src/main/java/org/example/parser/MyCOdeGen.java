@@ -3,7 +3,9 @@ package org.example.parser;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MyCodeGen implements ASTVisitor{
@@ -32,10 +34,11 @@ public class MyCodeGen implements ASTVisitor{
         final String name;
         final String superName; // internal name: java/lang/Object и т.п.
         final Map<String, FieldInfo> fields = new HashMap<>();
-        final Map<String, MethodDeclNode> methods = new HashMap<>();
-        final java.util.List<ConstructorDeclNode> constructors = new java.util.ArrayList<>();
+        final Map<String, List<MethodDeclNode>> methods = new HashMap<>();
+        final java.util.List<ConstructorDeclNode> constructors;
 
         ClassInfo(String name, String superName) {
+            this.constructors = new java.util.ArrayList<>();
             this.name = name;
             this.superName = superName;
         }
@@ -128,7 +131,9 @@ public class MyCodeGen implements ASTVisitor{
                 }
                 info.fields.put(v.varName, new FieldInfo(v.varName, desc));
             } else if (member instanceof MethodDeclNode m) {
-                info.methods.put(m.header.methodName, m);
+                info.methods
+                    .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
+                    .add(m);
             } else if (member instanceof ConstructorDeclNode c) {
                 info.constructors.add(c);
             }
@@ -170,49 +175,45 @@ public class MyCodeGen implements ASTVisitor{
 
         // Методы
         if (info != null) {
-            for (MethodDeclNode m : info.methods.values()) {
-                m.accept(this); // пока используем твой visit(MethodDeclNode)
+            for (java.util.List<MethodDeclNode> list : info.methods.values()) {
+                for (MethodDeclNode m : list) {
+                    m.accept(this);
+                }
             }
 
-            // Попытаться сгенерировать точку входа main, если это класс Main
-            maybeGenerateProgramEntry(info.methods.values());
+            maybeGenerateProgramEntry(info);
         }
         saveFile(node.className);
     }
 
-    /**
-     * Генерирует public static void main(String[] args) для класса Main,
-     * если в нём есть метод start() без параметров и без возвращаемого типа.
-     */
-    private void maybeGenerateProgramEntry(Iterable<MethodDeclNode> methods) {
-        // Нас интересует только класс Main
+    private void maybeGenerateProgramEntry(ClassInfo info) {
         if (!"Main".equals(currentClassName)) {
             return;
         }
 
         boolean hasStart = false;
 
-        for (MethodDeclNode m : methods) {
-            MethodHeaderNode h = m.header;
-            if (!"start".equals(h.methodName)) {
-                continue;
-            }
-            // параметры отсутствуют или пустой список
-            boolean noParams = (h.parameters == null || h.parameters.isEmpty());
-            // returnType == null → void (в твоей модели)
-            boolean isVoid = (h.returnType == null);
+        for (java.util.List<MethodDeclNode> list : info.methods.values()) {
+            for (MethodDeclNode m : list) {
+                MethodHeaderNode h = m.header;
+                if (!"start".equals(h.methodName)) {
+                    continue;
+                }
+                boolean noParams = (h.parameters == null || h.parameters.isEmpty());
+                boolean isVoid   = (h.returnType == null);
 
-            if (noParams && isVoid) {
-                hasStart = true;
-                break;
+                if (noParams && isVoid) {
+                    hasStart = true;
+                    break;
+                }
             }
+            if (hasStart) break;
         }
 
         if (!hasStart) {
             return;
         }
 
-        // Генерация public static main([Ljava/lang/String;)V
         String ownerInternal = currentClassName.replace('.', '/');
 
         emit(".method public static main([Ljava/lang/String;)V");
@@ -482,6 +483,19 @@ public class MyCodeGen implements ASTVisitor{
                     return;
 
                 case "List":
+                    emit("    new java/util/ArrayList");
+                    emit("    dup");
+                    emit("    invokespecial java/util/ArrayList/<init>()V");
+
+                    if (ci.arguments != null) {
+                        for (ExpressionNode argExpr : ci.arguments) {
+                            emit("    dup");               // ..., list, list
+                            generateExpression(argExpr);   // ..., list, list, elem
+                            emit("    invokevirtual java/util/ArrayList/add(Ljava/lang/Object;)Z");
+                            emit("    pop");
+                        }
+                    }
+                    return;
                 case "Array":
                     emit("    new java/util/ArrayList");
                     emit("    dup");
@@ -549,6 +563,21 @@ public class MyCodeGen implements ASTVisitor{
         ExpressionNode arg = (call.arguments != null && !call.arguments.isEmpty())
         ? call.arguments.get(0)
         : null;
+
+        if (isListExpr(targetExpr)) {
+            if ("append".equals(methodName)) {
+                generateListAppend(targetExpr, arg);
+                return;
+            }
+            if ("head".equals(methodName)) {
+                generateListHead(targetExpr);
+                return;
+            }
+            if ("tail".equals(methodName)) {
+                generateListTail(targetExpr);
+                return;
+            }
+        }
 
         boolean realCtx = isRealContext(targetExpr, arg);
 
@@ -693,10 +722,7 @@ public class MyCodeGen implements ASTVisitor{
             return;
         }
 
-        // TODO: сюда позже добавим Real <-> Integer перегрузки явно, если понадобится
-
-        // Если метод не распознали – пока сваливаемся в invokeMethodOnThis (старое поведение):
-        boolean hasResult = invokeMethodOnThis(call);
+        boolean hasResult = invokeMethodOnObject(targetExpr, call);
         if (hasResult) {
             // если это standalone statement (visit(MethodInvocationNode)), мы можем его поп-нуть
             // (POP вызывается там, а не здесь)
@@ -1230,10 +1256,6 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxInteger();
     }
 
-    /**
-     * Вызов метода текущего класса на this.
-     * @return true, если метод возвращает значение (не void)
-     */
     private boolean invokeMethodOnThis(MethodInvocationNode node) {
         String methodName = node.methodName;
 
@@ -1247,14 +1269,20 @@ public class MyCodeGen implements ASTVisitor{
             }
         }
 
-        MethodDeclNode decl = findMethodInCurrentClass(methodName);
+        String ownerInternal;
         String descriptor;
         boolean isVoid;
 
-        if (decl != null) {
+        ResolvedMethod rm = resolveMethodInHierarchy(currentClassName, methodName, node);
+
+        if (rm != null) {
+            ownerInternal = rm.ownerInternal;
+            MethodDeclNode decl = rm.decl;
             descriptor = methodDescriptor(decl.header);
             isVoid = (decl.header.returnType == null);
         } else {
+            // fallback как раньше
+            ownerInternal = currentClassName.replace('.', '/');
             StringBuilder sb = new StringBuilder();
             sb.append("(");
             if (node.arguments != null) {
@@ -1267,11 +1295,70 @@ public class MyCodeGen implements ASTVisitor{
             isVoid = false;
         }
 
-        String ownerInternal = currentClassName.replace('.', '/');
         emit("    invokevirtual " + ownerInternal + "/" + methodName + descriptor);
-
         return !isVoid;
     }
+
+
+    private boolean invokeMethodOnObject(ExpressionNode targetExpr, MethodInvocationNode node) {
+        String methodName = node.methodName;
+
+        // 1) objectref
+        generateExpression(targetExpr);
+
+        // 2) аргументы
+        if (node.arguments != null) {
+            for (ExpressionNode arg : node.arguments) {
+                generateExpression(arg);
+            }
+        }
+
+        // 3) понять тип targetExpr
+        String typeName = null;
+        if (targetExpr instanceof IdentifierNode id && localVarTypes != null) {
+            typeName = localVarTypes.get(id.name);
+        } else if (targetExpr instanceof ThisNode) {
+            typeName = currentClassName;
+        }
+
+        String ownerInternal;
+        String descriptor;
+        boolean isVoid;
+
+        ResolvedMethod rm = null;
+        if (typeName != null) {
+            rm = resolveMethodInHierarchy(typeName, methodName, node);
+        }
+
+        if (rm != null) {
+            ownerInternal = rm.ownerInternal;
+            MethodDeclNode decl = rm.decl;
+            descriptor = methodDescriptor(decl.header);
+            isVoid = (decl.header.returnType == null);
+        } else {
+            // fallback — как раньше, но аккуратнее с ownerInternal
+            if (typeName != null && classInfoMap.containsKey(typeName)) {
+                ownerInternal = typeName.replace('.', '/');
+            } else {
+                ownerInternal = currentClassName.replace('.', '/');
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("(");
+            if (node.arguments != null) {
+                for (int i = 0; i < node.arguments.size(); i++) {
+                    sb.append("Ljava/lang/Object;");
+                }
+            }
+            sb.append(")Ljava/lang/Object;");
+            descriptor = sb.toString();
+            isVoid = false;
+        }
+
+        emit("    invokevirtual " + ownerInternal + "/" + methodName + descriptor);
+        return !isVoid;
+    }
+
 
     // -------------------------
     // Helpers: descriptors & boxing
@@ -1486,7 +1573,11 @@ public class MyCodeGen implements ASTVisitor{
     private MethodDeclNode findMethodInCurrentClass(String name) {
         ClassInfo info = classInfoMap.get(currentClassName);
         if (info == null) return null;
-        return info.methods.get(name);
+
+        java.util.List<MethodDeclNode> list = info.methods.get(name);
+        if (list == null || list.isEmpty()) return null;
+
+        return list.get(0);
     }
 
     private ConstructorDeclNode findConstructor(String className, int argCount) {
@@ -1646,20 +1737,46 @@ public class MyCodeGen implements ASTVisitor{
 
         // 2) obj.field = rhs;
         if (node.left instanceof MemberAccessNode access && access.member instanceof IdentifierNode memberId) {
-            // objectref
+            // 1) objectref
             generateExpression(access.target);
-            // value
+            // 2) value
             generateExpression(node.right);
 
-            // В идеале здесь надо знать реальный класс ownerInternal.
-            // Пока оставляем Object или можно позже доработать по типам.
+            // По умолчанию — Object, на всякий случай
             String ownerInternal = "java/lang/Object";
             String desc = "Ljava/lang/Object;";
+
+            // Пытаемся вывести реальный тип target
+            String typeName = null;
+
+            if (access.target instanceof IdentifierNode tId) {
+                // сначала смотрим в локальные переменные
+                if (localVarTypes != null) {
+                    typeName = localVarTypes.get(tId.name);  // например, "A"
+                }
+
+                // special case: this
+                if (typeName == null && "this".equals(tId.name)) {
+                    typeName = currentClassName;
+                }
+            } else if (access.target instanceof ThisNode) {
+                typeName = currentClassName;
+            }
+
+            if (typeName != null) {
+                ClassInfo ci = classInfoMap.get(typeName);
+                if (ci != null) {
+                    FieldInfo f = ci.fields.get(memberId.name);
+                    if (f != null) {
+                        ownerInternal = ci.name.replace('.', '/'); // A -> A
+                        desc = f.descriptor;                       // реальный дескриптор поля
+                    }
+                }
+            }
 
             emit("    putfield " + ownerInternal + "/" + memberId.name + " " + desc);
             return;
         }
-
         // fallback: ничего не делаем
     }
 
@@ -1744,10 +1861,10 @@ public class MyCodeGen implements ASTVisitor{
 
     @Override
     public void visit(MethodInvocationNode node) {
-        // treat as this.Method(...)
-        MethodInvocationNode copy = node;
-        generateMethodCallOnObject(new ThisNode(), copy);
-        emit("    pop");
+        boolean hasResult = invokeMethodOnThis(node);
+        if (hasResult) {
+            emit("    pop");
+        }
     }
 
     @Override
@@ -1821,6 +1938,185 @@ public class MyCodeGen implements ASTVisitor{
         if (init instanceof IntLiteralNode)   return "Integer";
         if (init instanceof RealLiteralNode)  return "Real";
         if (init instanceof BoolLiteralNode)  return "Boolean";
+        return null;
+    }
+
+    private static class ResolvedMethod {
+        final String ownerInternal;      // "Base", "Main", "pkg/Base" и т.п.
+        final MethodDeclNode decl;
+
+        ResolvedMethod(String ownerInternal, MethodDeclNode decl) {
+            this.ownerInternal = ownerInternal;
+            this.decl = decl;
+        }
+    }
+
+    // =======================
+    // Поиск метода по иерархии с учётом перегрузок
+    // =======================
+
+    private ResolvedMethod resolveMethodInHierarchy(String className,
+                                                    String methodName,
+                                                    MethodInvocationNode call) {
+        String cur = className;
+        while (cur != null) {
+            ClassInfo ci = classInfoMap.get(cur);
+            if (ci == null) {
+                break;
+            }
+
+            // пробуем подобрать подходящую перегрузку в этом классе
+            MethodDeclNode m = selectOverload(ci, methodName, call);
+            if (m != null) {
+                String ownerInternal = ci.name.replace('.', '/');
+                return new ResolvedMethod(ownerInternal, m);
+            }
+
+            String superName = ci.superName;
+            if (superName == null || "java/lang/Object".equals(superName)) {
+                break;
+            }
+
+            // superName у тебя хранится уже в "internal name" (Base -> "Base", a.b.C -> "a/b/C").
+            // classInfoMap ключи — это имена классов из исходника (Base, Main, ...).
+            // Если у тебя нет пакетов, всё ок: superName == "Base" и classInfoMap.get("Base") сработает.
+            cur = superName;
+        }
+        return null;
+    }
+
+    private boolean isListExpr(ExpressionNode e) {
+        if (e == null) return false;
+
+        if (e instanceof ConstructorInvocationNode ci && "List".equals(ci.className)) {
+            return true;
+        }
+
+        if (e instanceof IdentifierNode id && localVarTypes != null) {
+            String t = localVarTypes.get(id.name); // "List", "Integer", ...
+            if ("List".equals(t)) return true;
+        }
+
+        return false;
+    }
+
+    private void generateListAppend(ExpressionNode listExpr, ExpressionNode elemExpr) {
+        // хотим: l.append(x) → ( l.add(x); return l )
+
+        // list на стек
+        generateExpression(listExpr);                      // ..., list
+        emit("    dup");                                   // ..., list, list
+
+        // элемент
+        if (elemExpr != null) {
+            generateExpression(elemExpr);                  // ..., list, list, elem
+        } else {
+            emit("    aconst_null");                       // на всякий случай
+        }
+
+        // вызов add(Object)Z
+        emit("    invokevirtual java/util/ArrayList/add(Ljava/lang/Object;)Z");
+        emit("    pop");                                   // выбросить boolean
+
+        // на стеке остаётся исходный list — это и есть результат append
+    }
+
+    private void generateListHead(ExpressionNode listExpr) {
+        // хотим: l.head() → l.get(0)
+
+        generateExpression(listExpr);                      // ..., list
+        emit("    iconst_0");
+        emit("    invokevirtual java/util/ArrayList/get(I)Ljava/lang/Object;");
+        // результат — первый элемент (Object / Integer / что угодно)
+    }
+
+    private void generateListTail(ExpressionNode listExpr) {
+        // tail: новый список с элементами [1..size-1]
+        // new ArrayList( list.subList(1, list.size()) )
+
+        // шаг 1: получить subList(1, size)
+        generateExpression(listExpr);                      // ..., list
+        emit("    dup");                                   // ..., list, list
+        emit("    invokevirtual java/util/ArrayList/size()I"); // ..., list, size
+        emit("    iconst_1");                              // ..., list, size, 1
+        emit("    swap");                                  // ..., list, 1, size
+        emit("    invokevirtual java/util/ArrayList/subList(II)Ljava/util/List;");
+        // сейчас на стеке: ..., subList
+
+        // шаг 2: сохранить subList во временный локал
+        int tmp = currentLocalIndex++;
+        emitStoreVar(tmp);
+
+        // шаг 3: new ArrayList(subList)
+        emit("    new java/util/ArrayList");
+        emit("    dup");
+        emitLoadVar(tmp);                                  // ..., newArr, newArr, subList
+        emit("    invokespecial java/util/ArrayList/<init>(Ljava/util/Collection;)V");
+        // результат на стеке: новый ArrayList — это и будет tail
+    }
+
+    private MethodDeclNode selectOverload(ClassInfo ci, String methodName, MethodInvocationNode call) {
+        if (ci == null) return null;
+
+        java.util.List<MethodDeclNode> list = ci.methods.get(methodName);
+        if (list == null || list.isEmpty()) return null;
+
+        int argCount = (call.arguments == null ? 0 : call.arguments.size());
+
+        // пока достаточно поддержки 0 и 1 аргумента
+        String argType = null;
+        if (argCount == 1) {
+            argType = inferExprTypeName(call.arguments.get(0)); // "Integer" или "Real"
+        }
+
+        MethodDeclNode best = null;
+
+        for (MethodDeclNode m : list) {
+            int paramCount = (m.header.parameters == null ? 0 : m.header.parameters.size());
+            if (paramCount != argCount) continue;
+
+            if (argCount == 0) {
+                return m; // единственная подходящая
+            }
+
+            if (argCount == 1) {
+                String paramType = typeNameForTypeNode(m.header.parameters.get(0).paramType);
+                if (argType != null && argType.equals(paramType)) {
+                    return m; // точное совпадение Integer/Real/Boolean
+                }
+                if (best == null) best = m; // запасной кандидат
+            }
+        }
+
+        return (best != null ? best : list.get(0));
+    }
+
+    private String inferExprTypeName(ExpressionNode e) {
+        if (e == null) return null;
+
+        if (e instanceof ConstructorInvocationNode ci) {
+            return ci.className;               // Integer(...), Real(...), Boolean(...)
+        }
+        if (e instanceof IntLiteralNode)  return "Integer";
+        if (e instanceof RealLiteralNode) return "Real";
+        if (e instanceof BoolLiteralNode) return "Boolean";
+
+        if (e instanceof IdentifierNode id) {
+            if (localVarTypes != null) {
+                String t = localVarTypes.get(id.name);
+                if (t != null) return t;
+            }
+            ClassInfo info = classInfoMap.get(currentClassName);
+            if (info != null) {
+                FieldInfo f = info.fields.get(id.name);
+                if (f != null) {
+                    if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
+                    if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
+                    if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
+                }
+            }
+        }
+
         return null;
     }
 }

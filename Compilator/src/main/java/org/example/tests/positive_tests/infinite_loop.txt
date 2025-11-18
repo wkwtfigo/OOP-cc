@@ -1,4 +1,6 @@
 class A is
+  var a : Integer()
+  
   this() is
     var a : Integer(2)
   end

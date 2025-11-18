@@ -5,5 +5,7 @@ class Main is
         l := l.append(Integer(3))
         var head : l.head()   // 1
         var tail : l.tail()   // list [2,3]
+        print head
+        print tail
     end
 end
