@@ -1,7 +1,7 @@
 class Main is
     method start() is
         var a : Integer(3)
-        var b : Real(2.3)
+        var b : Integer(7)
         if a.Greater(Integer(2)) then
             a := a.Minus(1)
             print a
@@ -9,5 +9,9 @@ class Main is
             a := a.Plus(1)
             print a
         end
+        print a
+        a := a.Mult(b)
+        print a
+        
     end
 end
