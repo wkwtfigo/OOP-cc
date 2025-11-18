@@ -1,15 +1,10 @@
 package org.example.parser;
 
-/* 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
-import org.w3c.dom.TypeInfo;
 
 public class MyCodeGen implements ASTVisitor{
 
@@ -37,7 +32,6 @@ public class MyCodeGen implements ASTVisitor{
         final Map<String, FieldInfo> fields = new HashMap<>();
         final Map<String, MethodDeclNode> methods = new HashMap<>();
         final java.util.List<ConstructorDeclNode> constructors = new java.util.ArrayList<>();
-        final java.util.List<ConstructorDeclNode> constructorsList = new java.util.ArrayList<>();
 
         ClassInfo(String name, String superName) {
             this.name = name;
@@ -54,6 +48,7 @@ public class MyCodeGen implements ASTVisitor{
             this.descriptor = descriptor;
         }
     }
+
 
     private String newLabel(String base) {
         return base + "_" + (labelCounter++);
@@ -177,112 +172,57 @@ public class MyCodeGen implements ASTVisitor{
         // Классы обрабатываем через visit(ProgramNode) → registerClass/generateClass
     }
 
+    // Явный конструктор из исходного кода
+    private void generateConstructor(ConstructorDeclNode ctor, String superInternal) {
+        // Собираем дескриптор конструктора по его параметрам
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        if (ctor.parameters != null) {
+            for (ParamDeclNode p : ctor.parameters) {
+                sb.append(descriptorForTypeNode(p.paramType));
+            }
+        }
+        sb.append(")V");
+        String descriptor = sb.toString();
+
+        emit(".method public <init>" + descriptor);
+        emit("    .limit stack 64");
+        emit("    .limit locals 64");
+
+        // Локальные переменные, как в MethodDeclNode
+        currentLocalIndex = 0;
+        localVars = new HashMap<>();
+
+        // this в локале 0
+        localVars.put("this", currentLocalIndex++);
+
+        // Параметры конструктора
+        if (ctor.parameters != null) {
+            for (ParamDeclNode p : ctor.parameters) {
+                localVars.put(p.paramName, currentLocalIndex++);
+            }
+        }
+
+        // Вызов super.<init>()
+        emit("    aload_0");
+        emit("    invokespecial " + superInternal + "/<init>()V");
+
+        // Тело конструктора
+        if (ctor.body != null) {
+            ctor.body.accept(this);
+        }
+
+        // Возврат (конструктор всегда void)
+        emit("    return");
+        emit(".end method");
+        emit("");
+    }
+
     private void generateDefaultConstructorWithInitializers(ClassDeclNode node) {
         String superName = (node.extendsClass == null || node.extendsClass.isEmpty())
                 ? "java/lang/Object"
                 : node.extendsClass.replace('.', '/');
         generateDefaultConstructorWithInitializers(node, superName);
-    }
-
-    private void generateDefaultConstructor() {
-        ConstructorSignature signature = new ConstructorSignature(Collections.emptyList(), false);
-        emit(".method public <init>()V");
-        emitLimits();
-        MethodContext ctx = new MethodContext(currentClassInfo, "<init>", VOID_TYPE, true);
-        methodStack.push(ctx);
-        localVarScopes.push(new HashMap<>());
-
-        emit("    aload_0");
-        emit("    invokespecial " + internalName(currentClassInfo.superName) + "/<init>()V");
-        emitFieldInitializers();
-        emit("    return");
-
-        localVarScopes.pop();
-        methodStack.pop();
-        emit(".end method");
-        emit("");
-    }
-
-    private void generateConstructor(ConstructorDeclNode constructor) {
-        List<TypeInfo> paramTypes = resolveParameterTypes(constructor.parameters);
-        String descriptor = buildDescriptor(paramTypes, VOID_TYPE);
-        emit(".method public <init>" + descriptor);
-        emitLimits();
-
-        MethodContext ctx = new MethodContext(currentClassInfo, "<init>", VOID_TYPE, true);
-        methodStack.push(ctx);
-        localVarScopes.push(new HashMap<>());
-        registerParameters(constructor.parameters, paramTypes, ctx);
-
-        emit("    aload_0");
-        emit("    invokespecial " + internalName(currentClassInfo.superName) + "/<init>()V");
-        emitFieldInitializers();
-
-        if (constructor.body != null) {
-            constructor.body.accept(this);
-        }
-        emit("    return");
-
-        localVarScopes.pop();
-        methodStack.pop();
-        emit(".end method");
-        emit("");
-    }
-
-    private void generateMethod(MethodDeclNode methodDecl) {
-        List<TypeInfo> paramTypes = resolveParameterTypes(methodDecl.header.parameters);
-        TypeInfo returnType = resolveReturnType(methodDecl.header.returnType);
-        String descriptor = buildDescriptor(paramTypes, returnType);
-        emit(".method public " + methodDecl.header.methodName + descriptor);
-        emitLimits();
-
-        MethodContext ctx = new MethodContext(currentClassInfo, methodDecl.header.methodName, returnType, false);
-        methodStack.push(ctx);
-        localVarScopes.push(new HashMap<>());
-        registerParameters(methodDecl.header.parameters, paramTypes, ctx);
-
-        if (methodDecl.body != null) {
-            if (methodDecl.body.isArrow && methodDecl.body.arrowExpression != null) {
-                TypeInfo exprType = generateExpression(methodDecl.body.arrowExpression);
-                emitReturn(exprType, ctx.returnType);
-            } else if (!methodDecl.body.isArrow && methodDecl.body.body != null) {
-                methodDecl.body.body.accept(this);
-                if (ctx.returnType.isVoid()) {
-                    emit("    return");
-                } else {
-                    emitDefaultReturn(ctx.returnType);
-                }
-            }
-        } else if (ctx.returnType.isVoid()) {
-            emit("    return");
-        } else {
-            emitDefaultReturn(ctx.returnType);
-        }
-        
-        localVarScopes.pop();
-        methodStack.pop();
-        emit(".end method");
-        emit("");
-    }
-
-    rivate void maybeGenerateProgramEntry(List<MethodDeclNode> methods) {
-        boolean hasStart = methods.stream()
-                .anyMatch(m -> "start".equals(m.header.methodName)
-                        && (m.header.parameters == null || m.header.parameters.isEmpty())
-                        && (m.header.returnType == null));
-        if (!"Main".equals(currentClassName) || !hasStart) {
-            return;
-        }
-        emit(".method public static main([Ljava/lang/String;)V");
-        emit("    .limit stack 4");
-        emit("    .limit locals 1");
-        emit("    new " + currentClassName);
-        emit("    dup");
-        emit("    invokespecial " + currentClassName + "/<init>()V");
-        emit("    invokevirtual " + currentClassName + "/start()V");
-        emit("    return");
-        emit(".end method");
-        emit("");
     }
 
     private void generateDefaultConstructorWithInitializers(ClassDeclNode node, String superInternal) {
@@ -365,7 +305,14 @@ public class MyCodeGen implements ASTVisitor{
                 // field access on this
                 emit("    aload_0");
                 String owner = currentClassName.replace('.', '/');
-                String desc = "Ljava/lang/Object;"; // could improve by remembering field types
+                ClassInfo ci = classInfoMap.get(currentClassName);
+                String desc = "Ljava/lang/Object;";
+                if (ci != null) {
+                    FieldInfo f = ci.fields.get(name);
+                    if (f != null) {
+                        desc = f.descriptor;
+                    }
+                }
                 emit("    getfield " + owner + "/" + name + " " + desc);
                 return;
             }
@@ -480,7 +427,7 @@ public class MyCodeGen implements ASTVisitor{
     public void visit(VarDeclNode node) {
         // 1. Генерируем expression
         if (node.initializer != null) {
-            node.initializer.accept(this);
+            generateExpression(node.initializer);
         } else {
             emit("    aconst_null");
         }
@@ -492,7 +439,6 @@ public class MyCodeGen implements ASTVisitor{
         // 3. Сохраняем
         emit("    astore " + index);
     }
-
 
     // =======================
     // METHOD DECLARATION
@@ -703,7 +649,7 @@ public class MyCodeGen implements ASTVisitor{
 
         emit(begin + ":");
 
-        node.condition.accept(this);
+        generateExpression(node.condition);
         emit("    ifeq " + end);
 
         visitBody(node.body);
@@ -712,7 +658,6 @@ public class MyCodeGen implements ASTVisitor{
         emit(end + ":");
     }
 
-
     @Override
     public void visit(IfStatementNode node) {
 
@@ -720,7 +665,7 @@ public class MyCodeGen implements ASTVisitor{
         String endLabel = newLabel("endif");
 
         // cond
-        node.condition.accept(this);
+        generateExpression(node.condition);
 
         // ifeq → jump if false
         emit("    ifeq " + elseLabel);
@@ -740,6 +685,7 @@ public class MyCodeGen implements ASTVisitor{
 
         emit(endLabel + ":");
     }
+
 
 
     @Override
@@ -836,11 +782,4 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
-    private void emitFields(ClassInfo info) {
-        for (FieldInfo field : info.orderedFields) {
-            emit(".field public " + field.name + " " + descriptorForType(field.type));
-        }
-    }
-
 }
-*/

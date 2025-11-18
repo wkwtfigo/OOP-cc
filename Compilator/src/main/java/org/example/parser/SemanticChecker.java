@@ -697,8 +697,8 @@
     public void visit(MemberAccessNode node) {
         // Visit target first (e.g., 'n' in 'n.LessEqual(...)')
         if (node.target != null) {
-        declarationOrders.put(node.target, currentDeclarationOrder++);
-        node.target.accept(this);
+            declarationOrders.put(node.target, currentDeclarationOrder++);
+            node.target.accept(this);
         }
 
         // Member can be either:
@@ -706,17 +706,17 @@
         // 2. MethodInvocationNode - method call (e.g., 'obj.method(args)')
 
         if (node.member instanceof IdentifierNode) {
-        // Field access - check if field exists (might be a built-in method)
-        // Don't check as variable - it's a field/method name
-        if (!checkClassField(node))
-            reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
+            // Field access - check if field exists (might be a built-in method)
+            // Don't check as variable - it's a field/method name
+            if (!checkClassField(node))
+                reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
         } else if (node.member instanceof MethodInvocationNode) {
-        // Method call on an object - don't check member as variable
-        if (!checkMethodExistence(node)) {
-            ExpressionNode method = ((MethodInvocationNode) node.member).target;
-            String methodName = ((IdentifierNode) method).name;
-            reportError(
-                "У класса нет метода " + methodName);
+            // Method call on an object - don't check member as variable
+            if (!checkMethodExistence(node)) {
+                ExpressionNode method = ((MethodInvocationNode) node.member).target;
+                String methodName = ((IdentifierNode) method).name;
+                reportError(
+                    "У класса нет метода " + methodName);
         }
 
         MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
@@ -756,7 +756,6 @@
 
         String className = null;
 
-        // Случай: a.Greater(...), где a — локальная переменная / поле
         if (node.target instanceof IdentifierNode id) {
             VariableInfo classVarInfo = lookupVariable(id.name);
             if (classVarInfo != null) {
@@ -790,7 +789,23 @@
         }
         String methodName = methodId.name;
 
-        return classInfo.methods.containsKey(methodName);
+        return hasMethodInHierarchy(className, methodName);
+    }
+
+    private boolean hasMethodInHierarchy(String className, String methodName) {
+        while (className != null) {
+            ClassInfo info = lookupClass(className);
+            if (info == null) {
+                return false;
+            }
+
+            if (info.methods.containsKey(methodName)) {
+                return true;
+            }
+
+            className = info.extendsClass; // идём к родителю
+        }
+        return false;
     }
 
     private boolean checkClassField(MemberAccessNode node) {
