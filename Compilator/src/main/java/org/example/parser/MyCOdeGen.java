@@ -10,31 +10,58 @@ import java.util.Map;
 
 public class MyCodeGen implements ASTVisitor{
 
-    // Собираемый Jasmin-код для текущего класса
+    // Accumulates Jasmin code for the class currently being generated.
     private StringBuilder jasminCode;
 
-    // Текущее имя класса, для удобства генерации
+    // Name of the class currently being generated.
     private String currentClassName;
 
-    // Папка, куда будут записываться .j файлы
+    // Target output directory where generated {@code .j} files are written.
     private final String outputDir;
+
+    // Counter for generating unique label names for branching instructions.
     private int labelCounter = 0;
 
-    // Информация обо всех классах в программе
+    // Global map with collected information about all classes in the program.
     private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
-    // AST-узлы классов, чтобы потом к ним вернуться при генерации
+
+    // Map from class name to its AST node.
     private final Map<String, ClassDeclNode> classAstNodes = new HashMap<>();
 
+    // Map of local variable names to their type names
     private Map<String, String> localVarTypes; 
 
     // -------------------------
-    // Внутренние структуры для информации о классах
+    // Map of local variable names to their type names
     // -------------------------
+
+    /**
+     * Internal description of a user-defined class.
+     * <p>
+     * Contains the class name, super class (in internal JVM form),
+     * declared fields, overloadable methods (grouped by name) and declared constructors.
+     */
     private static class ClassInfo {
+        /**
+         * Source-level class name (e.g. {@code "Main"}).
+         */
         final String name;
-        final String superName; // internal name: java/lang/Object и т.п.
+        /**
+         * Superclass name in internal JVM form.
+         * For example: {@code "java/lang/Object"}, {@code "Base"}, {@code "a/b/C"}.
+         */
+        final String superName;
+        /**
+         * Map of field name to {@link FieldInfo} for all fields declared in the class.
+         */
         final Map<String, FieldInfo> fields = new HashMap<>();
+        /**
+         * Map of method name to list of method declarations representing overloads.
+         */
         final Map<String, List<MethodDeclNode>> methods = new HashMap<>();
+        /**
+         * Map of method name to list of method declarations representing overloads.
+         */
         final java.util.List<ConstructorDeclNode> constructors;
 
         ClassInfo(String name, String superName) {
@@ -44,8 +71,18 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * List of all constructors declared in this class.
+     */
     private static class FieldInfo {
+        /**
+         * Internal description of a field: its name and JVM descriptor.
+         */
         final String name;
+        /**
+         * JVM descriptor string describing the field type.
+         * For example: {@code "Ljava/lang/Integer;"}, {@code "Ljava/util/ArrayList;"}.
+         */
         final String descriptor;
 
         FieldInfo(String name, String descriptor) {
@@ -54,23 +91,48 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
-
+    /**
+     * Creates a new unique label name based on a prefix and an incrementing counter.
+     *
+     * @param base base label prefix (e.g. {@code "if_true"})
+     * @return unique label string (e.g. {@code "if_true_0"})
+     */
     private String newLabel(String base) {
         return base + "_" + (labelCounter++);
     }
 
+    /**
+     * Constructs a generator that writes output into the default directory {@code "out"}.
+     */
     public MyCodeGen() {
         this("out");
     }
 
+    /**
+     * Constructs a generator that writes {@code .j} files into the specified directory.
+     *
+     * @param outputDir directory where Jasmin files will be generated
+     */
     public MyCodeGen(String outputDir) {
         this.outputDir = outputDir;
     }
 
+    /**
+     * Appends a single line of Jasmin code to the internal buffer,
+     * automatically adding a trailing newline.
+     *
+     * @param line Jasmin source line to emit
+     */
     private void emit(String line) {
         jasminCode.append(line).append("\n");
     }
 
+    /**
+     * Persists the current {@link #jasminCode} buffer into a {@code .j} file
+     * under {@link #outputDir}.
+     *
+     * @param className name of the class, used as the file base name
+     */
     private void saveFile(String className) {
         try {
             File dir = new File(outputDir);
@@ -87,24 +149,40 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Entry point of the generator for a whole program.
+     * This method executes two passes:
+     *     Registers every class declaration and collects structural info.
+     *     Generates Jasmin code for every class.
+     * @param node root {@link ProgramNode} of the AST
+     */
     @Override
     public void visit(ProgramNode node) {
         if (node == null || node.classes == null) {
             return;
         }
 
-        // 1-й проход: регистрируем классы
+        // 1st pass: register classes
         for (ClassDeclNode classDecl : node.classes) {
             registerClass(classDecl);
         }
 
-        // 2-й проход: генерируем код по каждому классу
+        // 2nd pass: generate code for each class
         for (ClassDeclNode classDecl : node.classes) {
             generateClass(classDecl);
         }
     }
 
-    // Первый проход: просто собираем информацию о классах
+    /**
+     * First pass: collect information about a single class.
+     * This method:
+     *     Creates a {@link ClassInfo} entry for the class.
+     *     Registers every field with its descriptor.
+     *     Groups methods by name to support overloading.
+     *     Stores constructor declarations.
+     *
+     * @param node class declaration AST node
+     */
     private void registerClass(ClassDeclNode node) {
         if (node == null) return;
 
@@ -140,7 +218,20 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
-    // Второй проход: генерация Jasmin по классу
+    /**
+     * Second pass: generate Jasmin code for a single class.
+     * <p>
+     * This emits:
+     * <ul>
+     *     {@code .class} and {@code .super} headers
+     *     Field declarations
+     *     Constructors (user-defined or default)
+     *     Method implementations
+     *     {@code main} method (entry point) if appropriate
+     * </ul>
+     *
+     * @param node class declaration AST node
+     */
     private void generateClass(ClassDeclNode node) {
         if (node == null) return;
 
@@ -149,13 +240,13 @@ public class MyCodeGen implements ASTVisitor{
 
         ClassInfo info = classInfoMap.get(node.className);
 
-        // Заголовок класса
+        // class header
         emit(".class public " + node.className);
         String superInternal = (info != null ? info.superName : "java/lang/Object");
         emit(".super " + superInternal);
         emit("");
 
-        // Поля
+        // fields
         if (info != null) {
             for (FieldInfo f : info.fields.values()) {
                 emit(".field public " + f.name + " " + f.descriptor);
@@ -163,17 +254,17 @@ public class MyCodeGen implements ASTVisitor{
         }
         emit("");
 
-        // Конструктор(ы)
+        // constructor(s)
         if (info != null && !info.constructors.isEmpty()) {
             for (ConstructorDeclNode ctor : info.constructors) {
                 generateConstructor(ctor, superInternal);
             }
         } else {
-            // Если конструкторов нет — генерируем дефолтный с инициализацией полей
+            // If no constructors present, generate a default one with field initializers
             generateDefaultConstructorWithInitializers(node, superInternal);
         }
 
-        // Методы
+        // methods
         if (info != null) {
             for (java.util.List<MethodDeclNode> list : info.methods.values()) {
                 for (MethodDeclNode m : list) {
@@ -186,6 +277,12 @@ public class MyCodeGen implements ASTVisitor{
         saveFile(node.className);
     }
 
+    /**
+     * Optionally generates a static {@code main} entry point that calls
+     * parameterless {@code start()} on {@code Main}, if such a method exists.
+     *
+     * @param info {@link ClassInfo} for the current class
+     */
     private void maybeGenerateProgramEntry(ClassInfo info) {
         if (!"Main".equals(currentClassName)) {
             return;
@@ -230,12 +327,28 @@ public class MyCodeGen implements ASTVisitor{
         emit("");
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Class declarations are processed via {@link #visit(ProgramNode)} and the
+     * two-pass mechanism, so this method is intentionally empty.
+     *
+     * @param node class declaration node
+     */
     @Override
-    public void visit(ClassDeclNode node) {
-        // Классы обрабатываем через visit(ProgramNode) → registerClass/generateClass
-    }
+    public void visit(ClassDeclNode node) {}
 
-    // Явный конструктор из исходного кода
+    /**
+     * Emits a user-defined constructor.
+     * This method:
+     *     Initializes the local variable context including {@code this} and parameters.
+     *     Invokes {@code super()} on the superclass.
+     *     Initializes fields with initializers (if present).
+     *     Emits the constructor body.
+     *
+     * @param ctor          constructor declaration AST node
+     * @param superInternal internal JVM name of the superclass
+     */
     private void generateConstructor(ConstructorDeclNode ctor, String superInternal) {
         String descriptor = constructorDescriptor(ctor);
 
@@ -261,7 +374,7 @@ public class MyCodeGen implements ASTVisitor{
         emit("    aload_0");
         emit("    invokespecial " + superInternal + "/<init>()V");
 
-        // >>> ДОБАВИТЬ: инициализация полей, как в default-конструкторе <<<
+        // Initialize fields with initializers as in the default constructor
         ClassDeclNode clazz = classAstNodes.get(currentClassName);
         if (clazz != null && clazz.members != null) {
             ClassInfo ci = classInfoMap.get(currentClassName);
@@ -285,7 +398,7 @@ public class MyCodeGen implements ASTVisitor{
             }
         }
 
-        // тело конструктора
+        // Constructor body
         if (ctor.body != null) {
             ctor.body.accept(this);
         }
@@ -295,6 +408,15 @@ public class MyCodeGen implements ASTVisitor{
         emit("");
     }
 
+     /**
+     * Generates a default parameterless constructor when a class does not
+     * explicitly declare any constructors.
+     * 
+     * The constructor calls {@code super()} and applies field initializers.
+     *
+     * @param node          class AST node
+     * @param superInternal internal JVM name of the superclass
+     */
     private void generateDefaultConstructorWithInitializers(ClassDeclNode node, String superInternal) {
         emit(".method public <init>()V");
         emit("    .limit stack 16");
@@ -321,6 +443,16 @@ public class MyCodeGen implements ASTVisitor{
         emit("");
     }
 
+    /**
+     * Generates bytecode to construct a user-defined class instance for a
+     * {@link ConstructorInvocationNode}.
+     * 
+     * It attempts to select a matching constructor by number of arguments.
+     * If no matching constructor is found, it falls back to a generic
+     * descriptor assuming {@code Object}-typed parameters.
+     *
+     * @param ci constructor invocation AST node
+     */
     private void generateUserConstructor(ConstructorInvocationNode ci) {
         String className = ci.className;
         String ownerInternal = className.replace('.', '/');
@@ -332,7 +464,6 @@ public class MyCodeGen implements ASTVisitor{
         if (decl != null) {
             descriptor = constructorDescriptor(decl);
         } else {
-            // fallback: считаем, что все аргументы — Object
             StringBuilder sb = new StringBuilder();
             sb.append("(");
             for (int i = 0; i < argCount; i++) {
@@ -360,6 +491,13 @@ public class MyCodeGen implements ASTVisitor{
     // -------------------------
     // Expressions
     // -------------------------
+
+    /**
+     * Generates bytecode for evaluating an expression and leaving its result
+     * as a reference (boxed object) on the operand stack.
+     *
+     * @param expr expression AST node to generate
+     */
     private void generateExpression(ExpressionNode expr) {
         if (expr == null) {
             emit("    aconst_null");
@@ -428,7 +566,6 @@ public class MyCodeGen implements ASTVisitor{
 
             // a.Method(...)
             if (access.member instanceof MethodInvocationNode mi) {
-                // метод на объекте a
                 generateMethodCallOnObject(access.target, mi);
                 return;
             }
@@ -439,7 +576,6 @@ public class MyCodeGen implements ASTVisitor{
                 return;
             }
 
-            // fallback: просто вернём target и null (на всякий случай)
             generateExpression(access.target);
             emit("    aconst_null");
             return;
@@ -454,8 +590,6 @@ public class MyCodeGen implements ASTVisitor{
                         emit("    iconst_0");
                         emitBoxInteger();
                     } else {
-                        // Аргумент уже возвращает Integer (или совместимый Object),
-                        // НИЧЕГО дополнительно не боксируем
                         generateExpression(ci.arguments.get(0));
                     }
                     return;
@@ -467,7 +601,6 @@ public class MyCodeGen implements ASTVisitor{
                         emitBoxDouble();
                     } else {
                         generateExpression(ci.arguments.get(0));
-                        // без дополнительного emitBoxDouble()
                     }
                     return;
 
@@ -478,7 +611,6 @@ public class MyCodeGen implements ASTVisitor{
                         emitBoxBoolean();
                     } else {
                         generateExpression(ci.arguments.get(0));
-                        // без emitBoxBoolean()
                     }
                     return;
 
@@ -518,20 +650,29 @@ public class MyCodeGen implements ASTVisitor{
         emit("    aconst_null");
     }
 
+    /**
+     * Generates bytecode for an object field access: {@code target.fieldName}.
+     * 
+     * Attempts to infer the static type of {@code target} to get the correct
+     * owner and descriptor; falls back to {@code Object} if unknown.
+     *
+     * @param target    expression that evaluates to the object
+     * @param fieldName name of the field being accessed
+     */
     private void generateObjectFieldAccess(ExpressionNode target, String fieldName) {
-        // 1. На стек кладём objectref (например, c1)
+        // 1. Push objectref
         generateExpression(target);
 
-        // 2. Пытаемся понять тип объекта
+        // 2. Try to infer object type
         String ownerInternal = "java/lang/Object";
         String desc = "Ljava/lang/Object;";
 
         String typeName = null;
 
         if (target instanceof IdentifierNode id) {
-            // локальная переменная: смотрим в localVarTypes
+            // local variable: look up in localVarTypes
             if (localVarTypes != null) {
-                typeName = localVarTypes.get(id.name);  // напр. "ConstructorExample"
+                typeName = localVarTypes.get(id.name); 
             }
         } else if (target instanceof ThisNode) {
             // this.field
@@ -543,19 +684,26 @@ public class MyCodeGen implements ASTVisitor{
             if (ci != null) {
                 FieldInfo f = ci.fields.get(fieldName);
                 if (f != null) {
-                    ownerInternal = ci.name.replace('.', '/'); // ConstructorExample -> ConstructorExample
-                    desc = f.descriptor;                      // Ljava/lang/Integer; и т.п.
+                    ownerInternal = ci.name.replace('.', '/');
+                    desc = f.descriptor;
                 }
             }
         }
 
-        // 3. Собственно доступ к полю
+        // 3. Emit getfield
         emit("    getfield " + ownerInternal + "/" + fieldName + " " + desc);
     }
 
     /**
-     * Вызов a.Method(...), где a – произвольное выражение (Integer, Real и т.п.).
-     * Здесь мы распознаём встроенные методы и генерим прямой JVM-код.
+     * Generates a method call on an arbitrary expression, such as {@code a.Method(...)}.
+     * 
+     * This method recognizes several built-in methods for core types
+     * ({@code Integer}, {@code Real}, {@code Boolean}, collections) and translates
+     * them directly to JVM instructions. For other methods, it falls back to
+     * {@link #invokeMethodOnObject(ExpressionNode, MethodInvocationNode)}.
+     *
+     * @param targetExpr target object expression
+     * @param call       method invocation AST node
      */
     private void generateMethodCallOnObject(ExpressionNode targetExpr, MethodInvocationNode call) {
         String methodName = call.methodName;
@@ -596,7 +744,6 @@ public class MyCodeGen implements ASTVisitor{
             } else if (isIntegerExpr(targetExpr)) {
                 generateIntegerToBoolean(targetExpr);
             } else {
-                // предполагаем, что уже Boolean – просто вернуть как есть
                 generateExpression(targetExpr);
             }
             return;
@@ -609,7 +756,6 @@ public class MyCodeGen implements ASTVisitor{
             } else if (isBooleanExpr(targetExpr)) {
                 generateBooleanToInteger(targetExpr);
             } else {
-                // предполагаем, что уже Integer – просто вернуть как есть
                 generateExpression(targetExpr);
             }
             return;
@@ -724,8 +870,7 @@ public class MyCodeGen implements ASTVisitor{
 
         boolean hasResult = invokeMethodOnObject(targetExpr, call);
         if (hasResult) {
-            // если это standalone statement (visit(MethodInvocationNode)), мы можем его поп-нуть
-            // (POP вызывается там, а не здесь)
+            // for standalone statement calls, the result may be POP'ed
         }
     }
 
@@ -733,6 +878,14 @@ public class MyCodeGen implements ASTVisitor{
     // Conversions Integer / Real / Boolean
     // =======================
 
+    /**
+     * Generates code to convert {@code Integer} object to boxed {@code Double}.
+     * <p>
+     * Stack before: {@code [..., obj]} where {@code obj} is a {@code java/lang/Integer}.<br>
+     * Stack after: {@code [..., java/lang/Double]}.
+     *
+     * @param target expression yielding an {@code Integer}
+     */
     private void generateIntegerToReal(ExpressionNode target) {
         // this : Integer -> Double
         generateExpression(target);
@@ -742,6 +895,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble(); // -> java/lang/Double
     }
 
+    /**
+     * Generates code to convert {@code Integer} object into boxed {@code Boolean}
+     * using rule: 0 → false, non-zero → true.
+     *
+     * @param target expression yielding an {@code Integer}
+     */
     private void generateIntegerToBoolean(ExpressionNode target) {
         // this : Integer -> Boolean (0 -> false, !=0 -> true)
         generateExpression(target);
@@ -761,6 +920,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Generates code to convert {@code Boolean} object into boxed {@code Integer}
+     * using rule: false → 0, true → 1.
+     *
+     * @param target expression yielding a {@code Boolean}
+     */
     private void generateBooleanToInteger(ExpressionNode target) {
         // this : Boolean -> Integer (false->0, true->1)
         generateExpression(target);
@@ -780,6 +945,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxInteger();
     }
 
+    /**
+     * Generates code to convert {@code Real} (Double) into boxed {@code Boolean},
+     * using rule: 0.0 → false, otherwise true.
+     *
+     * @param target expression yielding a numeric value
+     */
     private void generateRealToBoolean(ExpressionNode target) {
         // this : Real -> Boolean (0.0 -> false, иначе true)
         generateRealAsDouble(target);   // D
@@ -803,13 +974,24 @@ public class MyCodeGen implements ASTVisitor{
     // Boolean operations
     // =======================
 
+    /**
+     * Converts an expression of type {@code Boolean} (boxed) into a primitive
+     * {@code boolean} ({@code Z} - primitive boolean) on the stack.
+     *
+     * @param expr expression representing a Boolean object
+     */
     private void generateBooleanAsZ(ExpressionNode expr) {
-        // Object(Boolean) -> Z на стеке
         generateExpression(expr);
         emit("    checkcast java/lang/Boolean");
         emit("    invokevirtual java/lang/Boolean/booleanValue()Z");
     }
 
+    /**
+     * Generates boolean OR operation on two expressions and boxes the result.
+     *
+     * @param left  left operand expression (Boolean)
+     * @param right right operand expression (Boolean); if {@code null}, 0 is used
+     */
     private void generateBooleanOr(ExpressionNode left, ExpressionNode right) {
         generateBooleanAsZ(left);
 
@@ -823,6 +1005,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Generates boolean AND operation on two expressions and boxes the result.
+     *
+     * @param left  left operand expression (Boolean)
+     * @param right right operand expression (Boolean); if {@code null}, 0 is used
+     */
     private void generateBooleanAnd(ExpressionNode left, ExpressionNode right) {
         generateBooleanAsZ(left);
 
@@ -836,6 +1024,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Generates boolean XOR operation and boxes the result.
+     *
+     * @param left  left operand expression (Boolean)
+     * @param right right operand expression (Boolean); if {@code null}, 0 is used
+     */
     private void generateBooleanXor(ExpressionNode left, ExpressionNode right) {
         generateBooleanAsZ(left);
 
@@ -849,6 +1043,11 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Generates boolean NOT operation and boxes the result.
+     *
+     * @param expr operand expression (Boolean)
+     */
     private void generateBooleanNot(ExpressionNode expr) {
         generateBooleanAsZ(expr);
         emit("    iconst_1");
@@ -856,14 +1055,14 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
-
-
     /**
-     * Генерирует на стеке double (D) из произвольного значения,
-     * которое в рантайме должно быть либо Integer, либо Double.
+     * Generates bytecode that converts an arbitrary value (either {@code Integer}
+     * or {@code Double}) into a primitive double value on the stack.
+     * <p>
+     * Stack before: {@code [..., obj]} where {@code obj} is either {@code Integer} or {@code Double}.<br>
+     * Stack after: {@code [..., d]} where {@code d} is {@code double}.
      *
-     * Stack before:  [ ..., obj ]
-     * Stack after:   [ ..., d ]
+     * @param expr expression yielding a numeric object
      */
     private void generateRealAsDouble(ExpressionNode expr) {
         generateExpression(expr); // кладём Object
@@ -891,18 +1090,34 @@ public class MyCodeGen implements ASTVisitor{
         emit(endLabel + ":");
     }
 
+    /**
+     * Converts a Real (Double) object into an {@code Integer} object by truncating.
+     *
+     * @param target expression yielding numeric value
+     */
     private void generateRealToInteger(ExpressionNode target) {
         generateRealAsDouble(target);      // D
         emit("    d2i");                   // I
         emitBoxInteger();                  // -> java/lang/Integer
     }
 
+    /**
+     * Unary minus for real numbers ({@code -a}) with result boxed as {@code Double}.
+     *
+     * @param target expression yielding numeric value
+     */
     private void generateRealUnaryMinus(ExpressionNode target) {
         generateRealAsDouble(target);      // D
         emit("    dneg");                 // D
         emitBoxDouble();                  // -> java/lang/Double
     }
 
+    /**
+     * Real addition: {@code left + right}, result boxed as {@code Double}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealPlus(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -910,6 +1125,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble();
     }
 
+    /**
+     * Real subtraction: {@code left - right}, result boxed as {@code Double}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealMinus(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -917,6 +1138,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble();
     }
 
+    /**
+     * Real multiplication: {@code left * right}, result boxed as {@code Double}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealMult(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -924,6 +1151,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble();
     }
 
+    /**
+     * Real division: {@code left / right}, result boxed as {@code Double}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealDiv(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -931,6 +1164,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble();
     }
 
+    /**
+     * Real remainder: {@code left % right}, result boxed as {@code Double}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealRem(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -938,6 +1177,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxDouble();
     }
 
+    /**
+     * Real less-than comparison: {@code left < right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealLess(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -953,6 +1198,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Real less-than-or-equal comparison: {@code left <= right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealLessEqual(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -968,6 +1219,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Real greater-than comparison: {@code left > right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealGreater(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -983,6 +1240,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Real greater-than-or-equal comparison: {@code left >= right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealGreaterEqual(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -998,6 +1261,12 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
+    /**
+     * Real equality comparison: {@code left == right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand
+     */
     private void generateRealEqual(ExpressionNode left, ExpressionNode right) {
         generateRealAsDouble(left);
         generateRealAsDouble(right);
@@ -1013,10 +1282,15 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxBoolean();
     }
 
-
+    // =======================
+    // Integer operations
+    // =======================
 
     /**
-     * a.Greater(b) : Boolean   (a > b)
+     * Integer greater-than comparison: {@code left > right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerGreater(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1044,7 +1318,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Less(b) : Boolean   (a < b)
+     * Integer less-than comparison: {@code left < right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerLess(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1072,7 +1349,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.LessEqual(b) : Boolean   (a <= b)
+     * Integer less-than-or-equal comparison: {@code left <= right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerLessEqual(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1100,7 +1380,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.GreaterEqual(b) : Boolean   (a >= b)
+     * Integer greater-than-or-equal comparison: {@code left >= right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerGreaterEqual(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1128,7 +1411,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Equal(b) : Boolean   (a == b)
+     * Integer equality comparison: {@code left == right}, result boxed {@code Boolean}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerEqual(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1157,7 +1443,10 @@ public class MyCodeGen implements ASTVisitor{
 
 
     /**
-     * a.Plus(b) : Integer  (a + b)
+     * Integer addition: {@code left + right}, result boxed {@code Integer}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerPlus(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1177,7 +1466,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Minus(b) : Integer  (a - b)
+     * Integer subtraction: {@code left - right}, result boxed {@code Integer}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 0 is used
      */
     private void generateIntegerMinus(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1197,7 +1489,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Mult(b) : Integer  (a * b)
+     * Integer multiplication: {@code left * right}, result boxed {@code Integer}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 1 is used
      */
     private void generateIntegerMult(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1217,7 +1512,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Div(b) : Integer  (a / b)
+     * Integer division: {@code left / right}, result boxed {@code Integer}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 1 is used
      */
     private void generateIntegerDiv(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1237,7 +1535,10 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * a.Rem(b) : Integer  (a % b)
+     * Integer remainder: {@code left % right}, result boxed {@code Integer}.
+     *
+     * @param left  left operand
+     * @param right right operand; if {@code null}, 1 is used (result is effectively 0)
      */
     private void generateIntegerRem(ExpressionNode left, ExpressionNode right) {
         generateExpression(left);
@@ -1256,10 +1557,20 @@ public class MyCodeGen implements ASTVisitor{
         emitBoxInteger();
     }
 
+    /**
+     * Invokes a method on {@code this} object using hierarchical resolution
+     * and overload selection.
+     * <p>
+     * This is used for method calls that appear as standalone statements
+     * (e.g. {@code foo();}) where the implicit target is {@code this}.
+     *
+     * @param node method invocation AST node
+     * @return {@code true} if method returns a value, {@code false} if void
+     */
     private boolean invokeMethodOnThis(MethodInvocationNode node) {
         String methodName = node.methodName;
 
-        // грузим this
+        // load this
         emit("    aload_0");
 
         // аргументы
@@ -1281,7 +1592,6 @@ public class MyCodeGen implements ASTVisitor{
             descriptor = methodDescriptor(decl.header);
             isVoid = (decl.header.returnType == null);
         } else {
-            // fallback как раньше
             ownerInternal = currentClassName.replace('.', '/');
             StringBuilder sb = new StringBuilder();
             sb.append("(");
@@ -1299,7 +1609,22 @@ public class MyCodeGen implements ASTVisitor{
         return !isVoid;
     }
 
-
+    /**
+     * Invokes a method on an arbitrary target object using hierarchical
+     * resolution and overload selection.
+     * 
+     * This method generates:
+     * 
+     *     target object reference
+     *     argument expressions
+     *     virtual call to the best matching overload, or a fallback
+     *         {@code Object}-typed descriptor
+     * 
+     *
+     * @param targetExpr target expression (object)
+     * @param node       method invocation node
+     * @return {@code true} if method returns a value, {@code false} if void
+     */
     private boolean invokeMethodOnObject(ExpressionNode targetExpr, MethodInvocationNode node) {
         String methodName = node.methodName;
 
@@ -1313,7 +1638,7 @@ public class MyCodeGen implements ASTVisitor{
             }
         }
 
-        // 3) понять тип targetExpr
+        // 3) infer тип targetExpr
         String typeName = null;
         if (targetExpr instanceof IdentifierNode id && localVarTypes != null) {
             typeName = localVarTypes.get(id.name);
@@ -1336,7 +1661,6 @@ public class MyCodeGen implements ASTVisitor{
             descriptor = methodDescriptor(decl.header);
             isVoid = (decl.header.returnType == null);
         } else {
-            // fallback — как раньше, но аккуратнее с ownerInternal
             if (typeName != null && classInfoMap.containsKey(typeName)) {
                 ownerInternal = typeName.replace('.', '/');
             } else {
@@ -1363,6 +1687,22 @@ public class MyCodeGen implements ASTVisitor{
     // -------------------------
     // Helpers: descriptors & boxing
     // -------------------------
+
+    /**
+     * Computes a JVM descriptor string for a type AST node.
+     * 
+     * Built-in mapping:
+     * 
+     *     {@code Integer → Ljava/lang/Integer;}
+     *     {@code Real → Ljava/lang/Double;}
+     *     {@code Boolean → Ljava/lang/Boolean;}
+     *     {@code List/Array → Ljava/util/ArrayList;}
+     *     other → {@code Ljava/lang/Object;}
+     * 
+     *
+     * @param typeNode type AST node
+     * @return JVM descriptor for the type
+     */
     private String descriptorForTypeNode(ASTNode typeNode) {
         // Very simple mapping: common builtin types -> runtime class; otherwise object
         if (typeNode == null) {
@@ -1390,17 +1730,36 @@ public class MyCodeGen implements ASTVisitor{
         return "Ljava/lang/Object;";
     }
 
+    /**
+     * Emits boxing call to {@code Integer.valueOf(I)}.
+     */
     private void emitBoxInteger() {
         emit("    invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;");
     }
+
+    /**
+     * Emits boxing call to {@code Double.valueOf(D)}.
+     */
     private void emitBoxDouble() {
         emit("    invokestatic java/lang/Double/valueOf(D)Ljava/lang/Double;");
     }
+
+    /**
+     * Emits boxing call to {@code Boolean.valueOf(Z)}.
+     */
     private void emitBoxBoolean() {
         emit("    invokestatic java/lang/Boolean/valueOf(Z)Ljava/lang/Boolean;");
     }
 
 
+    /**
+     * Visits a variable declaration, generates code to evaluate its initializer
+     * and store it into a new local slot.
+     * 
+     * Also updates {@link #localVarTypes} with the inferred type of the variable.
+     *
+     * @param node variable declaration node
+     */
     @Override
     public void visit(VarDeclNode node) {
         // 1. Генерируем expression
@@ -1428,12 +1787,19 @@ public class MyCodeGen implements ASTVisitor{
         emit("    astore " + index);
     }
 
+    /**
+     * Returns a high-level type name (e.g. {@code "Integer"}, {@code "Real"})
+     * corresponding to the given type AST node.
+     *
+     * @param typeNode type AST node
+     * @return type name used by the language, or {@code null} if unknown
+     */
     private String typeNameForTypeNode(ASTNode typeNode) {
         if (typeNode instanceof TypeNode t) {
-            return t.name;          // "Integer", "Real", "Boolean", ...
+            return t.name;
         }
         if (typeNode instanceof GenericTypeNode g) {
-            return g.baseType;      // "List", "Array", ...
+            return g.baseType;
         }
         if (typeNode instanceof ConstructorInvocationNode ci) {
             return ci.className;
@@ -1445,10 +1811,29 @@ public class MyCodeGen implements ASTVisitor{
     // METHOD DECLARATION
     // =======================
 
-    // локальные переменные метода
+    /**
+     * Current index for the next local variable slot within a method or constructor.
+     */
     private int currentLocalIndex;
+
+    /**
+     * Map from local variable name to its index in the local variable table.
+     */
     private Map<String, Integer> localVars;
 
+    /**
+     * Emits Jasmin code for a method declaration.
+     * <p>
+     * This method:
+     * <ul>
+     *     <li>Emits the method header with JVM descriptor.</li>
+     *     <li>Initializes the local variables context, including {@code this} and parameters.</li>
+     *     <li>Generates code for arrow bodies or block bodies, and injects a default
+     *         return if needed.</li>
+     * </ul>
+     *
+     * @param node method declaration node
+     */
     @Override
     public void visit(MethodDeclNode node) {
         MethodHeaderNode header = node.header;
@@ -1519,9 +1904,16 @@ public class MyCodeGen implements ASTVisitor{
     }
 
 
-    // -------------------------
-    // Method descriptor helper
-    // -------------------------
+    /**
+     * Builds a JVM method descriptor for the given method header.
+     * <p>
+     * Parameters are mapped via {@link #descriptorForTypeNode(ASTNode)} and
+     * the return type uses {@link #descriptorForTypeName(String)}. A missing
+     * return type indicates {@code void}.
+     *
+     * @param header method header AST node
+     * @return JVM method descriptor (e.g. {@code (Ljava/lang/Integer;)V})
+     */
     private String methodDescriptor(MethodHeaderNode header) {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
@@ -1546,7 +1938,12 @@ public class MyCodeGen implements ASTVisitor{
         return sb.toString();
     }
 
-    // для returnType, который хранится как строка
+    /**
+     * Computes a JVM descriptor string for a type name stored as plain string.
+     *
+     * @param name logical type name (e.g. {@code "Integer"}, {@code "Real"})
+     * @return JVM descriptor string
+     */
     private String descriptorForTypeName(String name) {
         switch (name) {
             case "Integer": return "Ljava/lang/Integer;";
@@ -1558,6 +1955,12 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Builds a JVM constructor descriptor for a constructor declaration.
+     *
+     * @param ctor constructor declaration node
+     * @return descriptor with {@code V} return type
+     */
     private String constructorDescriptor(ConstructorDeclNode ctor) {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
@@ -1570,6 +1973,14 @@ public class MyCodeGen implements ASTVisitor{
         return sb.toString();
     }
 
+    /**
+     * Finds the first declared method with the given name in the current class.
+     * <p>
+     * Does not consider overload resolution; simply returns the first one.
+     *
+     * @param name method name
+     * @return a {@link MethodDeclNode} or {@code null} if not found
+     */
     private MethodDeclNode findMethodInCurrentClass(String name) {
         ClassInfo info = classInfoMap.get(currentClassName);
         if (info == null) return null;
@@ -1580,6 +1991,13 @@ public class MyCodeGen implements ASTVisitor{
         return list.get(0);
     }
 
+    /**
+     * Searches for a constructor by the number of parameters in the given class.
+     *
+     * @param className name of the class
+     * @param argCount  number of arguments
+     * @return matching constructor declaration or {@code null} if none matches
+     */
     private ConstructorDeclNode findConstructor(String className, int argCount) {
         ClassInfo info = classInfoMap.get(className);
         if (info == null) return null;
@@ -1593,6 +2011,12 @@ public class MyCodeGen implements ASTVisitor{
         return null;
     }
 
+    /**
+     * Checks whether an expression is known to represent a {@code Real} value.
+     *
+     * @param e expression
+     * @return {@code true} if the expression is statically recognized as Real
+     */
     private boolean isRealExpr(ExpressionNode e) {
         if (e == null) return false;
         if (e instanceof RealLiteralNode) return true;
@@ -1616,6 +2040,12 @@ public class MyCodeGen implements ASTVisitor{
         return false;
     }
 
+    /**
+     * Checks whether an expression is known to represent an {@code Integer} value.
+     *
+     * @param e expression
+     * @return {@code true} if the expression is statically recognized as Integer
+     */
     private boolean isIntegerExpr(ExpressionNode e) {
         if (e == null) return false;
         if (e instanceof IntLiteralNode) return true;
@@ -1637,6 +2067,12 @@ public class MyCodeGen implements ASTVisitor{
         return false;
     }
 
+    /**
+     * Checks whether an expression is known to represent a {@code Boolean} value.
+     *
+     * @param e expression
+     * @return {@code true} if the expression is statically recognized as Boolean
+     */
     private boolean isBooleanExpr(ExpressionNode e) {
         if (e == null) return false;
         if (e instanceof BoolLiteralNode) return true;
@@ -1658,6 +2094,14 @@ public class MyCodeGen implements ASTVisitor{
         return false;
     }
 
+    /**
+     * Determines whether a binary numeric operation should be treated as Real
+     * based on its operands.
+     *
+     * @param target left operand
+     * @param arg    right operand
+     * @return {@code true} if either operand is Real
+     */
     private boolean isRealContext(ExpressionNode target, ExpressionNode arg) {
         if (isRealExpr(target)) return true;
         if (isRealExpr(arg)) return true;
@@ -1687,6 +2131,12 @@ public class MyCodeGen implements ASTVisitor{
     // -------------------------
     // Body and statements
     // -------------------------
+
+     /**
+     * Visits a block body node, sequentially visiting all contained elements.
+     *
+     * @param node body node
+     */
     @Override
     public void visit(BodyNode node) {
         if (node == null || node.elements == null) return;
@@ -1697,6 +2147,14 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Generates code for assignment statements, including:
+     *     Simple local assignment: {@code x = rhs;}
+     *     Field assignment on {@code this}: {@code this.x = rhs;}
+     *     Object field assignment: {@code obj.field = rhs;}
+     *
+     * @param node assignment AST node
+     */
     @Override
     public void visit(AssignmentNode node) {
         if (node == null) return;
@@ -1769,17 +2227,21 @@ public class MyCodeGen implements ASTVisitor{
                     FieldInfo f = ci.fields.get(memberId.name);
                     if (f != null) {
                         ownerInternal = ci.name.replace('.', '/'); // A -> A
-                        desc = f.descriptor;                       // реальный дескриптор поля
+                        desc = f.descriptor;    
                     }
                 }
             }
 
             emit("    putfield " + ownerInternal + "/" + memberId.name + " " + desc);
-            return;
         }
-        // fallback: ничего не делаем
     }
 
+    /**
+     * Generates code for a while loop:
+     * where {@code condition} is expected to be a {@code Boolean} object.
+     *
+     * @param node while-loop AST node
+     */
     @Override
     public void visit(WhileLoopNode node) {
 
@@ -1800,6 +2262,12 @@ public class MyCodeGen implements ASTVisitor{
         emit(end + ":");
     }
 
+    /**
+     * Generates code for an if statement with optional else:
+     * where {@code condition} is expected to be a {@code Boolean} object.
+     *
+     * @param node if-statement AST node
+     */
     @Override
     public void visit(IfStatementNode node) {
 
@@ -1830,6 +2298,12 @@ public class MyCodeGen implements ASTVisitor{
         emit(endLabel + ":");
     }
 
+    /**
+     * Generates code for a return statement. If the expression is null,
+     * emits {@code return}; otherwise emits {@code areturn} of the expression.
+     *
+     * @param node return statement node
+     */
     @Override
     public void visit(ReturnNode node) {
         if (node == null) return;
@@ -1841,6 +2315,12 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Generates code for a {@code print} statement that calls
+     * {@code System.out.println(Object)}.
+     *
+     * @param node print statement node
+     */
     @Override
     public void visit(PrintNode node) {
         if (node == null) return;
@@ -1859,6 +2339,14 @@ public class MyCodeGen implements ASTVisitor{
 
     }
 
+    /**
+     * Visits a method invocation used as a standalone statement.
+     * 
+     * It calls {@link #invokeMethodOnThis(MethodInvocationNode)} and discards the result
+     * if the method is non-void.
+     *
+     * @param node method invocation node
+     */
     @Override
     public void visit(MethodInvocationNode node) {
         boolean hasResult = invokeMethodOnThis(node);
@@ -1902,6 +2390,11 @@ public class MyCodeGen implements ASTVisitor{
 
     }
 
+    /**
+     * Helper that visits a body node (block) sequentially, if not null.
+     *
+     * @param body body node
+     */
     private void visitBody(BodyNode body) {
         if (body == null || body.elements == null) return;
         for (BodyElementNode elem : body.elements) {
@@ -1912,6 +2405,13 @@ public class MyCodeGen implements ASTVisitor{
     // -------------------------
     // Helpers: load/store locals
     // -------------------------
+
+    /**
+     * Emits a proper Jasmin instruction for loading a reference local variable
+     * by its index (using short forms {@code aload_0..3} where possible).
+     *
+     * @param idx index of local variable
+     */
     private void emitLoadVar(int idx) {
         if (idx >= 0 && idx <= 3) {
             emit("    aload_" + idx);
@@ -1920,6 +2420,12 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Emits a proper Jasmin instruction for storing a reference local variable
+     * by its index (using short forms {@code astore_0..3} where possible).
+     *
+     * @param idx index of local variable
+     */
     private void emitStoreVar(int idx) {
         if (idx >= 0 && idx <= 3) {
             emit("    astore_" + idx);
@@ -1928,6 +2434,12 @@ public class MyCodeGen implements ASTVisitor{
         }
     }
 
+    /**
+     * Infers a high-level type name from a variable initializer expression.
+     *
+     * @param init initializer expression
+     * @return inferred type name (e.g. {@code "Integer"}, {@code "Real"}), or {@code null} if unknown
+     */
     private String inferTypeNameFromInitializer(ExpressionNode init) {
         if (init == null) return null;
 
@@ -1941,8 +2453,19 @@ public class MyCodeGen implements ASTVisitor{
         return null;
     }
 
+    /**
+     * Represents a resolved method along the inheritance chain: the class where
+     * it was found and the declaration node.
+     */
     private static class ResolvedMethod {
-        final String ownerInternal;      // "Base", "Main", "pkg/Base" и т.п.
+        /**
+         * Internal JVM owner name for the class that declares the method.
+         */
+        final String ownerInternal;
+
+        /**
+         * The selected {@link MethodDeclNode}.
+         */
         final MethodDeclNode decl;
 
         ResolvedMethod(String ownerInternal, MethodDeclNode decl) {
@@ -1952,9 +2475,21 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     // =======================
-    // Поиск метода по иерархии с учётом перегрузок
+    // Method lookup with overload resolution
     // =======================
 
+    /**
+     * Resolves a method by name and argument types by walking up the inheritance
+     * hierarchy starting from {@code className}.
+     * <p>
+     * Uses {@link #selectOverload(ClassInfo, String, MethodInvocationNode)} to
+     * choose the best overload in each class.
+     *
+     * @param className starting class name
+     * @param methodName method name
+     * @param call       method invocation for which to resolve the target
+     * @return {@link ResolvedMethod} or {@code null} if none found
+     */
     private ResolvedMethod resolveMethodInHierarchy(String className,
                                                     String methodName,
                                                     MethodInvocationNode call) {
@@ -1976,15 +2511,23 @@ public class MyCodeGen implements ASTVisitor{
             if (superName == null || "java/lang/Object".equals(superName)) {
                 break;
             }
-
-            // superName у тебя хранится уже в "internal name" (Base -> "Base", a.b.C -> "a/b/C").
-            // classInfoMap ключи — это имена классов из исходника (Base, Main, ...).
-            // Если у тебя нет пакетов, всё ок: superName == "Base" и classInfoMap.get("Base") сработает.
             cur = superName;
         }
         return null;
     }
 
+    /**
+     * Determines whether an expression is considered a list expression.
+     * <p>
+     * Recognizes:
+     * <ul>
+     *     <li>{@code List(...)} constructor invocations</li>
+     *     <li>Identifiers whose inferred type is {@code "List"}</li>
+     * </ul>
+     *
+     * @param e expression
+     * @return {@code true} if expression is a list
+     */
     private boolean isListExpr(ExpressionNode e) {
         if (e == null) return false;
 
@@ -2000,9 +2543,16 @@ public class MyCodeGen implements ASTVisitor{
         return false;
     }
 
+    /**
+     * Generates code for {@code list.append(elem)} semantics:
+     * <pre>
+     * list.append(x)  →  list.add(x); return list;
+     * </pre>
+     *
+     * @param listExpr list expression
+     * @param elemExpr element expression
+     */
     private void generateListAppend(ExpressionNode listExpr, ExpressionNode elemExpr) {
-        // хотим: l.append(x) → ( l.add(x); return l )
-
         // list на стек
         generateExpression(listExpr);                      // ..., list
         emit("    dup");                                   // ..., list, list
@@ -2011,25 +2561,37 @@ public class MyCodeGen implements ASTVisitor{
         if (elemExpr != null) {
             generateExpression(elemExpr);                  // ..., list, list, elem
         } else {
-            emit("    aconst_null");                       // на всякий случай
+            emit("    aconst_null");     
         }
 
         // вызов add(Object)Z
         emit("    invokevirtual java/util/ArrayList/add(Ljava/lang/Object;)Z");
-        emit("    pop");                                   // выбросить boolean
+        emit("    pop");            
 
-        // на стеке остаётся исходный list — это и есть результат append
     }
 
+    /**
+     * Generates code for {@code list.head()} which returns the first element.
+     *
+     * @param listExpr list expression
+     */
     private void generateListHead(ExpressionNode listExpr) {
-        // хотим: l.head() → l.get(0)
-
         generateExpression(listExpr);                      // ..., list
         emit("    iconst_0");
         emit("    invokevirtual java/util/ArrayList/get(I)Ljava/lang/Object;");
-        // результат — первый элемент (Object / Integer / что угодно)
     }
 
+    /**
+     * Generates code for {@code list.tail()} which returns a new list containing
+     * all elements except the first.
+     * <p>
+     * Implementation uses:
+     * <pre>
+     * list.tail() ≈ new ArrayList(list.subList(1, list.size()))
+     * </pre>
+     *
+     * @param listExpr list expression
+     */
     private void generateListTail(ExpressionNode listExpr) {
         // tail: новый список с элементами [1..size-1]
         // new ArrayList( list.subList(1, list.size()) )
@@ -2055,6 +2617,22 @@ public class MyCodeGen implements ASTVisitor{
         // результат на стеке: новый ArrayList — это и будет tail
     }
 
+    /**
+     * Selects the best overload for a method given a {@link ClassInfo} and a
+     * method call.
+     * 
+     * Current strategy:
+     * 
+     *     Match by parameter count.
+     *     For single-argument methods, try to match the argument's inferred
+     *         type exactly.
+     *     Otherwise, return the first viable candidate.
+     *
+     * @param ci         class info
+     * @param methodName name of method
+     * @param call       method invocation node
+     * @return a matching method declaration or {@code null} if none found
+     */
     private MethodDeclNode selectOverload(ClassInfo ci, String methodName, MethodInvocationNode call) {
         if (ci == null) return null;
 
@@ -2091,6 +2669,13 @@ public class MyCodeGen implements ASTVisitor{
         return (best != null ? best : list.get(0));
     }
 
+    /**
+     * Tries to infer a logical type name for an expression (e.g. {@code "Integer"},
+     * {@code "Real"}, {@code "Boolean"}).
+     *
+     * @param e expression node
+     * @return inferred logical type name or {@code null} if unknown
+     */
     private String inferExprTypeName(ExpressionNode e) {
         if (e == null) return null;
 
