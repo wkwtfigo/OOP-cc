@@ -754,51 +754,17 @@
             return false;
         }
 
-        String className = null;
-
-        // 1) a.Greater(...): a — локальная переменная / поле
-        if (node.target instanceof IdentifierNode id) {
-            VariableInfo classVarInfo = lookupVariable(id.name);
-            if (classVarInfo != null) {
-                className = resolveTypeName(classVarInfo.type);
-            }
-        }
-        // 2) Integer(3).Plus(...)
-        else if (node.target instanceof ConstructorInvocationNode c) {
-            className = c.className;
-        }
-        // 3) fib(...).Plus(...)  — твой случай
-        else if (node.target instanceof MethodInvocationNode call) {
-            // call.target — это имя метода, например Identifier("fib")
-            if (call.target instanceof IdentifierNode mid) {
-                String calleeName = mid.name;
-
-                // предполагаем, что это метод текущего класса (this.fib(...))
-                if (!currentClassScope.isEmpty()) {
-                    ClassInfo currentClass = currentClassScope.peek();
-                    MethodInfo calleeInfo = currentClass.methods.get(calleeName);
-                    if (calleeInfo != null) {
-                        // Возвращаемый тип метода fib: "Integer", "Real", ...
-                        className = calleeInfo.returnType;
-                    }
-                }
-            }
-        }
-
-        // Не смогли вывести тип — не знаем, что проверить
+        String className = inferExprType(node.target);
         if (className == null) {
             return false;
         }
 
-        // Встроенный класс — не проверяем по таблице, считаем валидным
         if (BUILTIN_CLASSES.contains(className)) {
             return true;
         }
 
-        // Пользовательский класс
         ClassInfo classInfo = lookupClass(className);
         if (classInfo == null) {
-            System.out.println("Unknown class: " + className);
             return false;
         }
 
@@ -806,11 +772,10 @@
         if (!(methodTarget instanceof IdentifierNode methodId)) {
             return false;
         }
-        String methodName = methodId.name;
 
+        String methodName = methodId.name;
         return hasMethodInHierarchy(className, methodName);
     }
-
 
     private boolean checkClassField(MemberAccessNode node) {
         if (node.target instanceof IdentifierNode obj &&
@@ -1181,6 +1146,104 @@
             className = info.extendsClass; // поднимаемся к родителю
         }
         return false;
+    }
+
+    private String inferExprType(ExpressionNode e) {
+        if (e == null) return null;
+
+        // x, a, p и т.п.
+        if (e instanceof IdentifierNode id) {
+            VariableInfo var = lookupVariable(id.name);
+            if (var != null) return resolveTypeName(var.type);
+            return null;
+        }
+
+        // Integer(3), Real(1.5), Test(), ...
+        if (e instanceof ConstructorInvocationNode c) {
+            return c.className;
+        }
+
+        // obj.field  или  obj.method(...)
+        if (e instanceof MemberAccessNode ma) {
+            // obj.field
+            if (ma.member instanceof IdentifierNode fieldId) {
+                String ownerClass = inferExprType(ma.target); // тип obj
+                if (ownerClass == null) return null;
+
+                ClassInfo info = lookupClass(ownerClass);
+                if (info == null) return null;
+
+                VariableInfo fieldInfo = info.fields.get(fieldId.name);
+                if (fieldInfo == null) return null;
+
+                return resolveTypeName(fieldInfo.type);
+            }
+
+            // obj.method(...)
+            if (ma.member instanceof MethodInvocationNode mm) {
+                String ownerClass = inferExprType(ma.target); // тип obj
+                if (ownerClass == null) return null;
+
+                MethodInfo mi = findMethodInClassHierarchy(ownerClass, mm);
+                if (mi != null) {
+                    return mi.returnType; // "Integer", "Real", "Boolean", "Test", ...
+                }
+            }
+        }
+
+        // standalone вызов: f(...), g(...), fib(...), внутри класса
+        if (e instanceof MethodInvocationNode call) {
+            if (call.target instanceof IdentifierNode mid) {
+                if (!currentClassScope.isEmpty()) {
+                    ClassInfo current = currentClassScope.peek();
+                    MethodInfo mi = findMethodInClassHierarchy(current.name, call);
+                    if (mi != null) {
+                        return mi.returnType;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Ищет MethodInfo по имени метода в данном классе и его родителях.
+     * Учитывает, что в builtins ключ в map может быть "Plus_real",
+     * а logical-имя метода внутри MethodInfo — просто "Plus".
+     */
+    private MethodInfo findMethodInClassHierarchy(String className, MethodInvocationNode call) {
+        String methodName = null;
+
+        if (call.target instanceof IdentifierNode mid) {
+            methodName = mid.name;
+        } else {
+            return null;
+        }
+
+        while (className != null) {
+            ClassInfo info = lookupClass(className);
+            if (info == null) break;
+
+            // 1) прямое совпадение по ключу (например "toBoolean", "Plus")
+            MethodInfo direct = info.methods.get(methodName);
+            if (direct != null) {
+                return direct;
+            }
+
+            // 2) запасной вариант: ищем по logical-имени метода
+            // (на случай ключей "Plus_real", "Plus_int" и т.п.)
+            for (MethodInfo cand : info.methods.values()) {
+                if (methodName.equals(cand.name)) {
+                    return cand;
+                }
+            }
+
+            // поднимаемся по иерархии
+            className = info.extendsClass;
+        }
+
+        return null;
     }
 
 }

@@ -1,15 +1,27 @@
+class Test is
+    var l : Integer(90)
+
+    this() is 
+        l  := l.Mult(3)
+    end
+end
+
 class Main is
     method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
+    method f(x: Test) : Boolean => x.l.toBoolean()
 
     method start() is
-        var a is 5  // 6
-        var b : true   // 2.5
+        var a is 5
+        var b : true
+        var p : Test()
         var x := a.Plus(3)
         var l := f(Real(3.4))
         var k := f(Integer(5))
+        var n := f(p)
         print l
         print k
         print x
+        print n
     end
 end

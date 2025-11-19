@@ -201,9 +201,9 @@ public class MyCodeGen implements ASTVisitor{
                     if (v.type != null) {
                         desc = descriptorForTypeNode(v.type);
                     } else {
-                        String tn = inferTypeNameFromInitializer(v.initializer); // Integer, Real, ...
+                        String tn = inferTypeNameFromInitializer(v.initializer);
                         if (tn != null) {
-                            desc = descriptorForTypeName(tn); // уже есть helper
+                            desc = descriptorForTypeName(tn);
                         } else {
                             desc = "Ljava/lang/Object;";
                         }
@@ -1704,26 +1704,30 @@ public class MyCodeGen implements ASTVisitor{
      * @return JVM descriptor for the type
      */
     private String descriptorForTypeNode(ASTNode typeNode) {
-        // Very simple mapping: common builtin types -> runtime class; otherwise object
         if (typeNode == null) {
             return "Ljava/lang/Object;";
         }
-        if (typeNode instanceof TypeNode typeNode1) {
-            String n = typeNode1.name;
+        if (typeNode instanceof TypeNode) {
+            String n = ((TypeNode) typeNode).name;
             switch (n) {
                 case "Integer": return "Ljava/lang/Integer;";
-                case "Real": return "Ljava/lang/Double;";
+                case "Real":    return "Ljava/lang/Double;";
                 case "Boolean": return "Ljava/lang/Boolean;";
-                case "List": return "Ljava/util/ArrayList;";
-                case "Array": return "Ljava/util/ArrayList;";
-                default: return "Ljava/lang/Object;";
+                case "List":    return "Ljava/util/ArrayList;";
+                case "Array":   return "Ljava/util/ArrayList;";
+                default:
+                    // ВСЕ остальные — это либо пользовательские классы (Test, Main),
+                    // либо что-то ещё объектное → генерим LName;
+                    return "L" + n.replace('.', '/') + ";";
             }
         }
-        if (typeNode instanceof GenericTypeNode g) {
+        if (typeNode instanceof GenericTypeNode) {
+            GenericTypeNode g = (GenericTypeNode) typeNode;
             switch (g.baseType) {
-                case "List": return "Ljava/util/ArrayList;";
+                case "List":  return "Ljava/util/ArrayList;";
                 case "Array": return "Ljava/util/ArrayList;";
-                default: return "Ljava/lang/Object;";
+                default:
+                    return "L" + g.baseType.replace('.', '/') + ";";
             }
         }
         return "Ljava/lang/Object;";
@@ -1946,11 +1950,12 @@ public class MyCodeGen implements ASTVisitor{
     private String descriptorForTypeName(String name) {
         switch (name) {
             case "Integer": return "Ljava/lang/Integer;";
-            case "Real": return "Ljava/lang/Double;";
+            case "Real":    return "Ljava/lang/Double;";
             case "Boolean": return "Ljava/lang/Boolean;";
-            case "List": return "Ljava/util/ArrayList;";
-            case "Array": return "Ljava/util/ArrayList;";
-            default: return "Ljava/lang/Object;";
+            case "List":    return "Ljava/util/ArrayList;";
+            case "Array":   return "Ljava/util/ArrayList;";
+            default:
+                return "L" + name.replace('.', '/') + ";";
         }
     }
 
@@ -1999,26 +2004,7 @@ public class MyCodeGen implements ASTVisitor{
      * @return {@code true} if the expression is statically recognized as Real
      */
     private boolean isRealExpr(ExpressionNode e) {
-        if (e == null) return false;
-        if (e instanceof RealLiteralNode) return true;
-        if (e instanceof ConstructorInvocationNode ci && "Real".equals(ci.className)) return true;
-
-        if (e instanceof IdentifierNode id) {
-            // локальная переменная
-            if (localVarTypes != null) {
-                String t = localVarTypes.get(id.name);
-                if ("Real".equals(t)) return true;
-            }
-            // поле класса
-            ClassInfo info = classInfoMap.get(currentClassName);
-            if (info != null) {
-                FieldInfo f = info.fields.get(id.name);
-                if (f != null && "Ljava/lang/Double;".equals(f.descriptor)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return "Real".equals(inferExprTypeName(e));
     }
 
     /**
@@ -2028,24 +2014,7 @@ public class MyCodeGen implements ASTVisitor{
      * @return {@code true} if the expression is statically recognized as Integer
      */
     private boolean isIntegerExpr(ExpressionNode e) {
-        if (e == null) return false;
-        if (e instanceof IntLiteralNode) return true;
-        if (e instanceof ConstructorInvocationNode ci && "Integer".equals(ci.className)) return true;
-
-        if (e instanceof IdentifierNode id) {
-            if (localVarTypes != null) {
-                String t = localVarTypes.get(id.name);
-                if ("Integer".equals(t)) return true;
-            }
-            ClassInfo info = classInfoMap.get(currentClassName);
-            if (info != null) {
-                FieldInfo f = info.fields.get(id.name);
-                if (f != null && "Ljava/lang/Integer;".equals(f.descriptor)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return "Integer".equals(inferExprTypeName(e));
     }
 
     /**
@@ -2055,24 +2024,7 @@ public class MyCodeGen implements ASTVisitor{
      * @return {@code true} if the expression is statically recognized as Boolean
      */
     private boolean isBooleanExpr(ExpressionNode e) {
-        if (e == null) return false;
-        if (e instanceof BoolLiteralNode) return true;
-        if (e instanceof ConstructorInvocationNode ci && "Boolean".equals(ci.className)) return true;
-
-        if (e instanceof IdentifierNode id) {
-            if (localVarTypes != null) {
-                String t = localVarTypes.get(id.name);
-                if ("Boolean".equals(t)) return true;
-            }
-            ClassInfo info = classInfoMap.get(currentClassName);
-            if (info != null) {
-                FieldInfo f = info.fields.get(id.name);
-                if (f != null && "Ljava/lang/Boolean;".equals(f.descriptor)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return "Boolean".equals(inferExprTypeName(e));
     }
 
     /**
@@ -2622,10 +2574,9 @@ public class MyCodeGen implements ASTVisitor{
 
         int argCount = (call.arguments == null ? 0 : call.arguments.size());
 
-        // пока достаточно поддержки 0 и 1 аргумента
         String argType = null;
         if (argCount == 1) {
-            argType = inferExprTypeName(call.arguments.get(0)); // "Integer" или "Real"
+            argType = inferExprTypeName(call.arguments.get(0));
         }
 
         MethodDeclNode best = null;
@@ -2635,15 +2586,15 @@ public class MyCodeGen implements ASTVisitor{
             if (paramCount != argCount) continue;
 
             if (argCount == 0) {
-                return m; // единственная подходящая
+                return m; 
             }
 
             if (argCount == 1) {
                 String paramType = typeNameForTypeNode(m.header.parameters.get(0).paramType);
                 if (argType != null && argType.equals(paramType)) {
-                    return m; // точное совпадение Integer/Real/Boolean
+                    return m;
                 }
-                if (best == null) best = m; // запасной кандидат
+                if (best == null) best = m;
             }
         }
 
@@ -2651,8 +2602,7 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * Tries to infer a logical type name for an expression (e.g. {@code "Integer"},
-     * {@code "Real"}, {@code "Boolean"}).
+     * Tries to infer a logical type name for an expression
      *
      * @param e expression node
      * @return inferred logical type name or {@code null} if unknown
@@ -2679,10 +2629,31 @@ public class MyCodeGen implements ASTVisitor{
                     if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
                     if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
                     if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
+                    // пользовательский класс:
+                    return info.name;
                 }
             }
+            return null;
+        }
+
+        // <<< НОВОЕ: поле obj.field >>>
+        if (e instanceof MemberAccessNode ma && ma.member instanceof IdentifierNode fieldId) {
+            String ownerType = inferExprTypeName(ma.target); // тип obj
+            if (ownerType == null) return null;
+            ClassInfo ci = classInfoMap.get(ownerType);
+            if (ci == null) return null;
+            FieldInfo f = ci.fields.get(fieldId.name);
+            if (f == null) return null;
+
+            // по descriptor поля решаем тип
+            if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
+            if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
+            if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
+            // пользовательский класс
+            return ci.name;
         }
 
         return null;
     }
+
 }

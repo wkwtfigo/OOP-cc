@@ -1,0 +1,29 @@
+class Main is
+
+    method isPrime(n: Integer) : Boolean is
+        if n.Less(Integer(2)) then
+            return Boolean(false)
+        end
+
+        var i : Integer(2)
+        while i.Less(n) loop
+            if n.Rem(i).Equal(Integer(0)) then
+                return Boolean(false)
+            end
+            i := i.Plus(Integer(1))
+        end
+
+        return Boolean(true)
+    end
+
+    method start() is
+        var a := isPrime(98)
+        print a
+
+        var b := isPrime(89)
+        print b
+
+        print isPrime(23)
+    end
+
+end
