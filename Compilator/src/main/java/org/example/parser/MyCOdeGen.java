@@ -195,25 +195,27 @@ public class MyCodeGen implements ASTVisitor{
         if (node.members == null) return;
 
         for (MemberNode member : node.members) {
-            if (member instanceof VarDeclNode v) {
-                String desc;
-                if (v.type != null) {
-                    desc = descriptorForTypeNode(v.type);
-                } else {
-                    String tn = inferTypeNameFromInitializer(v.initializer); // Integer, Real, ...
-                    if (tn != null) {
-                        desc = descriptorForTypeName(tn); // уже есть helper
+            switch (member) {
+                case VarDeclNode v -> {
+                    String desc;
+                    if (v.type != null) {
+                        desc = descriptorForTypeNode(v.type);
                     } else {
-                        desc = "Ljava/lang/Object;";
+                        String tn = inferTypeNameFromInitializer(v.initializer); // Integer, Real, ...
+                        if (tn != null) {
+                            desc = descriptorForTypeName(tn); // уже есть helper
+                        } else {
+                            desc = "Ljava/lang/Object;";
+                        }
                     }
+                    info.fields.put(v.varName, new FieldInfo(v.varName, desc));
                 }
-                info.fields.put(v.varName, new FieldInfo(v.varName, desc));
-            } else if (member instanceof MethodDeclNode m) {
-                info.methods
-                    .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
-                    .add(m);
-            } else if (member instanceof ConstructorDeclNode c) {
-                info.constructors.add(c);
+                case MethodDeclNode m -> info.methods
+                        .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
+                        .add(m);
+                case ConstructorDeclNode c -> info.constructors.add(c);
+                default -> {
+                }
             }
         }
     }
@@ -503,8 +505,8 @@ public class MyCodeGen implements ASTVisitor{
             emit("    aconst_null");
             return;
         }
-        if (expr instanceof IntLiteralNode) {
-            int val = ((IntLiteralNode) expr).value;
+        if (expr instanceof IntLiteralNode intLiteralNode) {
+            int val = intLiteralNode.value;
             if (val >= -1 && val <= 5) {
                 emit("    iconst_" + (val == -1 ? "m1" : val));
             } else if (val >= -128 && val <= 127) {
@@ -517,8 +519,8 @@ public class MyCodeGen implements ASTVisitor{
             emitBoxInteger();
             return;
         }
-        if (expr instanceof RealLiteralNode) {
-            double val = ((RealLiteralNode) expr).value;
+        if (expr instanceof RealLiteralNode realLiteralNode) {
+            double val = realLiteralNode.value;
             if (val == 0d) {
                 emit("    dconst_0");
             } else if (val == 1d) {
@@ -539,8 +541,8 @@ public class MyCodeGen implements ASTVisitor{
             emit("    aload_0");
             return;
         }
-        if (expr instanceof IdentifierNode) {
-            String name = ((IdentifierNode) expr).name;
+        if (expr instanceof IdentifierNode identifierNode) {
+            String name = identifierNode.name;
             if (localVars != null && localVars.containsKey(name)) {
                 int idx = localVars.get(name);
                 emitLoadVar(idx);
@@ -561,8 +563,7 @@ public class MyCodeGen implements ASTVisitor{
                 return;
             }
         }
-        if (expr instanceof MemberAccessNode) {
-            MemberAccessNode access = (MemberAccessNode) expr;
+        if (expr instanceof MemberAccessNode access) {
 
             // a.Method(...)
             if (access.member instanceof MethodInvocationNode mi) {
@@ -580,8 +581,7 @@ public class MyCodeGen implements ASTVisitor{
             emit("    aconst_null");
             return;
         }
-        if (expr instanceof ConstructorInvocationNode) {
-            ConstructorInvocationNode ci = (ConstructorInvocationNode) expr;
+        if (expr instanceof ConstructorInvocationNode ci) {
 
             switch (ci.className) {
                 case "Integer":
@@ -641,8 +641,8 @@ public class MyCodeGen implements ASTVisitor{
             }
         }
 
-        if (expr instanceof MethodInvocationNode) {
-            generateMethodCallOnObject(new ThisNode(), (MethodInvocationNode) expr);
+        if (expr instanceof MethodInvocationNode methodInvocationNode) {
+            generateMethodCallOnObject(new ThisNode(), methodInvocationNode);
             return;
         }
 
@@ -1708,8 +1708,8 @@ public class MyCodeGen implements ASTVisitor{
         if (typeNode == null) {
             return "Ljava/lang/Object;";
         }
-        if (typeNode instanceof TypeNode) {
-            String n = ((TypeNode) typeNode).name;
+        if (typeNode instanceof TypeNode typeNode1) {
+            String n = typeNode1.name;
             switch (n) {
                 case "Integer": return "Ljava/lang/Integer;";
                 case "Real": return "Ljava/lang/Double;";
@@ -1719,8 +1719,7 @@ public class MyCodeGen implements ASTVisitor{
                 default: return "Ljava/lang/Object;";
             }
         }
-        if (typeNode instanceof GenericTypeNode) {
-            GenericTypeNode g = (GenericTypeNode) typeNode;
+        if (typeNode instanceof GenericTypeNode g) {
             switch (g.baseType) {
                 case "List": return "Ljava/util/ArrayList;";
                 case "Array": return "Ljava/util/ArrayList;";
@@ -1974,24 +1973,6 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
-     * Finds the first declared method with the given name in the current class.
-     * <p>
-     * Does not consider overload resolution; simply returns the first one.
-     *
-     * @param name method name
-     * @return a {@link MethodDeclNode} or {@code null} if not found
-     */
-    private MethodDeclNode findMethodInCurrentClass(String name) {
-        ClassInfo info = classInfoMap.get(currentClassName);
-        if (info == null) return null;
-
-        java.util.List<MethodDeclNode> list = info.methods.get(name);
-        if (list == null || list.isEmpty()) return null;
-
-        return list.get(0);
-    }
-
-    /**
      * Searches for a constructor by the number of parameters in the given class.
      *
      * @param className name of the class
@@ -2141,8 +2122,8 @@ public class MyCodeGen implements ASTVisitor{
     public void visit(BodyNode node) {
         if (node == null || node.elements == null) return;
         for (BodyElementNode el : node.elements) {
-            if (el instanceof ASTNode) {
-                ((ASTNode) el).accept(this);
+            if (el instanceof ASTNode aSTNode) {
+                aSTNode.accept(this);
             }
         }
     }
