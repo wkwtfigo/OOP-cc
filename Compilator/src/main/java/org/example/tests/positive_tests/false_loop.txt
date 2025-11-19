@@ -1,9 +1,13 @@
 class A is
-  var a : Integer(2)
+  var a : Integer()
+  
+  this() is
+    var a : Integer(2)
+  end
 end
 
 class Main is
-    this() is 
+    method start() is 
       var a : A()
       var b : Integer(1)
       a.a := Integer(5).Plus(Integer(3))

@@ -10,7 +10,7 @@ class Main is
         var i : a
     end
 
-    this() is
+    method start() is
         a := Integer(2)
     end
 end

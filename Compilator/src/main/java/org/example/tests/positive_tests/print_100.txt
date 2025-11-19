@@ -1,0 +1,6 @@
+class Main is
+    method start() is
+        print Integer(100)
+    end
+end
+

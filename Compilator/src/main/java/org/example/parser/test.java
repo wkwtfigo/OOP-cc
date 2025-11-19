@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/unused_vars.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/condition.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -33,7 +33,7 @@ public class test {
             if (rootNode != null) {
                 ASTPrinter printer = new ASTPrinter();
                 rootNode.accept(printer);
-                System.out.println(printer.getOutput());
+                //System.out.println(printer.getOutput());
 
                 // Выполняем семантическую проверку
                 System.out.println("=== Семантическая проверка ===");
@@ -55,7 +55,13 @@ public class test {
                     ASTPrinter optimizedPrinter = new ASTPrinter();
                     optimized.accept(optimizedPrinter);
 
-                    System.out.println(optimizedPrinter.getOutput());
+                    // System.out.println(optimizedPrinter.getOutput());
+
+                    // Генерация кода
+                    System.out.println("\n=== Генерация кода ===");
+                    String outputDir = "target/generated-classes";
+                    MyCodeGen codeGenerator = new MyCodeGen(outputDir);
+                    rootNode.accept(codeGenerator);
                 }
             } else {
                 System.out.println("Корневой узел AST не найден");

@@ -1,5 +1,5 @@
 class Main is
-    this() is
+    method start() is
         var a : Integer(3)
         var b : Real(2.3)
 

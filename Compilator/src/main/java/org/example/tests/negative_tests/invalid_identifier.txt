@@ -6,4 +6,7 @@ class Main is
     var b := 3true
     /*
     */
+
+    method start() is
+    end
 end

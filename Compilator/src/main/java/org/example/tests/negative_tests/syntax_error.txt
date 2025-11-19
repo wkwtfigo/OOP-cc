@@ -3,7 +3,7 @@ class A is
 end
 
 class Main is
-    this() is 
+    method start() is 
       var a : A()
       a.a := 0
     end

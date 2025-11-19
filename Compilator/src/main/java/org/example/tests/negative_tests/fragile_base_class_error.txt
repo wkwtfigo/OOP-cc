@@ -6,7 +6,7 @@ end
 class Main extends A is
   method foo1() : Integer => 0
 
-  this() is
+  method start() is
     var a : Main()
     a := a.foo2()
   end

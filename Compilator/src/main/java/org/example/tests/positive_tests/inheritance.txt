@@ -3,10 +3,21 @@ class Base is
 end
 
 class Main extends Base is
-    method whoAmI() : Integer => Integer(2)
+    var a : Integer()
 
     this() is
-        var x : Base(Main())
+        a := Integer(0)
+    end
+
+    this(k : Integer) is
+        a := k
+    end 
+
+    method start() is
+        var x : Base()
+        var z : Integer(45)
+        var y : Main(z)
+        print y.whoAmI()
         var res : x.whoAmI()
     end
 end

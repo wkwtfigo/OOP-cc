@@ -2,10 +2,14 @@ class Main is
     method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
 
-    this() is
+    method start() is
         var a is 5  // 6
         var b : true   // 2.5
         var x := a.Plus(3)
+        var l := f(Real(3.4))
+        var k := f(Integer(5))
+        print l
+        print k
         print x
     end
 end

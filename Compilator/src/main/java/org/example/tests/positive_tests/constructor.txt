@@ -1,7 +1,6 @@
 class ConstructorExample is
     var a : Integer(0)
     var b : Integer(0)
-    var l : List[Integer](Integer (1))
 
     this() is
         b := Integer(2)
@@ -19,9 +18,18 @@ class ConstructorExample is
 end
 
 class Main is
-    this() is
+    method start() is
         var c1: ConstructorExample()
         var c2: ConstructorExample(Integer(10))
         var c3: ConstructorExample(Integer(5), Integer(7))
+        
+        print c1.a
+        print c1.b
+
+        print c2.a
+        print c2.b
+
+        print c3.a
+        print c3.b
     end
 end
