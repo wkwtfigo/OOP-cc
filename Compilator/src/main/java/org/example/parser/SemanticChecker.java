@@ -1,19 +1,19 @@
-    package org.example.parser;
+package org.example.parser;
 
-    import java.util.ArrayList;
-    import java.util.HashMap;
-    import java.util.IdentityHashMap;
-    import java.util.List;
-    import java.util.Map;
-    import java.util.Set;
-    import java.util.Stack;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
-    /**
-     * Semantic checker that validates the AST for semantic errors:
-     * - Declarations before usage
-     * - Array bounds checking
-     */
-    public class SemanticChecker implements ASTVisitor {
+/**
+ * Semantic checker that validates the AST for semantic errors:
+ * - Declarations before usage
+ * - Array bounds checking
+ */
+public class SemanticChecker implements ASTVisitor {
     private List<String> errors = new ArrayList<>();
     private int errorCount = 0;
 
@@ -48,9 +48,9 @@
         int declarationOrder;
 
         ClassInfo(String name, String extendsClass, int order) {
-        this.name = name;
-        this.extendsClass = extendsClass;
-        this.declarationOrder = order;
+            this.name = name;
+            this.extendsClass = extendsClass;
+            this.declarationOrder = order;
         }
     }
 
@@ -196,39 +196,38 @@
     private void checkVariableUsage(String varName, ASTNode usageNode) {
         VariableInfo varInfo = lookupVariable(varName);
         if (varInfo == null) {
-        reportError("Variable '" + varName + "' is used before declaration");
-        return;
+            reportError("Variable '" + varName + "' is used before declaration");
+            return;
         }
 
-        // Class fields are always available in methods and constructors
-        // Only check order for local variables within the same scope
-        // TODO: Забыл чекнуть что переменная может быть classfield у
-        // вызываемого класса
+        // Поля класса можно всегда
         if (isClassField(varName)) {
-        // Class fields can be used anywhere in methods/constructors
-        return;
+            return;
         }
 
-        // Check declaration order for local variables only
-        // We compare the order of the variable declaration (from first pass)
-        // with the order of the body element that contains this usage (from second
-        // pass)
+        if (!variableScopes.isEmpty()) {
+            Map<String, VariableInfo> currentScope = variableScopes.peek();
+            VariableInfo inCurrentScope = currentScope.get(varName);
+
+            // Если этой переменной нет в вершине стэка, значит она из внешнего блока
+            // (параметр метода, переменная внешнего тела, поле и т.п.)
+            // Для них проверку порядка не делаем.
+            if (inCurrentScope != varInfo) {
+                return;
+            }
+        }
+
         Integer varDeclOrder = varInfo.declarationOrder;
 
-        // Get the order of the current body element (if any)
         Integer bodyElementOrder = null;
         if (currentBodyElement != null) {
-        bodyElementOrder = declarationOrders.get(currentBodyElement);
+            bodyElementOrder = declarationOrders.get(currentBodyElement);
         }
 
-        // If we have both orders, check if variable was declared after the body element
-        // This would mean variable is used before declaration
         if (varDeclOrder != null && bodyElementOrder != null) {
-        // If variable order is greater than body element order,
-        // it means variable was declared later than the statement that uses it
-        if (varDeclOrder > bodyElementOrder) {
-            reportError("Variable '" + varName + "' is used before declaration");
-        }
+            if (varDeclOrder > bodyElementOrder) {
+                reportError("Variable '" + varName + "' is used before declaration");
+            }
         }
     }
 
@@ -515,41 +514,11 @@
 
     @Override
     public void visit(MethodBodyNode node) {
-        // MethodBodyNode is visited after MethodDeclNode, so we should already have
-        // the method parameters in the scope from visit(MethodDeclNode)
-        // But we need to ensure scope is set up
-
         if (node.isArrow && node.arrowExpression != null) {
-        declarationOrders.put(node.arrowExpression, currentDeclarationOrder++);
-        node.arrowExpression.accept(this);
+            declarationOrders.put(node.arrowExpression, currentDeclarationOrder++);
+            node.arrowExpression.accept(this);
         } else if (!node.isArrow && node.body != null) {
-        // First pass: collect variable declarations
-        if (node.body.elements != null) {
-            currentDeclarationOrder = 0;
-            for (BodyElementNode element : node.body.elements) {
-                if (element instanceof VarDeclNode) {
-                    VarDeclNode varDecl = (VarDeclNode) element;
-
-                    VariableInfo varInfo = createVariableInfoFromVarDecl(varDecl, currentDeclarationOrder);
-
-                    variableScopes.peek().put(varDecl.varName, varInfo);
-                    declarationOrders.put(varDecl, currentDeclarationOrder);
-                    declarationOrders.put(varInfo, currentDeclarationOrder);
-                    currentDeclarationOrder++;
-                }
-            }
-
-            // Second pass: visit all elements to check usage
-            currentDeclarationOrder = 0;
-            for (BodyElementNode element : node.body.elements) {
-            declarationOrders.put(element, currentDeclarationOrder++);
-            currentBodyElement = element; // Set current body element for order comparison
-            if (element instanceof ASTNode) {
-                ((ASTNode) element).accept(this);
-            }
-            currentBodyElement = null; // Clear after processing
-            }
-        }
+            analyzeBodyWithNewScope(node.body);
         }
     }
 
@@ -582,35 +551,8 @@
         }
         }
 
-        // Visit body
         if (node.body != null) {
-            // First pass: collect variable declarations
-            if (node.body.elements != null) {
-                currentDeclarationOrder = 0;
-                for (BodyElementNode element : node.body.elements) {
-                    if (element instanceof VarDeclNode) {
-                        VarDeclNode varDecl = (VarDeclNode) element;
-
-                        VariableInfo varInfo = createVariableInfoFromVarDecl(varDecl, currentDeclarationOrder);
-
-                        variableScopes.peek().put(varDecl.varName, varInfo);
-                        declarationOrders.put(varDecl, currentDeclarationOrder);
-                        declarationOrders.put(varInfo, currentDeclarationOrder);
-                        currentDeclarationOrder++;
-                    }
-                }
-
-            // Second pass: visit all elements to check usage
-            currentDeclarationOrder = 0;
-            for (BodyElementNode element : node.body.elements) {
-                declarationOrders.put(element, currentDeclarationOrder++);
-                currentBodyElement = element; // Set current body element for order comparison
-                if (element instanceof ASTNode) {
-                    ((ASTNode) element).accept(this);
-                }
-                currentBodyElement = null; // Clear after processing
-                }
-            }
+            analyzeBodyWithNewScope(node.body);
         }
 
         variableScopes.pop();
@@ -646,50 +588,42 @@
     @Override
     public void visit(WhileLoopNode node) {
         if (node.condition != null) {
-        declarationOrders.put(node.condition, currentDeclarationOrder++);
-        node.condition.accept(this);
+            declarationOrders.put(node.condition, currentDeclarationOrder++);
+            node.condition.accept(this);
         }
         if (node.body != null) {
-        variableScopes.push(new HashMap<>());
-        currentDeclarationOrder = 0; // Reset for loop body
-        node.body.accept(this);
-        variableScopes.pop();
+            analyzeBodyWithNewScope(node.body);
         }
     }
 
     @Override
     public void visit(IfStatementNode node) {
         if (node.condition != null) {
-        declarationOrders.put(node.condition, currentDeclarationOrder++);
-        node.condition.accept(this);
+            declarationOrders.put(node.condition, currentDeclarationOrder++);
+            node.condition.accept(this);
         }
         if (node.thenBody != null) {
-        variableScopes.push(new HashMap<>());
-        currentDeclarationOrder = 0; // Reset for then body
-        node.thenBody.accept(this);
-        variableScopes.pop();
+            analyzeBodyWithNewScope(node.thenBody);
         }
         if (node.elseBody != null) {
-        variableScopes.push(new HashMap<>());
-        currentDeclarationOrder = 0; // Reset for else body
-        node.elseBody.accept(this);
-        variableScopes.pop();
+            analyzeBodyWithNewScope(node.elseBody);
         }
     }
+
 
     @Override
     public void visit(ReturnNode node) {
         if (node.expression != null) {
-        declarationOrders.put(node.expression, currentDeclarationOrder++);
-        node.expression.accept(this);
+            declarationOrders.put(node.expression, currentDeclarationOrder++);
+            node.expression.accept(this);
         }
     }
 
     @Override
     public void visit(PrintNode node) {
         if (node.expression != null) {
-        declarationOrders.put(node.expression, currentDeclarationOrder++);
-        node.expression.accept(this);
+            declarationOrders.put(node.expression, currentDeclarationOrder++);
+            node.expression.accept(this);
         }
     }
 
@@ -697,8 +631,8 @@
     public void visit(MemberAccessNode node) {
         // Visit target first (e.g., 'n' in 'n.LessEqual(...)')
         if (node.target != null) {
-        declarationOrders.put(node.target, currentDeclarationOrder++);
-        node.target.accept(this);
+            declarationOrders.put(node.target, currentDeclarationOrder++);
+            node.target.accept(this);
         }
 
         // Member can be either:
@@ -706,46 +640,46 @@
         // 2. MethodInvocationNode - method call (e.g., 'obj.method(args)')
 
         if (node.member instanceof IdentifierNode) {
-        // Field access - check if field exists (might be a built-in method)
-        // Don't check as variable - it's a field/method name
-        if (!checkClassField(node))
-            reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
-        } else if (node.member instanceof MethodInvocationNode) {
-        // Method call on an object - don't check member as variable
-        if (!checkMethodExistence(node)) {
-            ExpressionNode method = ((MethodInvocationNode) node.member).target;
-            String methodName = ((IdentifierNode) method).name;
-            reportError(
-                "У класса нет метода " + methodName);
-        }
-
-        MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
-
-        // Check arguments
-        if (methodInv.arguments != null) {
-            for (ExpressionNode arg : methodInv.arguments) {
-            declarationOrders.put(arg, currentDeclarationOrder++);
-            arg.accept(this);
+            // Field access - check if field exists (might be a built-in method)
+            // Don't check as variable - it's a field/method name
+            if (!checkClassField(node))
+                reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
+            } else if (node.member instanceof MethodInvocationNode) {
+            // Method call on an object - don't check member as variable
+            if (!checkMethodExistence(node)) {
+                ExpressionNode method = ((MethodInvocationNode) node.member).target;
+                String methodName = ((IdentifierNode) method).name;
+                reportError(
+                    "У класса нет метода " + methodName);
             }
-        }
 
-        // Check for array access pattern: arr.get(i) or similar
-        if (methodInv.arguments != null && methodInv.arguments.size() == 1) {
-            ExpressionNode indexExpr = methodInv.arguments.get(0);
-            // Check if this is a get() method call
-            if (methodInv.target instanceof IdentifierNode) {
-            String methodName = ((IdentifierNode) methodInv.target).name;
-            if ("get".equals(methodName)) {
-                checkArrayBounds(node.target, indexExpr);
+            MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
+
+            // Check arguments
+            if (methodInv.arguments != null) {
+                for (ExpressionNode arg : methodInv.arguments) {
+                declarationOrders.put(arg, currentDeclarationOrder++);
+                arg.accept(this);
+                }
             }
+
+            // Check for array access pattern: arr.get(i) or similar
+            if (methodInv.arguments != null && methodInv.arguments.size() == 1) {
+                ExpressionNode indexExpr = methodInv.arguments.get(0);
+                // Check if this is a get() method call
+                if (methodInv.target instanceof IdentifierNode) {
+                String methodName = ((IdentifierNode) methodInv.target).name;
+                if ("get".equals(methodName)) {
+                    checkArrayBounds(node.target, indexExpr);
+                }
+                }
             }
-        }
         } else {
-        // Other types - visit normally
-        if (node.member != null) {
-            declarationOrders.put(node.member, currentDeclarationOrder++);
-            node.member.accept(this);
-        }
+            // Other types - visit normally
+            if (node.member != null) {
+                declarationOrders.put(node.member, currentDeclarationOrder++);
+                node.member.accept(this);
+            }
         }
     }
 
@@ -1077,7 +1011,7 @@
         arrayInfo.methods.put("get",
             new MethodInfo("get", null, List.of(), -1)); // возвращает T — пока без проверки
         arrayInfo.methods.put("set",
-            new MethodInfo("set", null, List.of(), -1));
+            new MethodInfo("set", "Array", List.of(), -1));
 
         classes.putIfAbsent("Array", arrayInfo);
 
@@ -1116,6 +1050,11 @@
             } else if (varDecl.initializer instanceof BoolLiteralNode) {
                 // var b is true
                 typeNode = new TypeNode("Boolean");
+            } else if (varDecl.initializer instanceof ExpressionNode expr) {
+                String inferred = inferExprType(expr);
+                if (inferred != null) {
+                    typeNode = new TypeNode(inferred);
+                }
             }
         }
 
@@ -1244,6 +1183,37 @@
         }
 
         return null;
+    }
+
+    private void analyzeBodyWithNewScope(BodyNode body) {
+        if (body == null || body.elements == null) return;
+
+        variableScopes.push(new HashMap<>());
+        currentDeclarationOrder = 0;
+
+        // 1) собрать объявления var
+        for (BodyElementNode element : body.elements) {
+            if (element instanceof VarDeclNode varDecl) {
+                VariableInfo varInfo = createVariableInfoFromVarDecl(varDecl, currentDeclarationOrder);
+                variableScopes.peek().put(varDecl.varName, varInfo);
+                declarationOrders.put(varDecl, currentDeclarationOrder);
+                declarationOrders.put(varInfo, currentDeclarationOrder);
+                currentDeclarationOrder++;
+            }
+        }
+
+        // 2) проверить все элементы
+        currentDeclarationOrder = 0;
+        for (BodyElementNode element : body.elements) {
+            declarationOrders.put(element, currentDeclarationOrder++);
+            currentBodyElement = element;
+            if (element instanceof ASTNode ast) {
+                ast.accept(this);
+            }
+            currentBodyElement = null;
+        }
+
+        variableScopes.pop();
     }
 
 }

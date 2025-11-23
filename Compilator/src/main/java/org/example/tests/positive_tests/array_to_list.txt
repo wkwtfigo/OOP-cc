@@ -1,0 +1,28 @@
+class Main is
+    method start() is
+        // массив длины 3
+        var a : Array[Integer](Integer(3))
+
+        a := a.set(Integer(0), Integer(10))
+        a := a.set(Integer(1), Integer(20))
+        a := a.set(Integer(2), Integer(30))
+
+        // превращаем в список
+        var l := a.toList()
+
+        // проверяем порядок элементов через head/tail
+        var h1 : l.head()                  // 10
+        var h2 : l.tail().head()           // 20
+        var h3 : l.tail().tail().head()    // 30
+
+        print h1   // 10
+        print h2   // 20
+        print h3   // 30
+
+        // теперь проверим, что к этому списку можно ещё append-ить
+        l := l.append(Integer(40))
+        var h4 : l.tail().tail().tail().head()  // 40
+
+        print h4   // 40
+    end
+end

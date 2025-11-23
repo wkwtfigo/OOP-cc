@@ -1,11 +1,22 @@
 class Main is
     method start() is
+        // l = [1]
         var l : List[Integer](Integer(1))
+
+        // l = [1, 2]
         l := l.append(Integer(2))
+
+        // l = [1, 2, 3]
         l := l.append(Integer(3))
-        var head : l.head()   // 1
-        var tail : l.tail()   // list [2,3]
-        print head
-        print tail
+
+        var h : l.head()          // ожидаем 1
+        var t : l.tail()          // ожидаем список [2, 3]
+
+        var tHead : t.head()      // ожидаем 2
+        var tTailHead : t.tail().head()  // ожидаем 3
+
+        print h           // 1
+        print tHead       // 2
+        print tTailHead   // 3
     end
 end

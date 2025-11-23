@@ -629,9 +629,55 @@ public class MyCodeGen implements ASTVisitor{
                     }
                     return;
                 case "Array":
-                    emit("    new java/util/ArrayList");
+                    // Array(l) – ожидаем один аргумент: длина массива (Integer)
+                    ExpressionNode lenExpr = (ci.arguments != null && !ci.arguments.isEmpty())
+                            ? ci.arguments.get(0)
+                            : null;
+
+                    // 1) считаем длину и кладём в локальную переменную (int)
+                    if (lenExpr != null) {
+                        generateExpression(lenExpr);                   // -> Integer
+                        emit("    checkcast java/lang/Integer");
+                        emit("    invokevirtual java/lang/Integer/intValue()I");
+                    } else {
+                        // без аргумента – длина 0
+                        emit("    iconst_0");
+                    }
+                    int lenIdx = currentLocalIndex++;
+                    emit("    istore " + lenIdx);
+
+                    // 2) создаём новый ArrayList и сохраним его в локал
+                emit("    new java/util/ArrayList");
                     emit("    dup");
                     emit("    invokespecial java/util/ArrayList/<init>()V");
+                    int arrIdx = currentLocalIndex++;
+                    emit("    astore " + arrIdx);
+
+                    // 3) i = 0
+                    int iIdx = currentLocalIndex++;
+                    emit("    iconst_0");
+                    emit("    istore " + iIdx);
+
+                    String loopLabel = newLabel("array_init_loop");
+                    String endLabel  = newLabel("array_init_end");
+
+                    // 4) цикл: while (i < len) { arr.add(null); i++; }
+                    emit(loopLabel + ":");
+                    emit("    iload " + iIdx);
+                    emit("    iload " + lenIdx);
+                    emit("    if_icmpge " + endLabel);
+
+                    emit("    aload " + arrIdx);
+                    emit("    aconst_null");
+                    emit("    invokevirtual java/util/ArrayList/add(Ljava/lang/Object;)Z");
+                    emit("    pop");  // выкидываем boolean
+
+                    emit("    iinc " + iIdx + " 1");
+                    emit("    goto " + loopLabel);
+                    emit(endLabel + ":");
+
+                    // 5) результат конструктора – сам список (массив)
+                    emit("    aload " + arrIdx);
                     return;
 
                 default:
@@ -712,6 +758,27 @@ public class MyCodeGen implements ASTVisitor{
         ? call.arguments.get(0)
         : null;
 
+        // ----- Array built-ins -----
+        if (isArrayExpr(targetExpr)) {
+            if ("Length".equals(methodName)) {
+                generateArrayLength(targetExpr);
+                return;
+            }
+            if ("get".equals(methodName)) {
+                generateArrayGet(targetExpr, arg);
+                return;
+            }
+            if ("set".equals(methodName)) {
+                generateArraySet(targetExpr, call.arguments);
+                return;
+            }
+            if ("toList".equals(methodName)) {
+                generateArrayToList(targetExpr);
+                return;
+            }
+        }
+
+        // ----- List built-ins -----
         if (isListExpr(targetExpr)) {
             if ("append".equals(methodName)) {
                 generateListAppend(targetExpr, arg);
@@ -1777,10 +1844,21 @@ public class MyCodeGen implements ASTVisitor{
         localVars.put(node.varName, index);
 
         if (localVarTypes != null) {
-            String typeName = typeNameForTypeNode(node.type); // сейчас даст null
+            String typeName = typeNameForTypeNode(node.type); // может быть null
+
             if (typeName == null) {
+                // сначала пробуем по простому инициализатору (конструкторы, литералы)
                 typeName = inferTypeNameFromInitializer(node.initializer);
             }
+
+            if (typeName == null && node.initializer != null) {
+                if (isListExpr(node.initializer)) {
+                    typeName = "List";
+                } else if (isArrayExpr(node.initializer)) {
+                    typeName = "Array";
+                }
+            }
+
             if (typeName != null) {
                 localVarTypes.put(node.varName, typeName);
             }
@@ -2461,16 +2539,46 @@ public class MyCodeGen implements ASTVisitor{
      * @param e expression
      * @return {@code true} if expression is a list
      */
-    private boolean isListExpr(ExpressionNode e) {
+        private boolean isListExpr(ExpressionNode e) {
         if (e == null) return false;
 
+        // List(...)
         if (e instanceof ConstructorInvocationNode ci && "List".equals(ci.className)) {
             return true;
         }
 
+        // переменная объявлена как List
         if (e instanceof IdentifierNode id && localVarTypes != null) {
-            String t = localVarTypes.get(id.name); // "List", "Integer", ...
+            String t = localVarTypes.get(id.name);
             if ("List".equals(t)) return true;
+        }
+
+        // НОВОЕ: выражения вида l.tail(), l.append(..), a.toList()
+        if (e instanceof MemberAccessNode ma && ma.member instanceof MethodInvocationNode mi) {
+            String mName = mi.methodName;
+
+            // Эти методы возвращают List
+            if ("tail".equals(mName) || "append".equals(mName) || "toList".equals(mName)) {
+                // если целевой объект уже List или Array
+                if (isListExpr(ma.target) || isArrayExpr(ma.target)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isArrayExpr(ExpressionNode e) {
+        if (e == null) return false;
+
+        if (e instanceof ConstructorInvocationNode ci && "Array".equals(ci.className)) {
+            return true;
+        }
+
+        if (e instanceof IdentifierNode id && localVarTypes != null) {
+            String t = localVarTypes.get(id.name);
+            if ("Array".equals(t)) return true;
         }
 
         return false;
@@ -2548,6 +2656,69 @@ public class MyCodeGen implements ASTVisitor{
         emitLoadVar(tmp);                                  // ..., newArr, newArr, subList
         emit("    invokespecial java/util/ArrayList/<init>(Ljava/util/Collection;)V");
         // результат на стеке: новый ArrayList — это и будет tail
+    }
+
+    // Array.Length : Integer
+    private void generateArrayLength(ExpressionNode arrayExpr) {
+        generateExpression(arrayExpr);                           // -> Object (ArrayList)
+        emit("    checkcast java/util/ArrayList");
+        emit("    invokevirtual java/util/ArrayList/size()I");   // int
+        emitBoxInteger();                                        // Integer
+    }
+
+    // Array.get(i) : T
+    private void generateArrayGet(ExpressionNode arrayExpr, ExpressionNode indexExpr) {
+        generateExpression(arrayExpr);
+        emit("    checkcast java/util/ArrayList");
+
+        if (indexExpr != null) {
+            generateExpression(indexExpr);                       // Integer
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I");
+        } else {
+            emit("    iconst_0"); // по умолчанию индекс 0, если чего-то нет
+        }
+
+        emit("    invokevirtual java/util/ArrayList/get(I)Ljava/lang/Object;");
+    }
+
+    // Array.set(i, v) : Array
+    private void generateArraySet(ExpressionNode arrayExpr, List<ExpressionNode> args) {
+        ExpressionNode indexExpr = (args != null && !args.isEmpty()) ? args.get(0) : null;
+        ExpressionNode valueExpr = (args != null && args.size() > 1) ? args.get(1) : null;
+
+        // хотим в итоге оставить на стеке сам массив
+        // схема: arr -> checkcast -> dup -> set(i, v) -> pop(old) => arr
+
+        generateExpression(arrayExpr);                    // ..., arr
+        emit("    checkcast java/util/ArrayList");       // ..., arr
+        emit("    dup");                                 // ..., arr, arr
+
+        // индекс
+        if (indexExpr != null) {
+            generateExpression(indexExpr);               // ..., arr, arr, Integer
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I"); // ..., arr, arr, i
+        } else {
+            emit("    iconst_0");                        // ..., arr, arr, 0
+        }
+
+        // значение
+        if (valueExpr != null) {
+            generateExpression(valueExpr);               // ..., arr, arr, i, v
+        } else {
+            emit("    aconst_null");                     // ..., arr, arr, i, null
+        }
+
+        emit("    invokevirtual java/util/ArrayList/set(ILjava/lang/Object;)Ljava/lang/Object;");
+        emit("    pop");                                 // выкинули старое значение
+        // На стеке остаётся 1 элемент: arr, как результат выражения
+    }
+
+    // Array.toList() : List
+    private void generateArrayToList(ExpressionNode arrayExpr) {
+        // Внутренне Array и List – оба ArrayList, так что просто возвращаем тот же объект.
+        generateExpression(arrayExpr);
     }
 
     /**
