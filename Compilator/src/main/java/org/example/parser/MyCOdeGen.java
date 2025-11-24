@@ -85,9 +85,16 @@ public class MyCodeGen implements ASTVisitor{
          */
         final String descriptor;
 
-        FieldInfo(String name, String descriptor) {
+        /**
+         * High-level type name used in the language (e.g. "Integer", "Real", "MyClass", "List", "Array").
+         * May be {@code null} if it could not be inferred.
+         */
+        final String typeName;
+
+        FieldInfo(String name, String descriptor, String typeName) {
             this.name = name;
             this.descriptor = descriptor;
+            this.typeName = typeName;
         }
     }
 
@@ -198,24 +205,29 @@ public class MyCodeGen implements ASTVisitor{
             switch (member) {
                 case VarDeclNode v -> {
                     String desc;
+                    String typeName = null;
+
                     if (v.type != null) {
+                        // явный тип
+                        typeName = typeNameForTypeNode(v.type);
                         desc = descriptorForTypeNode(v.type);
                     } else {
-                        String tn = inferTypeNameFromInitializer(v.initializer);
-                        if (tn != null) {
-                            desc = descriptorForTypeName(tn);
+                        // попытка вывести по инициализатору
+                        typeName = inferTypeNameFromInitializer(v.initializer);
+                        if (typeName != null) {
+                            desc = descriptorForTypeName(typeName);
                         } else {
                             desc = "Ljava/lang/Object;";
                         }
                     }
-                    info.fields.put(v.varName, new FieldInfo(v.varName, desc));
+
+                    info.fields.put(v.varName, new FieldInfo(v.varName, desc, typeName));
                 }
                 case MethodDeclNode m -> info.methods
                         .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
                         .add(m);
                 case ConstructorDeclNode c -> info.constructors.add(c);
-                default -> {
-                }
+                default -> {}
             }
         }
     }
@@ -435,7 +447,10 @@ public class MyCodeGen implements ASTVisitor{
                 emit("    aload_0");
                 generateExpression(v.initializer);
                 String ownerInternal = currentClassName.replace('.', '/');
-                String desc = descriptorForTypeNode(v.type);
+
+                ClassInfo ci = classInfoMap.get(currentClassName);
+                FieldInfo f = (ci != null ? ci.fields.get(v.varName) : null);
+                String desc = (f != null ? f.descriptor : "Ljava/lang/Object;");
                 emit("    putfield " + ownerInternal + "/" + v.varName + " " + desc);
             }
         }
@@ -2453,6 +2468,32 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
+     * Attempts to recover a high-level type name from a JVM descriptor.
+     *
+     * @param desc JVM descriptor, e.g. "Ljava/lang/Integer;"
+     * @return logical type name ("Integer", "Real", "Boolean", "List", "Array", "MyClass"), or {@code null}
+     */
+    private String typeNameFromDescriptor(String desc) {
+        if (desc == null) return null;
+
+        switch (desc) {
+            case "Ljava/lang/Integer;": return "Integer";
+            case "Ljava/lang/Double;":  return "Real";
+            case "Ljava/lang/Boolean;": return "Boolean";
+            case "Ljava/util/ArrayList;":
+                // Внутренне и List, и Array – ArrayList; без extra-инфы не различим.
+                // Если нужно различать, полагаемся на FieldInfo.typeName.
+                return "List";
+            default:
+                if (desc.startsWith("L") && desc.endsWith(";")) {
+                    String internal = desc.substring(1, desc.length() - 1);
+                    return internal.replace('/', '.'); // "pkg/Class" -> "pkg.Class"
+                }
+                return null;
+        }
+    }
+
+    /**
      * Represents a resolved method along the inheritance chain: the class where
      * it was found and the declaration node.
      */
@@ -2527,27 +2568,18 @@ public class MyCodeGen implements ASTVisitor{
      * @param e expression
      * @return {@code true} if expression is a list
      */
-        private boolean isListExpr(ExpressionNode e) {
+    private boolean isListExpr(ExpressionNode e) {
         if (e == null) return false;
 
-        // List(...)
-        if (e instanceof ConstructorInvocationNode ci && "List".equals(ci.className)) {
-            return true;
-        }
+        // 1) сначала пробуем общий тип
+        String tn = inferExprTypeName(e);
+        if ("List".equals(tn)) return true;
 
-        // переменная объявлена как List
-        if (e instanceof IdentifierNode id && localVarTypes != null) {
-            String t = localVarTypes.get(id.name);
-            if ("List".equals(t)) return true;
-        }
-
-        // НОВОЕ: выражения вида l.tail(), l.append(..), a.toList()
+        // 2) спец. случай: l.tail(), l.append(x), a.toList()
         if (e instanceof MemberAccessNode ma && ma.member instanceof MethodInvocationNode mi) {
             String mName = mi.methodName;
-
-            // Эти методы возвращают List
             if ("tail".equals(mName) || "append".equals(mName) || "toList".equals(mName)) {
-                // если целевой объект уже List или Array
+                // если целевой объект уже List или Array, результат – List
                 if (isListExpr(ma.target) || isArrayExpr(ma.target)) {
                     return true;
                 }
@@ -2560,13 +2592,14 @@ public class MyCodeGen implements ASTVisitor{
     private boolean isArrayExpr(ExpressionNode e) {
         if (e == null) return false;
 
+        // 1) общий случай: инферим тип
+        String tn = inferExprTypeName(e);
+        if ("Array".equals(tn)) return true;
+
+        // 2) конструктор Array(l) тоже уже покрывается inferExprTypeName,
+        // но можно оставить явный случай ради надёжности:
         if (e instanceof ConstructorInvocationNode ci && "Array".equals(ci.className)) {
             return true;
-        }
-
-        if (e instanceof IdentifierNode id && localVarTypes != null) {
-            String t = localVarTypes.get(id.name);
-            if ("Array".equals(t)) return true;
         }
 
         return false;
@@ -2777,41 +2810,51 @@ public class MyCodeGen implements ASTVisitor{
         if (e instanceof BoolLiteralNode) return "Boolean";
 
         if (e instanceof IdentifierNode id) {
+            // локальная переменная
             if (localVarTypes != null) {
                 String t = localVarTypes.get(id.name);
                 if (t != null) return t;
             }
+
+            // поле текущего класса
             ClassInfo info = classInfoMap.get(currentClassName);
             if (info != null) {
                 FieldInfo f = info.fields.get(id.name);
                 if (f != null) {
-                    if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
-                    if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
-                    if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
-                    // пользовательский класс:
-                    return info.name;
+                    if (f.typeName != null) {
+                        return f.typeName;
+                    }
+                    String tn = typeNameFromDescriptor(f.descriptor);
+                    if (tn != null) {
+                        return tn;
+                    }
                 }
             }
             return null;
         }
 
-        // <<< НОВОЕ: поле obj.field >>>
+        // поле obj.field
         if (e instanceof MemberAccessNode ma && ma.member instanceof IdentifierNode fieldId) {
             String ownerType = inferExprTypeName(ma.target); // тип obj
             if (ownerType == null) return null;
+
             ClassInfo ci = classInfoMap.get(ownerType);
             if (ci == null) return null;
+
             FieldInfo f = ci.fields.get(fieldId.name);
             if (f == null) return null;
 
-            // по descriptor поля решаем тип
-            if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
-            if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
-            if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
-            // пользовательский класс
-            return ci.name;
-        }
+            if (f.typeName != null) {
+                return f.typeName;
+            }
 
+            String tn = typeNameFromDescriptor(f.descriptor);
+            if (tn != null) {
+                return tn;
+            }
+
+            return null;
+        }
         return null;
     }
 
