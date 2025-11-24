@@ -1772,31 +1772,20 @@ public class MyCodeGen implements ASTVisitor{
      */
     private String descriptorForTypeNode(ASTNode typeNode) {
         if (typeNode == null) {
+            // на всякий случай, чтобы не упасть; можно кинуть исключение
             return "Ljava/lang/Object;";
         }
-        if (typeNode instanceof TypeNode) {
-            String n = ((TypeNode) typeNode).name;
-            switch (n) {
-                case "Integer": return "Ljava/lang/Integer;";
-                case "Real":    return "Ljava/lang/Double;";
-                case "Boolean": return "Ljava/lang/Boolean;";
-                case "List":    return "Ljava/util/ArrayList;";
-                case "Array":   return "Ljava/util/ArrayList;";
-                default:
-                    // ВСЕ остальные — это либо пользовательские классы (Test, Main),
-                    // либо что-то ещё объектное → генерим LName;
-                    return "L" + n.replace('.', '/') + ";";
-            }
+
+        if (typeNode instanceof TypeNode t) {
+            // простой тип: Integer, Real, Boolean, Main и т.п.
+            return descriptorForTypeName(t.name);
         }
-        if (typeNode instanceof GenericTypeNode) {
-            GenericTypeNode g = (GenericTypeNode) typeNode;
-            switch (g.baseType) {
-                case "List":  return "Ljava/util/ArrayList;";
-                case "Array": return "Ljava/util/ArrayList;";
-                default:
-                    return "L" + g.baseType.replace('.', '/') + ";";
-            }
+
+        if (typeNode instanceof GenericTypeNode g) {
+            return descriptorForTypeName(g.baseType);
         }
+
+        // fallback — если вдруг туда попадёт что-то ещё
         return "Ljava/lang/Object;";
     }
 
@@ -2002,7 +1991,7 @@ public class MyCodeGen implements ASTVisitor{
         // аргументы
         if (header.parameters != null) {
             for (ParamDeclNode p : header.parameters) {
-                sb.append(descriptorForTypeNode(p.paramType));
+                sb.append(descriptorForTypeNode(p.paramType)); // уже ASTNode
             }
         }
 
@@ -2010,10 +1999,9 @@ public class MyCodeGen implements ASTVisitor{
 
         // возвращаемый тип
         if (header.returnType == null) {
-            sb.append("V");
+            sb.append("V"); // void
         } else {
-            // пока упрощённо — Object-like типы
-            sb.append(descriptorForTypeName(header.returnType));
+            sb.append(descriptorForTypeNode(header.returnType)); // <-- вот так
         }
 
         return sb.toString();

@@ -437,7 +437,7 @@ public class SemanticChecker implements ASTVisitor {
                     MethodDeclNode methodDecl = (MethodDeclNode) member;
                     MethodInfo methodInfo = new MethodInfo(
                         methodDecl.header.methodName,
-                        methodDecl.header.returnType,
+                        resolveTypeName(methodDecl.header.returnType),
                         methodDecl.header.parameters,
                         currentDeclarationOrder);
                     classInfo.methods.put(methodDecl.header.methodName, methodInfo);
@@ -1125,7 +1125,22 @@ public class SemanticChecker implements ASTVisitor {
 
                 MethodInfo mi = findMethodInClassHierarchy(ownerClass, mm);
                 if (mi != null) {
-                    return mi.returnType; // "Integer", "Real", "Boolean", "Test", ...
+                    // Обычный случай — явно заданный returnType
+                    if (mi.returnType != null) {
+                        return mi.returnType;
+                    }
+
+                    // Особый случай: generic T у List[T] и Array[T]
+                    if ("List".equals(ownerClass) || "Array".equals(ownerClass)) {
+                        // Сейчас ma.target — это l в l.head()
+                        if (ma.target instanceof IdentifierNode id) {
+                            VariableInfo var = lookupVariable(id.name);
+                            if (var != null && var.type instanceof GenericTypeNode g && g.parameter != null) {
+                                // параметр типа, например Integer в List[Integer]
+                                return resolveTypeName(g.parameter);
+                            }
+                        }
+                    }
                 }
             }
         }

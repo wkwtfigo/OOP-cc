@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/array_to_list.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/list_parameter.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();

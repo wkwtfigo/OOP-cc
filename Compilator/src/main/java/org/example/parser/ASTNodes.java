@@ -116,9 +116,9 @@ class MethodDeclNode extends MemberNode {
 class MethodHeaderNode extends ASTNode {
     public String methodName;
     public List<ParamDeclNode> parameters;
-    public String returnType;
+    public ASTNode returnType;
 
-    public MethodHeaderNode(String name, List<ParamDeclNode> params, String returnType) {
+    public MethodHeaderNode(String name, List<ParamDeclNode> params, ASTNode returnType) {
         this.methodName = name;
         this.parameters = params;
         this.returnType = returnType;

@@ -1,0 +1,33 @@
+class Main is
+
+    // суммирует первый элемент списка и длину массива
+    method combine(l : List[Integer], a : Array[Integer]) : Integer is
+        var first : l.head()
+        var len   : a.Length()
+        // first + len
+        return first.Plus(len)
+    end
+
+    // создаёт массив длины n, заполняет 1..n и возвращает
+    method makeArray(n : Integer) : Array[Integer] is
+        var a : Array[Integer](n)
+        var i : Integer(0)
+        while i.Less(a.Length()) loop
+            var v : i.Plus(Integer(1))   // 1..n
+            a := a.set(i, v)
+            i := i.Plus(Integer(1))
+        end
+        return a
+    end
+
+    method start() is
+        var l : List[Integer](Integer(5))
+        l := l.append(Integer(10))   // [5,10]
+
+        var a : makeArray(Integer(3))  // [1,2,3]
+
+        var res : combine(l, a)
+        // res = first(l) + a.Length() = 5 + 3 = 8
+        print res
+    end
+end
