@@ -1,0 +1,20 @@
+class Main is
+    method start() is
+        var a : Array[Integer](Integer(5))
+
+        var i : Integer(0)
+        while i.Less(a.Length()) loop
+            var v : i.Plus(Integer(1))    // 1,2,3,4,5
+            a := a.set(i, v)
+            i := i.Plus(Integer(1))
+        end
+
+        print a.Length()      // ожидаем 5
+
+        var j : Integer(0)
+        while j.Less(a.Length()) loop
+            print a.get(j)    // 1, 2, 3, 4, 5
+            j := j.Plus(Integer(1))
+        end
+    end
+end

@@ -828,41 +828,43 @@ public class Parser
   case 26: /* method_header: TOK_METHOD TOK_ID TOK_LPAR parameter_list_opt TOK_RPAR optional_return_type  */
   if (yyn == 26)
     /* "parser.y":166  */
-      { yyval = new MethodHeaderNode(((Token)yystack.valueAt (4)).getLexeme(), (List<ParamDeclNode>)yystack.valueAt (2), yystack.valueAt (0) == null ? null : ((Token)yystack.valueAt (0)).getLexeme()); };
+      { yyval = new MethodHeaderNode(((Token)yystack.valueAt (4)).getLexeme(),
+                                  (List<ParamDeclNode>)yystack.valueAt (2),
+                                  (ASTNode)yystack.valueAt (0)); };
   break;
 
 
   case 27: /* method_body: TOK_IS body TOK_END  */
   if (yyn == 27)
-    /* "parser.y":170  */
+    /* "parser.y":171  */
                           { yyval = new MethodBodyNode((BodyNode)yystack.valueAt (1), false); };
   break;
 
 
   case 28: /* method_body: TOK_ARROW expression  */
   if (yyn == 28)
-    /* "parser.y":171  */
+    /* "parser.y":172  */
                            { yyval = new MethodBodyNode((ExpressionNode)yystack.valueAt (0), true); };
   break;
 
 
   case 29: /* parameter_list_opt: %empty  */
   if (yyn == 29)
-    /* "parser.y":175  */
+    /* "parser.y":176  */
                   { yyval = new ArrayList<ParamDeclNode>(); };
   break;
 
 
   case 30: /* parameter_list_opt: parameter_list  */
   if (yyn == 30)
-    /* "parser.y":176  */
+    /* "parser.y":177  */
                      { yyval = yystack.valueAt (0); };
   break;
 
 
   case 31: /* parameter_list: parameter_declaration  */
   if (yyn == 31)
-    /* "parser.y":181  */
+    /* "parser.y":182  */
         { 
           List<ParamDeclNode> list = new ArrayList<>();
           list.add((ParamDeclNode)yystack.valueAt (0));
@@ -873,7 +875,7 @@ public class Parser
 
   case 32: /* parameter_list: parameter_list TOK_COMMA parameter_declaration  */
   if (yyn == 32)
-    /* "parser.y":187  */
+    /* "parser.y":188  */
         {
           ((List<ParamDeclNode>)yystack.valueAt (2)).add((ParamDeclNode)yystack.valueAt (0));
           yyval = yystack.valueAt (2);
@@ -883,49 +885,49 @@ public class Parser
 
   case 33: /* parameter_declaration: TOK_ID TOK_COLON type_name  */
   if (yyn == 33)
-    /* "parser.y":193  */
+    /* "parser.y":194  */
                                  { yyval = new ParamDeclNode(((Token)yystack.valueAt (2)).getLexeme(), (TypeNode)yystack.valueAt (0)); };
   break;
 
 
   case 34: /* optional_return_type: %empty  */
   if (yyn == 34)
-    /* "parser.y":197  */
-                  { yyval = null; };
+    /* "parser.y":198  */
+                              { yyval = null; };
   break;
 
 
-  case 35: /* optional_return_type: TOK_COLON TOK_TYPE_ID  */
+  case 35: /* optional_return_type: TOK_COLON type_name  */
   if (yyn == 35)
-    /* "parser.y":198  */
-                            { yyval = yystack.valueAt (0); };
+    /* "parser.y":199  */
+                              { yyval = yystack.valueAt (0); };
   break;
 
 
   case 36: /* constructor_declaration: TOK_THIS TOK_LPAR parameter_list_opt TOK_RPAR TOK_IS body TOK_END  */
   if (yyn == 36)
-    /* "parser.y":203  */
+    /* "parser.y":204  */
         { yyval = new ConstructorDeclNode((List<ParamDeclNode>)yystack.valueAt (4), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
   case 37: /* body: %empty  */
   if (yyn == 37)
-    /* "parser.y":207  */
+    /* "parser.y":208  */
                   { yyval = new BodyNode(null); };
   break;
 
 
   case 38: /* body: body_element_list  */
   if (yyn == 38)
-    /* "parser.y":208  */
+    /* "parser.y":209  */
                         { yyval = new BodyNode((List<BodyElementNode>)yystack.valueAt (0)); };
   break;
 
 
   case 39: /* body_element_list: body_element  */
   if (yyn == 39)
-    /* "parser.y":213  */
+    /* "parser.y":214  */
         { 
           List<BodyElementNode> list = new ArrayList<>();
           list.add((BodyElementNode)yystack.valueAt (0));
@@ -936,7 +938,7 @@ public class Parser
 
   case 40: /* body_element_list: body_element_list body_element  */
   if (yyn == 40)
-    /* "parser.y":219  */
+    /* "parser.y":220  */
         {
           ((List<BodyElementNode>)yystack.valueAt (1)).add((BodyElementNode)yystack.valueAt (0));
           yyval = yystack.valueAt (1);
@@ -946,244 +948,244 @@ public class Parser
 
   case 41: /* body_element: statement  */
   if (yyn == 41)
-    /* "parser.y":225  */
+    /* "parser.y":226  */
                 { yyval = (BodyElementNode)yystack.valueAt (0); };
   break;
 
 
   case 42: /* body_element: variable_declaration  */
   if (yyn == 42)
-    /* "parser.y":226  */
+    /* "parser.y":227  */
                            { yyval = (BodyElementNode)yystack.valueAt (0); };
   break;
 
 
   case 43: /* statement: assignment  */
   if (yyn == 43)
-    /* "parser.y":230  */
+    /* "parser.y":231  */
                  { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
   case 44: /* statement: while_loop  */
   if (yyn == 44)
-    /* "parser.y":231  */
+    /* "parser.y":232  */
                  { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
   case 45: /* statement: if_statement  */
   if (yyn == 45)
-    /* "parser.y":232  */
+    /* "parser.y":233  */
                    { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
   case 46: /* statement: return_statement  */
   if (yyn == 46)
-    /* "parser.y":233  */
+    /* "parser.y":234  */
                        { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
   case 47: /* statement: print_statement  */
   if (yyn == 47)
-    /* "parser.y":234  */
+    /* "parser.y":235  */
                       { yyval = (StatementNode)yystack.valueAt (0); };
   break;
 
 
   case 48: /* assignment: lvalue TOK_ASSIGN expression  */
   if (yyn == 48)
-    /* "parser.y":239  */
+    /* "parser.y":240  */
         { yyval = new AssignmentNode((ExpressionNode)yystack.valueAt (2), (ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
   case 49: /* lvalue: TOK_ID  */
   if (yyn == 49)
-    /* "parser.y":243  */
+    /* "parser.y":244  */
              { yyval = new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme()); };
   break;
 
 
   case 50: /* lvalue: lvalue TOK_DOT TOK_ID  */
   if (yyn == 50)
-    /* "parser.y":244  */
+    /* "parser.y":245  */
                             { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
   case 51: /* while_loop: TOK_WHILE expression TOK_LOOP body TOK_END  */
   if (yyn == 51)
-    /* "parser.y":248  */
+    /* "parser.y":249  */
                                                  { yyval = new WhileLoopNode((ExpressionNode)yystack.valueAt (3), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
   case 52: /* if_statement: TOK_IF expression TOK_THEN body optional_else TOK_END  */
   if (yyn == 52)
-    /* "parser.y":253  */
+    /* "parser.y":254  */
         { yyval = new IfStatementNode((ExpressionNode)yystack.valueAt (4), (BodyNode)yystack.valueAt (2), (BodyNode)yystack.valueAt (1)); };
   break;
 
 
   case 53: /* optional_else: %empty  */
   if (yyn == 53)
-    /* "parser.y":257  */
+    /* "parser.y":258  */
                   { yyval = null; };
   break;
 
 
   case 54: /* optional_else: TOK_ELSE body  */
   if (yyn == 54)
-    /* "parser.y":258  */
+    /* "parser.y":259  */
                     { yyval = (BodyNode)yystack.valueAt (0); };
   break;
 
 
   case 55: /* return_statement: TOK_RETURN return_expression_opt  */
   if (yyn == 55)
-    /* "parser.y":262  */
+    /* "parser.y":263  */
                                        { yyval = new ReturnNode((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
   case 56: /* return_expression_opt: %empty  */
   if (yyn == 56)
-    /* "parser.y":266  */
+    /* "parser.y":267  */
                   { yyval = null; };
   break;
 
 
   case 57: /* return_expression_opt: expression  */
   if (yyn == 57)
-    /* "parser.y":267  */
+    /* "parser.y":268  */
                  { yyval = yystack.valueAt (0); };
   break;
 
 
   case 58: /* print_statement: TOK_PRINT expression  */
   if (yyn == 58)
-    /* "parser.y":271  */
+    /* "parser.y":272  */
                            { yyval = new PrintNode((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
   case 59: /* expression: primary  */
   if (yyn == 59)
-    /* "parser.y":275  */
+    /* "parser.y":276  */
               { yyval = yystack.valueAt (0); };
   break;
 
 
   case 60: /* expression: constructor_invocation  */
   if (yyn == 60)
-    /* "parser.y":276  */
+    /* "parser.y":277  */
                              { yyval = yystack.valueAt (0); };
   break;
 
 
   case 61: /* expression: method_invocation  */
   if (yyn == 61)
-    /* "parser.y":277  */
+    /* "parser.y":278  */
                         { yyval = yystack.valueAt (0); };
   break;
 
 
   case 62: /* expression: expression TOK_DOT method_invocation  */
   if (yyn == 62)
-    /* "parser.y":279  */
+    /* "parser.y":280  */
         { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), (MethodInvocationNode)yystack.valueAt (0)); };
   break;
 
 
   case 63: /* expression: expression TOK_DOT TOK_ID  */
   if (yyn == 63)
-    /* "parser.y":280  */
+    /* "parser.y":281  */
                                 { yyval = new MemberAccessNode((ExpressionNode)yystack.valueAt (2), new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
   case 64: /* primary: TOK_ID  */
   if (yyn == 64)
-    /* "parser.y":284  */
+    /* "parser.y":285  */
                     { yyval = new IdentifierNode(((Token)yystack.valueAt (0)).getLexeme()); };
   break;
 
 
   case 65: /* primary: TOK_INT_LIT  */
   if (yyn == 65)
-    /* "parser.y":285  */
+    /* "parser.y":286  */
                     { yyval = new IntLiteralNode(Integer.parseInt(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
   case 66: /* primary: TOK_REAL_LIT  */
   if (yyn == 66)
-    /* "parser.y":286  */
+    /* "parser.y":287  */
                     { yyval = new RealLiteralNode(Double.parseDouble(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
   case 67: /* primary: TOK_BOOL_LIT  */
   if (yyn == 67)
-    /* "parser.y":287  */
+    /* "parser.y":288  */
                     { yyval = new BoolLiteralNode(Boolean.parseBoolean(((Token)yystack.valueAt (0)).getLexeme())); };
   break;
 
 
   case 68: /* primary: TOK_THIS  */
   if (yyn == 68)
-    /* "parser.y":288  */
+    /* "parser.y":289  */
                     { yyval = new ThisNode(); };
   break;
 
 
   case 69: /* constructor_invocation: TOK_TYPE_ID TOK_LPAR argument_list_opt TOK_RPAR  */
   if (yyn == 69)
-    /* "parser.y":293  */
+    /* "parser.y":294  */
         { yyval = new ConstructorInvocationNode(((Token)yystack.valueAt (3)).getLexeme(), (List<ExpressionNode>)yystack.valueAt (1)); };
   break;
 
 
   case 70: /* method_invocation: TOK_ID TOK_LPAR argument_list_opt TOK_RPAR  */
   if (yyn == 70)
-    /* "parser.y":298  */
+    /* "parser.y":299  */
         { yyval = new MethodInvocationNode(new IdentifierNode(((Token)yystack.valueAt (3)).getLexeme()), ((Token)yystack.valueAt (3)).getLexeme(), (List<ExpressionNode>)yystack.valueAt (1)); };
   break;
 
 
   case 71: /* argument_list_opt: %empty  */
   if (yyn == 71)
-    /* "parser.y":302  */
+    /* "parser.y":303  */
                   { yyval = new ArrayList<ExpressionNode>(); };
   break;
 
 
   case 72: /* argument_list_opt: argument_list  */
   if (yyn == 72)
-    /* "parser.y":303  */
+    /* "parser.y":304  */
                     { yyval = yystack.valueAt (0); };
   break;
 
 
   case 73: /* argument_list: expression  */
   if (yyn == 73)
-    /* "parser.y":308  */
+    /* "parser.y":309  */
         { yyval = new ArrayList<ExpressionNode>(); ((List<ExpressionNode>)yyval).add((ExpressionNode)yystack.valueAt (0)); };
   break;
 
 
   case 74: /* argument_list: argument_list TOK_COMMA expression  */
   if (yyn == 74)
-    /* "parser.y":310  */
+    /* "parser.y":311  */
         { ((List<ExpressionNode>)yystack.valueAt (2)).add((ExpressionNode)yystack.valueAt (0)); yyval = yystack.valueAt (2); };
   break;
 
 
 
-/* "parser.java":1187  */
+/* "parser.java":1189  */
 
         default: break;
       }
@@ -1613,11 +1615,11 @@ public class Parser
      -85,   -85,   -85,   -85,   -85,    49,    50,   -85,   -85,   -85,
       54,   -85,   -85,   -85,    51,    52,    50,    55,    54,    55,
       54,    55,    54,    56,    14,    76,    36,    -4,     0,   -85,
-      54,    54,   -85,   -85,    31,    66,    31,    31,    68,    14,
+      54,    54,   -85,   -85,    31,    66,    31,    31,    69,    14,
       14,    31,   -85,   -85,   -85,    62,   -85,   -85,    53,   -85,
-      53,    53,    54,   -85,    54,    58,    64,    60,    49,   -85,
-      63,    67,    70,    73,   -85,    86,    88,    81,   -85,    31,
-     -85,   -85,   -85,   -85,   -85,   -85,   -85,    53,    90,    54,
+      53,    53,    54,   -85,    54,    60,    64,    63,    49,   -85,
+      67,    68,    71,    14,   -85,    86,    87,    80,   -85,    31,
+     -85,   -85,   -85,   -85,   -85,   -85,   -85,    53,    89,    54,
      -85,   -85
     };
   }
@@ -1653,8 +1655,8 @@ public class Parser
   {
     return new byte[]
     {
-     -85,   -85,   -85,    97,   -85,   -85,   -85,    89,   -32,   -26,
-     -85,   -85,   -85,    69,   -85,    29,   -85,   -85,   -84,   -85,
+     -85,   -85,   -85,    94,   -85,   -85,   -85,    88,   -32,   -26,
+     -85,   -85,   -85,    70,   -85,    29,   -85,   -85,   -84,   -85,
       59,   -85,   -85,   -85,   -85,   -85,   -85,   -85,   -85,   -85,
      -28,   -85,   -85,    19,   -68,   -85
     };
@@ -1689,9 +1691,9 @@ public class Parser
       55,    56,    57,    58,    59,    34,   102,    55,    66,    57,
       58,    59,    16,   110,   111,    38,    74,    39,    76,    82,
       40,    41,    42,    15,    16,    17,    18,    75,    86,    87,
-      88,    98,    89,    90,    91,   103,    95,   108,   118,   113,
-     120,   129,   119,   124,   125,   121,   126,   127,   131,   122,
-     123,     9,    73,    20,    83,    99,     0,   109
+      88,    98,    89,    90,    91,   103,    95,   124,   108,   113,
+     118,   129,   119,   120,   125,   126,   127,   131,     9,   121,
+     122,   123,    20,    73,    83,    99,     0,   109
     };
   }
 
@@ -1708,9 +1710,9 @@ private static final byte[] yycheck_ = yycheck_init();
       19,    20,    21,    22,    23,    19,    84,    19,    20,    21,
       22,    23,     9,    89,    90,    12,    27,    14,    28,     8,
       17,    18,    19,     8,     9,    10,    11,    30,    29,    29,
-      26,     5,    31,    31,    29,    19,    30,    19,    30,    27,
-      30,   119,    28,    20,     8,    32,     8,    16,     8,    32,
-      30,     4,    33,    14,    45,    76,    -1,    88
+      26,     5,    31,    31,    29,    19,    30,   113,    19,    27,
+      30,   119,    28,    30,     8,     8,    16,     8,     4,    32,
+      32,    30,    14,    33,    45,    76,    -1,    88
     };
   }
 
@@ -1733,7 +1735,7 @@ private static final byte[] yycheck_ = yycheck_init();
       31,    29,    46,    46,    46,    30,    20,    47,     5,    53,
       13,    15,    68,    19,    68,    72,    73,    72,    19,    71,
       47,    47,    72,    27,    54,    56,    56,    56,    30,    28,
-      30,    32,    32,    30,    20,     8,     8,    16,    64,    68,
+      30,    32,    32,    30,    47,     8,     8,    16,    64,    68,
       56,     8
     };
   }
@@ -1839,8 +1841,8 @@ private static final byte[] yycheck_ = yycheck_init();
 
   public final ProgramNode getRootNode() { return rootNode; }
 
-/* "parser.java":1843  */
+/* "parser.java":1845  */
 
 }
-/* "parser.y":313  */
+/* "parser.y":314  */
 

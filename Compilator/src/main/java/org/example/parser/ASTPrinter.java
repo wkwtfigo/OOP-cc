@@ -113,9 +113,16 @@ public class ASTPrinter implements ASTVisitor {
     public void visit(MethodHeaderNode node) {
         printWithIndent("MethodHeader: ", node.methodName);
         indentLevel++;
+
         if (node.returnType != null) {
-            printWithIndent("ReturnType: ", node.returnType);
+            printWithIndent("ReturnType: ", "");
+            indentLevel++;
+            node.returnType.accept(this);   // печатаем TypeNode / GenericTypeNode
+            indentLevel--;
+        } else {
+            printLine("ReturnType: void");
         }
+
         if (node.parameters != null) {
             printList(node.parameters, "Parameters: ");
         } else {
@@ -123,7 +130,7 @@ public class ASTPrinter implements ASTVisitor {
         }
         indentLevel--;
     }
-    
+ 
     @Override
     public void visit(MethodBodyNode node) {
         printWithIndent("MethodBody (isArrow: ", String.valueOf(node.isArrow) + ")");

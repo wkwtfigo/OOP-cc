@@ -85,9 +85,16 @@ public class MyCodeGen implements ASTVisitor{
          */
         final String descriptor;
 
-        FieldInfo(String name, String descriptor) {
+        /**
+         * High-level type name used in the language (e.g. "Integer", "Real", "MyClass", "List", "Array").
+         * May be {@code null} if it could not be inferred.
+         */
+        final String typeName;
+
+        FieldInfo(String name, String descriptor, String typeName) {
             this.name = name;
             this.descriptor = descriptor;
+            this.typeName = typeName;
         }
     }
 
@@ -198,24 +205,29 @@ public class MyCodeGen implements ASTVisitor{
             switch (member) {
                 case VarDeclNode v -> {
                     String desc;
+                    String typeName = null;
+
                     if (v.type != null) {
+                        // явный тип
+                        typeName = typeNameForTypeNode(v.type);
                         desc = descriptorForTypeNode(v.type);
                     } else {
-                        String tn = inferTypeNameFromInitializer(v.initializer);
-                        if (tn != null) {
-                            desc = descriptorForTypeName(tn);
+                        // попытка вывести по инициализатору
+                        typeName = inferTypeNameFromInitializer(v.initializer);
+                        if (typeName != null) {
+                            desc = descriptorForTypeName(typeName);
                         } else {
                             desc = "Ljava/lang/Object;";
                         }
                     }
-                    info.fields.put(v.varName, new FieldInfo(v.varName, desc));
+
+                    info.fields.put(v.varName, new FieldInfo(v.varName, desc, typeName));
                 }
                 case MethodDeclNode m -> info.methods
                         .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
                         .add(m);
                 case ConstructorDeclNode c -> info.constructors.add(c);
-                default -> {
-                }
+                default -> {}
             }
         }
     }
@@ -435,7 +447,10 @@ public class MyCodeGen implements ASTVisitor{
                 emit("    aload_0");
                 generateExpression(v.initializer);
                 String ownerInternal = currentClassName.replace('.', '/');
-                String desc = descriptorForTypeNode(v.type);
+
+                ClassInfo ci = classInfoMap.get(currentClassName);
+                FieldInfo f = (ci != null ? ci.fields.get(v.varName) : null);
+                String desc = (f != null ? f.descriptor : "Ljava/lang/Object;");
                 emit("    putfield " + ownerInternal + "/" + v.varName + " " + desc);
             }
         }
@@ -629,9 +644,55 @@ public class MyCodeGen implements ASTVisitor{
                     }
                     return;
                 case "Array":
-                    emit("    new java/util/ArrayList");
+                    // Array(l) – ожидаем один аргумент: длина массива (Integer)
+                    ExpressionNode lenExpr = (ci.arguments != null && !ci.arguments.isEmpty())
+                            ? ci.arguments.get(0)
+                            : null;
+
+                    // 1) считаем длину и кладём в локальную переменную (int)
+                    if (lenExpr != null) {
+                        generateExpression(lenExpr);                   // -> Integer
+                        emit("    checkcast java/lang/Integer");
+                        emit("    invokevirtual java/lang/Integer/intValue()I");
+                    } else {
+                        // без аргумента – длина 0
+                        emit("    iconst_0");
+                    }
+                    int lenIdx = currentLocalIndex++;
+                    emit("    istore " + lenIdx);
+
+                    // 2) создаём новый ArrayList и сохраним его в локал
+                emit("    new java/util/ArrayList");
                     emit("    dup");
                     emit("    invokespecial java/util/ArrayList/<init>()V");
+                    int arrIdx = currentLocalIndex++;
+                    emit("    astore " + arrIdx);
+
+                    // 3) i = 0
+                    int iIdx = currentLocalIndex++;
+                    emit("    iconst_0");
+                    emit("    istore " + iIdx);
+
+                    String loopLabel = newLabel("array_init_loop");
+                    String endLabel  = newLabel("array_init_end");
+
+                    // 4) цикл: while (i < len) { arr.add(null); i++; }
+                    emit(loopLabel + ":");
+                    emit("    iload " + iIdx);
+                    emit("    iload " + lenIdx);
+                    emit("    if_icmpge " + endLabel);
+
+                    emit("    aload " + arrIdx);
+                    emit("    aconst_null");
+                    emit("    invokevirtual java/util/ArrayList/add(Ljava/lang/Object;)Z");
+                    emit("    pop");  // выкидываем boolean
+
+                    emit("    iinc " + iIdx + " 1");
+                    emit("    goto " + loopLabel);
+                    emit(endLabel + ":");
+
+                    // 5) результат конструктора – сам список (массив)
+                    emit("    aload " + arrIdx);
                     return;
 
                 default:
@@ -712,6 +773,27 @@ public class MyCodeGen implements ASTVisitor{
         ? call.arguments.get(0)
         : null;
 
+        // ----- Array built-ins -----
+        if (isArrayExpr(targetExpr)) {
+            if ("Length".equals(methodName)) {
+                generateArrayLength(targetExpr);
+                return;
+            }
+            if ("get".equals(methodName)) {
+                generateArrayGet(targetExpr, arg);
+                return;
+            }
+            if ("set".equals(methodName)) {
+                generateArraySet(targetExpr, call.arguments);
+                return;
+            }
+            if ("toList".equals(methodName)) {
+                generateArrayToList(targetExpr);
+                return;
+            }
+        }
+
+        // ----- List built-ins -----
         if (isListExpr(targetExpr)) {
             if ("append".equals(methodName)) {
                 generateListAppend(targetExpr, arg);
@@ -1705,31 +1787,20 @@ public class MyCodeGen implements ASTVisitor{
      */
     private String descriptorForTypeNode(ASTNode typeNode) {
         if (typeNode == null) {
+            // на всякий случай, чтобы не упасть; можно кинуть исключение
             return "Ljava/lang/Object;";
         }
-        if (typeNode instanceof TypeNode) {
-            String n = ((TypeNode) typeNode).name;
-            switch (n) {
-                case "Integer": return "Ljava/lang/Integer;";
-                case "Real":    return "Ljava/lang/Double;";
-                case "Boolean": return "Ljava/lang/Boolean;";
-                case "List":    return "Ljava/util/ArrayList;";
-                case "Array":   return "Ljava/util/ArrayList;";
-                default:
-                    // ВСЕ остальные — это либо пользовательские классы (Test, Main),
-                    // либо что-то ещё объектное → генерим LName;
-                    return "L" + n.replace('.', '/') + ";";
-            }
+
+        if (typeNode instanceof TypeNode t) {
+            // простой тип: Integer, Real, Boolean, Main и т.п.
+            return descriptorForTypeName(t.name);
         }
-        if (typeNode instanceof GenericTypeNode) {
-            GenericTypeNode g = (GenericTypeNode) typeNode;
-            switch (g.baseType) {
-                case "List":  return "Ljava/util/ArrayList;";
-                case "Array": return "Ljava/util/ArrayList;";
-                default:
-                    return "L" + g.baseType.replace('.', '/') + ";";
-            }
+
+        if (typeNode instanceof GenericTypeNode g) {
+            return descriptorForTypeName(g.baseType);
         }
+
+        // fallback — если вдруг туда попадёт что-то ещё
         return "Ljava/lang/Object;";
     }
 
@@ -1777,10 +1848,21 @@ public class MyCodeGen implements ASTVisitor{
         localVars.put(node.varName, index);
 
         if (localVarTypes != null) {
-            String typeName = typeNameForTypeNode(node.type); // сейчас даст null
+            String typeName = typeNameForTypeNode(node.type); // может быть null
+
             if (typeName == null) {
+                // сначала пробуем по простому инициализатору (конструкторы, литералы)
                 typeName = inferTypeNameFromInitializer(node.initializer);
             }
+
+            if (typeName == null && node.initializer != null) {
+                if (isListExpr(node.initializer)) {
+                    typeName = "List";
+                } else if (isArrayExpr(node.initializer)) {
+                    typeName = "Array";
+                }
+            }
+
             if (typeName != null) {
                 localVarTypes.put(node.varName, typeName);
             }
@@ -1924,7 +2006,7 @@ public class MyCodeGen implements ASTVisitor{
         // аргументы
         if (header.parameters != null) {
             for (ParamDeclNode p : header.parameters) {
-                sb.append(descriptorForTypeNode(p.paramType));
+                sb.append(descriptorForTypeNode(p.paramType)); // уже ASTNode
             }
         }
 
@@ -1932,10 +2014,9 @@ public class MyCodeGen implements ASTVisitor{
 
         // возвращаемый тип
         if (header.returnType == null) {
-            sb.append("V");
+            sb.append("V"); // void
         } else {
-            // пока упрощённо — Object-like типы
-            sb.append(descriptorForTypeName(header.returnType));
+            sb.append(descriptorForTypeNode(header.returnType)); // <-- вот так
         }
 
         return sb.toString();
@@ -2387,6 +2468,32 @@ public class MyCodeGen implements ASTVisitor{
     }
 
     /**
+     * Attempts to recover a high-level type name from a JVM descriptor.
+     *
+     * @param desc JVM descriptor, e.g. "Ljava/lang/Integer;"
+     * @return logical type name ("Integer", "Real", "Boolean", "List", "Array", "MyClass"), or {@code null}
+     */
+    private String typeNameFromDescriptor(String desc) {
+        if (desc == null) return null;
+
+        switch (desc) {
+            case "Ljava/lang/Integer;": return "Integer";
+            case "Ljava/lang/Double;":  return "Real";
+            case "Ljava/lang/Boolean;": return "Boolean";
+            case "Ljava/util/ArrayList;":
+                // Внутренне и List, и Array – ArrayList; без extra-инфы не различим.
+                // Если нужно различать, полагаемся на FieldInfo.typeName.
+                return "List";
+            default:
+                if (desc.startsWith("L") && desc.endsWith(";")) {
+                    String internal = desc.substring(1, desc.length() - 1);
+                    return internal.replace('/', '.'); // "pkg/Class" -> "pkg.Class"
+                }
+                return null;
+        }
+    }
+
+    /**
      * Represents a resolved method along the inheritance chain: the class where
      * it was found and the declaration node.
      */
@@ -2464,13 +2571,35 @@ public class MyCodeGen implements ASTVisitor{
     private boolean isListExpr(ExpressionNode e) {
         if (e == null) return false;
 
-        if (e instanceof ConstructorInvocationNode ci && "List".equals(ci.className)) {
-            return true;
+        // 1) сначала пробуем общий тип
+        String tn = inferExprTypeName(e);
+        if ("List".equals(tn)) return true;
+
+        // 2) спец. случай: l.tail(), l.append(x), a.toList()
+        if (e instanceof MemberAccessNode ma && ma.member instanceof MethodInvocationNode mi) {
+            String mName = mi.methodName;
+            if ("tail".equals(mName) || "append".equals(mName) || "toList".equals(mName)) {
+                // если целевой объект уже List или Array, результат – List
+                if (isListExpr(ma.target) || isArrayExpr(ma.target)) {
+                    return true;
+                }
+            }
         }
 
-        if (e instanceof IdentifierNode id && localVarTypes != null) {
-            String t = localVarTypes.get(id.name); // "List", "Integer", ...
-            if ("List".equals(t)) return true;
+        return false;
+    }
+
+    private boolean isArrayExpr(ExpressionNode e) {
+        if (e == null) return false;
+
+        // 1) общий случай: инферим тип
+        String tn = inferExprTypeName(e);
+        if ("Array".equals(tn)) return true;
+
+        // 2) конструктор Array(l) тоже уже покрывается inferExprTypeName,
+        // но можно оставить явный случай ради надёжности:
+        if (e instanceof ConstructorInvocationNode ci && "Array".equals(ci.className)) {
+            return true;
         }
 
         return false;
@@ -2550,6 +2679,69 @@ public class MyCodeGen implements ASTVisitor{
         // результат на стеке: новый ArrayList — это и будет tail
     }
 
+    // Array.Length : Integer
+    private void generateArrayLength(ExpressionNode arrayExpr) {
+        generateExpression(arrayExpr);                           // -> Object (ArrayList)
+        emit("    checkcast java/util/ArrayList");
+        emit("    invokevirtual java/util/ArrayList/size()I");   // int
+        emitBoxInteger();                                        // Integer
+    }
+
+    // Array.get(i) : T
+    private void generateArrayGet(ExpressionNode arrayExpr, ExpressionNode indexExpr) {
+        generateExpression(arrayExpr);
+        emit("    checkcast java/util/ArrayList");
+
+        if (indexExpr != null) {
+            generateExpression(indexExpr);                       // Integer
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I");
+        } else {
+            emit("    iconst_0"); // по умолчанию индекс 0, если чего-то нет
+        }
+
+        emit("    invokevirtual java/util/ArrayList/get(I)Ljava/lang/Object;");
+    }
+
+    // Array.set(i, v) : Array
+    private void generateArraySet(ExpressionNode arrayExpr, List<ExpressionNode> args) {
+        ExpressionNode indexExpr = (args != null && !args.isEmpty()) ? args.get(0) : null;
+        ExpressionNode valueExpr = (args != null && args.size() > 1) ? args.get(1) : null;
+
+        // хотим в итоге оставить на стеке сам массив
+        // схема: arr -> checkcast -> dup -> set(i, v) -> pop(old) => arr
+
+        generateExpression(arrayExpr);                    // ..., arr
+        emit("    checkcast java/util/ArrayList");       // ..., arr
+        emit("    dup");                                 // ..., arr, arr
+
+        // индекс
+        if (indexExpr != null) {
+            generateExpression(indexExpr);               // ..., arr, arr, Integer
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I"); // ..., arr, arr, i
+        } else {
+            emit("    iconst_0");                        // ..., arr, arr, 0
+        }
+
+        // значение
+        if (valueExpr != null) {
+            generateExpression(valueExpr);               // ..., arr, arr, i, v
+        } else {
+            emit("    aconst_null");                     // ..., arr, arr, i, null
+        }
+
+        emit("    invokevirtual java/util/ArrayList/set(ILjava/lang/Object;)Ljava/lang/Object;");
+        emit("    pop");                                 // выкинули старое значение
+        // На стеке остаётся 1 элемент: arr, как результат выражения
+    }
+
+    // Array.toList() : List
+    private void generateArrayToList(ExpressionNode arrayExpr) {
+        // Внутренне Array и List – оба ArrayList, так что просто возвращаем тот же объект.
+        generateExpression(arrayExpr);
+    }
+
     /**
      * Selects the best overload for a method given a {@link ClassInfo} and a
      * method call.
@@ -2618,41 +2810,51 @@ public class MyCodeGen implements ASTVisitor{
         if (e instanceof BoolLiteralNode) return "Boolean";
 
         if (e instanceof IdentifierNode id) {
+            // локальная переменная
             if (localVarTypes != null) {
                 String t = localVarTypes.get(id.name);
                 if (t != null) return t;
             }
+
+            // поле текущего класса
             ClassInfo info = classInfoMap.get(currentClassName);
             if (info != null) {
                 FieldInfo f = info.fields.get(id.name);
                 if (f != null) {
-                    if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
-                    if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
-                    if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
-                    // пользовательский класс:
-                    return info.name;
+                    if (f.typeName != null) {
+                        return f.typeName;
+                    }
+                    String tn = typeNameFromDescriptor(f.descriptor);
+                    if (tn != null) {
+                        return tn;
+                    }
                 }
             }
             return null;
         }
 
-        // <<< НОВОЕ: поле obj.field >>>
+        // поле obj.field
         if (e instanceof MemberAccessNode ma && ma.member instanceof IdentifierNode fieldId) {
             String ownerType = inferExprTypeName(ma.target); // тип obj
             if (ownerType == null) return null;
+
             ClassInfo ci = classInfoMap.get(ownerType);
             if (ci == null) return null;
+
             FieldInfo f = ci.fields.get(fieldId.name);
             if (f == null) return null;
 
-            // по descriptor поля решаем тип
-            if ("Ljava/lang/Integer;".equals(f.descriptor)) return "Integer";
-            if ("Ljava/lang/Double;".equals(f.descriptor))  return "Real";
-            if ("Ljava/lang/Boolean;".equals(f.descriptor)) return "Boolean";
-            // пользовательский класс
-            return ci.name;
-        }
+            if (f.typeName != null) {
+                return f.typeName;
+            }
 
+            String tn = typeNameFromDescriptor(f.descriptor);
+            if (tn != null) {
+                return tn;
+            }
+
+            return null;
+        }
         return null;
     }
 

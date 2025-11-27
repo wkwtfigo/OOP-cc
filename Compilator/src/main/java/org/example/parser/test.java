@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/prime_number.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/list_parameter.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -33,7 +33,7 @@ public class test {
             if (rootNode != null) {
                 ASTPrinter printer = new ASTPrinter();
                 rootNode.accept(printer);
-                //System.out.println(printer.getOutput());
+                System.out.println(printer.getOutput());
 
                 // Выполняем семантическую проверку
                 System.out.println("=== Семантическая проверка ===");

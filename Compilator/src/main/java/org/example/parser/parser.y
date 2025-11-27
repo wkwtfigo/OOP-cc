@@ -163,8 +163,9 @@ method_declaration
 
 method_header
     : TOK_METHOD TOK_ID TOK_LPAR parameter_list_opt TOK_RPAR optional_return_type
-      { $$ = new MethodHeaderNode(((Token)$2).getLexeme(), (List<ParamDeclNode>)$4, $6 == null ? null : ((Token)$6).getLexeme()); }
-    ;
+      { $$ = new MethodHeaderNode(((Token)$2).getLexeme(),
+                                  (List<ParamDeclNode>)$4,
+                                  (ASTNode)$6); }
 
 method_body
     : TOK_IS body TOK_END { $$ = new MethodBodyNode((BodyNode)$2, false); }
@@ -194,8 +195,8 @@ parameter_declaration
     ;
 
 optional_return_type
-    : /* empty */ { $$ = null; }
-    | TOK_COLON TOK_TYPE_ID { $$ = $2; }
+    : /* empty */             { $$ = null; }
+    | TOK_COLON type_name     { $$ = $2; }
     ;
 
 constructor_declaration
