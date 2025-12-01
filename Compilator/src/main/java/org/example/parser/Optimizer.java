@@ -716,8 +716,12 @@ public class Optimizer implements ASTOptimizerVisitor {
 
     @Override
     public ASTNode visit(ProgramNode n) {
+        if (n.classes == null) {
+            return new ProgramNode(new ArrayList<>());
+        }
+
         List<ClassDeclNode> out = new ArrayList<>();
-        for (var c : n.classes) {
+        for (ClassDeclNode c : n.classes) {
             out.add((ClassDeclNode) c.accept(this));
         }
         return new ProgramNode(out);
