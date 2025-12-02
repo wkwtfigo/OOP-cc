@@ -1,0 +1,69 @@
+class MergeSortAlgorithm is
+    method sort(arr: Array[Integer]) : Array[Integer] is
+        if arr.Length().LessEqual(1) then
+            return arr
+        end
+
+        var mid := arr.Length().Div(2)
+        var left := arr.SubArray(0, mid)
+        var right := arr.SubArray(mid, arr.Length())
+
+        left := sort(left)
+        right := sort(right)
+
+        return merge(left, right)
+    end
+
+    method merge(left: Array[Integer], right: Array[Integer]) : Array[Integer] is
+        var totalSize := left.Length().Plus(right.Length())
+        var result := Array[Integer](totalSize)
+
+        var i := 0
+        var j := 0
+        var k := 0
+
+        while i.Less(left.Length()).And(j.Less(right.Length())) loop
+            if left.get(i).Less(right.get(j)) then
+                result := result.set(k, left.get(i))
+                i := i.Plus(1)
+            else
+                result := result.set(k, right.get(j))
+                j := j.Plus(1)
+            end
+            k := k.Plus(1)
+        end
+
+        while i.Less(left.Length()) loop
+            result := result.set(k, left.get(i))
+            i := i.Plus(1)
+            k := k.Plus(1)
+        end
+
+        while j.Less(right.Length()) loop
+            result := result.set(k, right.get(j))
+            j := j.Plus(1)
+            k := k.Plus(1)
+        end
+
+        return result
+    end
+end
+
+class Main is
+    method start() is
+        var arr := Array[Integer](6) 
+        arr := arr.set(0, 12)
+        arr := arr.set(1, 11)
+        arr := arr.set(2, 13)
+        arr := arr.set(3, 5)
+        arr := arr.set(4, 7)
+        arr := arr.set(5, 6)
+
+        print arr
+
+        var mergeSort := MergeSortAlgorithm()
+        var sortedArr := mergeSort.sort(arr)
+
+        print sortedArr
+    end
+end

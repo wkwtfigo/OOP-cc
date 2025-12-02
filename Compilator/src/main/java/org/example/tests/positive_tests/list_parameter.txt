@@ -1,6 +1,5 @@
 class Main is
 
-    // суммирует первый элемент списка и длину массива
     method combine(l : List[Integer], a : Array[Integer]) : Integer is
         var first : l.head()
         var len   : a.Length()
@@ -8,7 +7,6 @@ class Main is
         return first.Plus(len)
     end
 
-    // создаёт массив длины n, заполняет 1..n и возвращает
     method makeArray(n : Integer) : Array[Integer] is
         var a : Array[Integer](n)
         var i : Integer(0)
@@ -31,3 +29,4 @@ class Main is
         print res
     end
 end
+

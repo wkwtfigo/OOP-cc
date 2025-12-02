@@ -25,3 +25,4 @@ class Main is
         print n
     end
 end
+

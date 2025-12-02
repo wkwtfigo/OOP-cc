@@ -23,6 +23,8 @@ public class SemanticChecker implements ASTVisitor {
     private Stack<MethodInfo> currentMethodScope = new Stack<>();
     private Stack<ClassInfo> currentClassScope = new Stack<>();
 
+    private int userClassCount = 0;
+
     // For tracking declaration order within each scope
     private int currentDeclarationOrder = 0;
     private Map<Object, Integer> declarationOrders = new IdentityHashMap<>();
@@ -381,6 +383,8 @@ public class SemanticChecker implements ASTVisitor {
         // Сначала добавляем стандартную библиотеку
         initBuiltins();
 
+        userClassCount = 0;
+
         // First pass: collect all class declarations
         if (node.classes != null) {
             currentDeclarationOrder = 0;
@@ -390,6 +394,8 @@ public class SemanticChecker implements ASTVisitor {
                     currentDeclarationOrder++);
                 classes.put(classDecl.className, classInfo);
                 declarationOrders.put(classDecl, classInfo.declarationOrder);
+
+                userClassCount++;
             }
 
             // Second pass: process classes and check declarations
@@ -400,7 +406,7 @@ public class SemanticChecker implements ASTVisitor {
         }
 
         // --- Проверка наличия класса main ---
-        if (!classes.containsKey("Main")) {
+        if (userClassCount > 0 && !classes.containsKey("Main")) {
             reportError("Entry point error: class 'Main' not found");
         }
     }
@@ -474,7 +480,7 @@ public class SemanticChecker implements ASTVisitor {
         // Variable declaration - already handled in ClassDeclNode visit
         // Just check the initializer expression
         if (node.initializer != null) {
-        node.initializer.accept(this);
+            node.initializer.accept(this);
         }
     }
 
@@ -486,22 +492,22 @@ public class SemanticChecker implements ASTVisitor {
 
         // Add method parameters to scope BEFORE visiting body
         if (node.header != null && node.header.parameters != null) {
-        for (ParamDeclNode param : node.header.parameters) {
-            VariableInfo paramInfo = new VariableInfo(
-                param.paramName,
-                param.paramType,
-                currentDeclarationOrder);
-            variableScopes.peek()
-                .put(param.paramName, paramInfo);
-            declarationOrders.put(param, currentDeclarationOrder);
-            declarationOrders.put(paramInfo, currentDeclarationOrder);
-            currentDeclarationOrder++;
-        }
+            for (ParamDeclNode param : node.header.parameters) {
+                VariableInfo paramInfo = new VariableInfo(
+                    param.paramName,
+                    param.paramType,
+                    currentDeclarationOrder);
+                variableScopes.peek()
+                    .put(param.paramName, paramInfo);
+                declarationOrders.put(param, currentDeclarationOrder);
+                declarationOrders.put(paramInfo, currentDeclarationOrder);
+                currentDeclarationOrder++;
+            }
         }
 
         // Now visit the body - parameters are already in scope
         if (node.body != null) {
-        node.body.accept(this);
+            node.body.accept(this);
         }
 
         variableScopes.pop();
@@ -538,17 +544,17 @@ public class SemanticChecker implements ASTVisitor {
         // Add parameters to scope
         currentDeclarationOrder = 0;
         if (node.parameters != null) {
-        for (ParamDeclNode param : node.parameters) {
-            VariableInfo paramInfo = new VariableInfo(
-                param.paramName,
-                param.paramType,
-                currentDeclarationOrder);
-            variableScopes.peek()
-                .put(param.paramName, paramInfo);
-            declarationOrders.put(param, currentDeclarationOrder);
-            declarationOrders.put(paramInfo, currentDeclarationOrder);
-            currentDeclarationOrder++;
-        }
+            for (ParamDeclNode param : node.parameters) {
+                VariableInfo paramInfo = new VariableInfo(
+                    param.paramName,
+                    param.paramType,
+                    currentDeclarationOrder);
+                variableScopes.peek()
+                    .put(param.paramName, paramInfo);
+                declarationOrders.put(param, currentDeclarationOrder);
+                declarationOrders.put(paramInfo, currentDeclarationOrder);
+                currentDeclarationOrder++;
+            }
         }
 
         if (node.body != null) {
@@ -562,11 +568,11 @@ public class SemanticChecker implements ASTVisitor {
     public void visit(BodyNode node) {
         // Body is visited within method/constructor context
         if (node.elements != null) {
-        for (BodyElementNode element : node.elements) {
-            if (element instanceof ASTNode) {
-            ((ASTNode) element).accept(this);
+            for (BodyElementNode element : node.elements) {
+                if (element instanceof ASTNode) {
+                    ((ASTNode) element).accept(this);
+                }
             }
-        }
         }
     }
 
@@ -574,14 +580,14 @@ public class SemanticChecker implements ASTVisitor {
     public void visit(AssignmentNode node) {
         // Check left side (variable to assign to)
         if (node.left != null) {
-        declarationOrders.put(node.left, currentDeclarationOrder++);
-        node.left.accept(this);
+            declarationOrders.put(node.left, currentDeclarationOrder++);
+            node.left.accept(this);
         }
 
         // Check right side (expression to assign)
         if (node.right != null) {
-        declarationOrders.put(node.right, currentDeclarationOrder++);
-        node.right.accept(this);
+            declarationOrders.put(node.right, currentDeclarationOrder++);
+            node.right.accept(this);
         }
     }
 
@@ -658,8 +664,8 @@ public class SemanticChecker implements ASTVisitor {
             // Check arguments
             if (methodInv.arguments != null) {
                 for (ExpressionNode arg : methodInv.arguments) {
-                declarationOrders.put(arg, currentDeclarationOrder++);
-                arg.accept(this);
+                    declarationOrders.put(arg, currentDeclarationOrder++);
+                    arg.accept(this);
                 }
             }
 
@@ -668,10 +674,10 @@ public class SemanticChecker implements ASTVisitor {
                 ExpressionNode indexExpr = methodInv.arguments.get(0);
                 // Check if this is a get() method call
                 if (methodInv.target instanceof IdentifierNode) {
-                String methodName = ((IdentifierNode) methodInv.target).name;
-                if ("get".equals(methodName)) {
-                    checkArrayBounds(node.target, indexExpr);
-                }
+                    String methodName = ((IdentifierNode) methodInv.target).name;
+                    if ("get".equals(methodName)) {
+                        checkArrayBounds(node.target, indexExpr);
+                    }
                 }
             }
         } else {
@@ -1009,9 +1015,12 @@ public class SemanticChecker implements ASTVisitor {
         arrayInfo.methods.put("Length",
             new MethodInfo("Length", "Integer", List.of(), -1));
         arrayInfo.methods.put("get",
-            new MethodInfo("get", null, List.of(), -1)); // возвращает T — пока без проверки
+            new MethodInfo("get", null, List.of(), -1));
         arrayInfo.methods.put("set",
             new MethodInfo("set", "Array", List.of(), -1));
+        arrayInfo.methods.put("SubArray",
+            new MethodInfo("SubArray", "Array", List.of(new ParamDeclNode("startIndex", new TypeNode("Integer")),
+                                new ParamDeclNode("endIndex", new TypeNode("Integer"))), -1));
 
         classes.putIfAbsent("Array", arrayInfo);
 

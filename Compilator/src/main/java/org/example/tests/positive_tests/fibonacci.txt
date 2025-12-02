@@ -16,3 +16,4 @@ class Main is
         var b : Integer(5)
     end
 end
+
