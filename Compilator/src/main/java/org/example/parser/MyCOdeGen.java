@@ -806,6 +806,10 @@ public class MyCodeGen implements ASTVisitor {
                 generateArrayToList(targetExpr);
                 return;
             }
+            if ("SubArray".equals(methodName)) {
+                generateArraySubArray(targetExpr, call.arguments);
+                return;
+            }
         }
 
         // ----- List built-ins -----
@@ -2633,6 +2637,11 @@ public class MyCodeGen implements ASTVisitor {
         if (e instanceof ConstructorInvocationNode ci && "Array".equals(ci.className)) {
             return true;
         }
+        if (e instanceof MemberAccessNode ma && ma.member instanceof MethodInvocationNode mi) {
+            if ("SubArray".equals(mi.methodName) && isArrayExpr(ma.target)) {
+                return true;
+            }
+        }
 
         return false;
     }
@@ -2775,6 +2784,92 @@ public class MyCodeGen implements ASTVisitor {
         // Внутренне Array и List – оба ArrayList, так что просто возвращаем тот же
         // объект.
         generateExpression(arrayExpr);
+    }
+
+    // Array.SubArray(from, to) : Array
+    private void generateArraySubArray(ExpressionNode arrayExpr, List<ExpressionNode> args) {
+        ExpressionNode fromExpr = (args != null && !args.isEmpty()) ? args.get(0) : null;
+        ExpressionNode toExpr = (args != null && args.size() > 1) ? args.get(1) : null;
+
+        generateExpression(arrayExpr); // arr
+        emit("    checkcast java/util/ArrayList");
+
+        int arrTmp = currentLocalIndex++;
+        emitStoreVar(arrTmp); // сохранить исходный массив
+
+        emitLoadVar(arrTmp); // arr
+
+        // start index
+        if (fromExpr != null) {
+            generateExpression(fromExpr);
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I");
+        } else {
+            emit("    iconst_0");
+        }
+
+        // end index
+        if (toExpr != null) {
+            generateExpression(toExpr);
+            emit("    checkcast java/lang/Integer");
+            emit("    invokevirtual java/lang/Integer/intValue()I");
+        } else {
+            emitLoadVar(arrTmp);
+            emit("    invokevirtual java/util/ArrayList/size()I");
+        }
+
+        emit("    invokevirtual java/util/ArrayList/subList(II)Ljava/util/List;");
+
+        int tmp = currentLocalIndex++;
+        emitStoreVar(tmp);
+
+        emit("    new java/util/ArrayList");
+        emit("    dup");
+        emitLoadVar(tmp);
+        emit("    invokespecial java/util/ArrayList/<init>(Ljava/util/Collection;)V");
+
+        // Trim trailing nulls so the resulting logical length matches the
+        // actually populated elements (helps avoid NullPointerException when
+        // caller expects a dense slice)
+        int resultIdx = currentLocalIndex++;
+        emitStoreVar(resultIdx); // store new ArrayList
+
+        // idx = size - 1
+        int idx = currentLocalIndex++;
+        emitLoadVar(resultIdx);
+        emit("    invokevirtual java/util/ArrayList/size()I");
+        emit("    iconst_1");
+        emit("    isub");
+        emit("    istore " + idx);
+
+        String trimLoop = newLabel("subarray_trim_loop");
+        String trimEnd = newLabel("subarray_trim_end");
+        String trimKeep = newLabel("subarray_trim_keep");
+
+        emit(trimLoop + ":");
+        emit("    iload " + idx);
+        emit("    iflt " + trimEnd);
+
+        emitLoadVar(resultIdx); // arr
+        emit("    dup"); // arr, arr
+        emit("    iload " + idx);
+        emit("    invokevirtual java/util/ArrayList/get(I)Ljava/lang/Object;"); // arr, value
+        emit("    dup"); // arr, value, value
+        emit("    ifnonnull " + trimKeep);
+        emit("    pop"); // drop value
+        emit("    iload " + idx);
+        emit("    invokevirtual java/util/ArrayList/remove(I)Ljava/lang/Object;");
+        emit("    pop"); // discard removed value
+        emit("    iinc " + idx + " -1");
+        emit("    goto " + trimLoop);
+
+        emit(trimKeep + ":");
+        emit("    pop"); // drop duplicated value
+        emit("    pop"); // drop duplicated arr
+        emit("    goto " + trimEnd);
+
+        emit(trimEnd + ":");
+        emitLoadVar(resultIdx);
     }
 
     /**

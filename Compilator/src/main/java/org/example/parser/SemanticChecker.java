@@ -1015,9 +1015,12 @@ public class SemanticChecker implements ASTVisitor {
         arrayInfo.methods.put("Length",
             new MethodInfo("Length", "Integer", List.of(), -1));
         arrayInfo.methods.put("get",
-            new MethodInfo("get", null, List.of(), -1)); // возвращает T — пока без проверки
+            new MethodInfo("get", null, List.of(), -1));
         arrayInfo.methods.put("set",
             new MethodInfo("set", "Array", List.of(), -1));
+        arrayInfo.methods.put("SubArray",
+            new MethodInfo("SubArray", "Array", List.of(new ParamDeclNode("startIndex", new TypeNode("Integer")),
+                                new ParamDeclNode("endIndex", new TypeNode("Integer"))), -1));
 
         classes.putIfAbsent("Array", arrayInfo);
 
