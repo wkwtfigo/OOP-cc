@@ -7,9 +7,9 @@ class Test is
 end
 
 class Main is
-    method f(x: Integer) : Integer => x.Plus(1)
-    method f(x: Real) : Real => x.Plus(Real(0.5))
-    method f(x: Test) : Boolean => x.l.toBoolean()
+    method f(x: Integer) : Integer
+    method f(x: Real) : Real
+    method f(x: Test) : Boolean
 
     method start() is
         var a is 5
@@ -24,5 +24,9 @@ class Main is
         print x
         print n
     end
+
+    method f(x: Integer) : Integer => x.Plus(1)
+    method f(x: Real) : Real => x.Plus(Real(0.5))
+    method f(x: Test) : Boolean => x.l.toBoolean()
 end
 

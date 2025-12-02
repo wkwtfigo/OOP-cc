@@ -157,7 +157,7 @@ type_name
     ;
 
 method_declaration
-    : method_header method_body
+    : method_header method_body_opt
         { $$ = new MethodDeclNode((MethodHeaderNode)$1, (MethodBodyNode)$2); }
     ;
 
@@ -166,6 +166,11 @@ method_header
       { $$ = new MethodHeaderNode(((Token)$2).getLexeme(),
                                   (List<ParamDeclNode>)$4,
                                   (ASTNode)$6); }
+
+method_body_opt
+    : /* empty */ { $$ = null; }
+    | method_body { $$ = (MethodBodyNode)$1; }
+    ;
 
 method_body
     : TOK_IS body TOK_END { $$ = new MethodBodyNode((BodyNode)$2, false); }
