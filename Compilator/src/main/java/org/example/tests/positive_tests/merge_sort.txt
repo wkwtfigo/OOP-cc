@@ -20,27 +20,29 @@ class MergeSortAlgorithm is
 
         var i := 0
         var j := 0
+        var k := 0
 
         while i.Less(left.Length()).And(j.Less(right.Length())) loop
-            print left.get(i)
-            print right.get(j)
             if left.get(i).Less(right.get(j)) then
-                result := result.set(i, left.get(i))
+                result := result.set(k, left.get(i))
                 i := i.Plus(1)
             else
-                result := result.set(i, right.get(j)) 
+                result := result.set(k, right.get(j))
                 j := j.Plus(1)
             end
+            k := k.Plus(1)
         end
 
         while i.Less(left.Length()) loop
-            result := result.set(i, left.get(i))
+            result := result.set(k, left.get(i))
             i := i.Plus(1)
+            k := k.Plus(1)
         end
 
         while j.Less(right.Length()) loop
-            result := result.set(i, right.get(j)) 
+            result := result.set(k, right.get(j))
             j := j.Plus(1)
+            k := k.Plus(1)
         end
 
         return result
