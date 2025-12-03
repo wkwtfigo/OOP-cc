@@ -744,6 +744,27 @@ public class MyCodeGen implements ASTVisitor {
                     emit("    goto " + loopLabel);
                     emit(endLabel + ":");
 
+                    // 4b) если переданы элементы, заполним ими массив начиная с индекса 0
+                    if (ci.arguments != null && ci.arguments.size() > 1) {
+                        for (int argIdx = 1; argIdx < ci.arguments.size(); argIdx++) {
+                            int elementIndex = argIdx - 1;
+                            String skipLabel = newLabel("array_init_skip" + elementIndex);
+
+                            // пропускаем элемент, если индекс выходит за размер
+                            emitPushIntConst(elementIndex);
+                            emit("    iload " + lenIdx);
+                            emit("    if_icmpge " + skipLabel);
+
+                            emit("    aload " + arrIdx);
+                            emitPushIntConst(elementIndex);
+                            generateExpression(ci.arguments.get(argIdx));
+                            emit("    invokevirtual java/util/ArrayList/set(ILjava/lang/Object;)Ljava/lang/Object;");
+                            emit("    pop");
+
+                            emit(skipLabel + ":");
+                        }
+                    }
+
                     // 5) результат конструктора – сам список (массив)
                     emit("    aload " + arrIdx);
                     return;
@@ -2506,6 +2527,22 @@ public class MyCodeGen implements ASTVisitor {
             emit("    astore_" + idx);
         } else {
             emit("    astore " + idx);
+        }
+    }
+
+    /**
+     * Emits instructions to push a primitive int constant onto the stack using
+     * the most compact form available.
+     */
+    private void emitPushIntConst(int value) {
+        if (value >= -1 && value <= 5) {
+            emit("    iconst_" + (value == -1 ? "m1" : value));
+        } else if (value >= -128 && value <= 127) {
+            emit("    bipush " + value);
+        } else if (value >= -32768 && value <= 32767) {
+            emit("    sipush " + value);
+        } else {
+            emit("    ldc " + value);
         }
     }
 
