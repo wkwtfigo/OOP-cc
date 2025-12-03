@@ -476,7 +476,14 @@ public class MyCodeGen implements ASTVisitor {
     private void generateDefaultConstructorWithInitializers(ClassDeclNode node, String superInternal) {
         emit(".method public <init>()V");
         emit("    .limit stack 16");
-        emit("    .limit locals 1");
+        emit("    .limit locals 64");
+
+        currentLocalIndex = 1;
+        localVars = new HashMap<>();
+        localVarTypes = new HashMap<>();
+
+        localVars.put("this", 0);
+        localVarTypes.put("this", currentClassName);
 
         emit("    aload_0");
         emit("    invokespecial " + superInternal + "/<init>()V");

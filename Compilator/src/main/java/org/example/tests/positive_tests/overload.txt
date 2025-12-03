@@ -10,6 +10,8 @@ class Main is
     method f(x: Integer) : Integer
     method f(x: Real) : Real
     method f(x: Test) : Boolean
+    var lst := List[Integer](12, 23, 0.1)
+    var arr := Array[Integer](2)
 
     method start() is
         var a is 5
@@ -20,11 +22,15 @@ class Main is
         var k := f(Integer(5))
         var m := Integer(7).Plus(Integer(7).Mult(Integer(9).Div(4))) 
         var n := f(p)
+        // arr := arr.set(0, 4)
+        // arr := arr.set(1, 3)
         print l
         print k
         print x
         print n
         print m
+        print lst
+        // print arr
     end
 
     // method f(x: Integer) : Integer => x.Plus(1)
