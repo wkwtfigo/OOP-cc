@@ -10,7 +10,7 @@ class Main is
     method f(x: Integer) : Integer
     method f(x: Real) : Real
     method f(x: Test) : Boolean
-    var lst := List[Integer](12, 23, 0.1)
+    var lst := List[Integer](12)
     var arr := Array[Integer](2)
 
     method start() is
@@ -20,9 +20,9 @@ class Main is
         var x := a.Plus(3)
         var l := f(Real(3.4))
         var k := f(Integer(5))
-        var m := Integer(7).Plus(Integer(7).Mult(Integer(9).Div(4))) 
+        var m := Integer(7).Plus(Integer(7).Mult(Integer(9).Div(1))) 
         var n := f(p)
-        arr := arr.set(0, 4.1)
+        arr := arr.set(0, 4)
         arr := arr.set(1, 3)
         print l
         print k
@@ -30,10 +30,11 @@ class Main is
         print n
         print m
         print lst
+        print lst.tail()
         print arr
     end
 
-    // method f(x: Integer) : Integer => x.Plus(1)
+    method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
     method f(x: Test) : Boolean => x.l.toBoolean()
 end

@@ -2,7 +2,8 @@ class Base is
     method whoAmI() : Integer => Integer(1)
 end
 
-class Main extends Base is
+class Main extends aejgh is
+    method whoAmI() : Integer => Integer(7)
     var a : Integer()
 
     this() is
@@ -19,5 +20,6 @@ class Main extends Base is
         var y : Main(z)
         print y.whoAmI()
         var res : x.whoAmI()
+        print res
     end
 end

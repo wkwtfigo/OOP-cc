@@ -236,7 +236,7 @@ public class Optimizer implements ASTOptimizerVisitor {
                         case "Mult":
                             return intVal * a;
                         case "Div":
-                            return a != 0 ? intVal / a : 0;
+                            return intVal / a;
                         case "Rem":
                             return a != 0 ? intVal % a : 0;
                         case "Less":
@@ -261,7 +261,11 @@ public class Optimizer implements ASTOptimizerVisitor {
                         case "Mult":
                             return t * a;
                         case "Div":
-                            return t / a;
+                            if (a == 0) {
+                                throw new RuntimeException("Div by 0");
+                            } else {
+                                return t /a;
+                            }
                         case "Less":
                             return t < a;
                         case "LessEqual":
@@ -289,7 +293,11 @@ public class Optimizer implements ASTOptimizerVisitor {
                     case "Mult":
                         return t * a;
                     case "Div":
-                        return a != 0.0 ? t / a : 0.0;
+                        if (a == 0) {
+                            throw new RuntimeException("Div by 0");
+                        } else {
+                            return t /a;
+                        }
                     case "Less":
                         return t < a;
                     case "LessEqual":

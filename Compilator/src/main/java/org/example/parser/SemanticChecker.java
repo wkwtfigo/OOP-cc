@@ -33,7 +33,6 @@ public class SemanticChecker implements ASTVisitor {
     private BodyElementNode currentBodyElement = null;
 
     // Built-in classes that don't need declaration checking
-    // TODO: обсудить с Лизой
     private static final Set<String> BUILTIN_CLASSES = Set.of(
         "Integer", "Real", "Boolean", "List", "AnyValue", "Class", "AnyRef",
         "Array");
@@ -64,14 +63,14 @@ public class SemanticChecker implements ASTVisitor {
         ASTNode type; // Can be TypeNode or GenericTypeNode
         int declarationOrder;
         boolean isInitialized;
-        Integer arraySize; // Size of array/list if determinable at compile time
+        Integer arraySize; // Size of array if determinable at compile time
 
         VariableInfo(String name, ASTNode type, int order) {
-        this.name = name;
-        this.type = type;
-        this.declarationOrder = order;
-        this.isInitialized = false;
-        this.arraySize = null;
+            this.name = name;
+            this.type = type;
+            this.declarationOrder = order;
+            this.isInitialized = false;
+            this.arraySize = null;
         }
     }
 
@@ -87,10 +86,10 @@ public class SemanticChecker implements ASTVisitor {
         MethodInfo(
             String name, String returnType, List<ParamDeclNode> parameters,
             int order) {
-        this.name = name;
-        this.returnType = returnType;
-        this.parameters = parameters;
-        this.declarationOrder = order;
+            this.name = name;
+            this.returnType = returnType;
+            this.parameters = parameters;
+            this.declarationOrder = order;
         }
     }
 
@@ -102,8 +101,8 @@ public class SemanticChecker implements ASTVisitor {
         int declarationOrder;
 
         ConstructorInfo(List<ParamDeclNode> parameters, int order) {
-        this.parameters = parameters;
-        this.declarationOrder = order;
+            this.parameters = parameters;
+            this.declarationOrder = order;
         }
     }
 
@@ -126,7 +125,7 @@ public class SemanticChecker implements ASTVisitor {
      */
     public void printErrors() {
         for (String error : errors) {
-        System.out.println(error);
+            System.out.println(error);
         }
     }
 
@@ -144,18 +143,18 @@ public class SemanticChecker implements ASTVisitor {
     private VariableInfo lookupVariable(String name) {
         // Check current scope first
         for (int i = variableScopes.size() - 1; i >= 0; i--) {
-        Map<String, VariableInfo> scope = variableScopes.get(i);
-        if (scope.containsKey(name)) {
-            return scope.get(name);
-        }
+            Map<String, VariableInfo> scope = variableScopes.get(i);
+            if (scope.containsKey(name)) {
+                return scope.get(name);
+            }
         }
 
         // Check class fields
         if (!currentClassScope.isEmpty()) {
-        ClassInfo classInfo = currentClassScope.peek();
-        if (classInfo.fields.containsKey(name)) {
-            return classInfo.fields.get(name);
-        }
+            ClassInfo classInfo = currentClassScope.peek();
+            if (classInfo.fields.containsKey(name)) {
+                return classInfo.fields.get(name);
+            }
         }
 
         return null;
@@ -186,9 +185,9 @@ public class SemanticChecker implements ASTVisitor {
      */
     private boolean isClassField(String varName) {
         if (!currentClassScope.isEmpty()) {
-        ClassInfo classInfo = currentClassScope.peek();
-        return classInfo.fields.containsKey(varName);
-        }
+            ClassInfo classInfo = currentClassScope.peek();
+            return classInfo.fields.containsKey(varName);
+            }
         return false;
     }
 
@@ -269,10 +268,10 @@ public class SemanticChecker implements ASTVisitor {
 
         MethodInfo methodInfo = lookupMethod(methodName);
         if (methodInfo == null) { // TODO
-        // Don't report error - might be a method on an object type (like Integer.Plus)
-        // or a built-in method
-        System.out.println("нет такого метода... Или он базовый " + methodName);
-        return;
+            // Don't report error - might be a method on an object type (like Integer.Plus)
+            // or a built-in method
+            System.out.println("нет такого метода... Или он базовый " + methodName);
+            return;
         }
 
         // Check declaration order within the same class
@@ -282,7 +281,7 @@ public class SemanticChecker implements ASTVisitor {
         Integer useOrder = declarationOrders.get(usageNode);
 
         if (methodOrder != null && useOrder != null && methodOrder > useOrder) {
-        reportError("Method '" + methodName + "' is called before declaration");
+            reportError("Method '" + methodName + "' is called before declaration");
         }
     }
 
@@ -298,27 +297,27 @@ public class SemanticChecker implements ASTVisitor {
     private Integer extractArrayLength(ExpressionNode expr) {
         // If it's an identifier, check if it's a variable with known array size
         if (expr instanceof IdentifierNode) {
-        String varName = ((IdentifierNode) expr).name;
-        VariableInfo varInfo = lookupVariable(varName);
-        if (varInfo != null && varInfo.arraySize != null) {
-            return varInfo.arraySize;
-        }
+            String varName = ((IdentifierNode) expr).name;
+            VariableInfo varInfo = lookupVariable(varName);
+            if (varInfo != null && varInfo.arraySize != null) {
+                return varInfo.arraySize;
+            }
         }
 
         // If it's a constructor invocation like List[Type](size) or Array[Type](size)
         if (expr instanceof ConstructorInvocationNode) {
-        ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
-        // Check if arguments contain an integer value (IntLiteral or Integer(...))
-        if (cons.arguments != null && cons.arguments.size() > 0) {
-            ExpressionNode firstArg = cons.arguments.get(0);
-            return extractIntegerValue(firstArg);
-        }
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
+            // Check if arguments contain an integer value (IntLiteral or Integer(...))
+            if (cons.arguments != null && cons.arguments.size() > 0) {
+                ExpressionNode firstArg = cons.arguments.get(0);
+                return extractIntegerValue(firstArg);
+            }
         }
 
         // If it's member access, try to get the target
         if (expr instanceof MemberAccessNode) {
-        MemberAccessNode memberAccess = (MemberAccessNode) expr;
-        return extractArrayLength(memberAccess.target);
+            MemberAccessNode memberAccess = (MemberAccessNode) expr;
+            return extractArrayLength(memberAccess.target);
         }
 
         return null;
@@ -332,21 +331,21 @@ public class SemanticChecker implements ASTVisitor {
      */
     private Integer extractIntegerValue(ExpressionNode expr) {
         if (expr instanceof IntLiteralNode) {
-        return ((IntLiteralNode) expr).value;
+            return ((IntLiteralNode) expr).value;
         }
 
         // Check for Integer(...) constructor
         if (expr instanceof ConstructorInvocationNode) {
-        ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
-        if ("Integer".equals(cons.className)) {
-            // Integer constructor should have one argument with an integer value
-            if (cons.arguments != null && cons.arguments.size() > 0) {
-            ExpressionNode firstArg = cons.arguments.get(0);
-            // Recursively extract value (supports nested Integer(Integer(...)) or
-            // IntLiteral)
-            return extractIntegerValue(firstArg);
+            ConstructorInvocationNode cons = (ConstructorInvocationNode) expr;
+            if ("Integer".equals(cons.className)) {
+                // Integer constructor should have one argument with an integer value
+                if (cons.arguments != null && cons.arguments.size() > 0) {
+                    ExpressionNode firstArg = cons.arguments.get(0);
+                    // Recursively extract value (supports nested Integer(Integer(...)) or
+                    // IntLiteral)
+                    return extractIntegerValue(firstArg);
+                }
             }
-        }
         }
 
         return null;
@@ -366,15 +365,15 @@ public class SemanticChecker implements ASTVisitor {
         ExpressionNode arrayExpr, ExpressionNode indexExpr) {
         Integer index = extractConstantIndex(indexExpr);
         if (index != null) {
-        if (index < 0) {
-            reportError("Array index must be non-negative, found: " + index);
-        }
-        // If we can determine array length at compile time, check bounds
-        Integer length = extractArrayLength(arrayExpr);
-        if (length != null && index >= length) {
-            reportError(
-                "Array index out of bounds: index " + index + " >= length " + length);
-        }
+            if (index < 0) {
+                reportError("Array index must be non-negative, found: " + index);
+            }
+            // If we can determine array length at compile time, check bounds
+            Integer length = extractArrayLength(arrayExpr);
+            if (length != null && index >= length) {
+                reportError(
+                    "Array index out of bounds: index " + index + " >= length " + length);
+            }
         }
     }
 
@@ -464,11 +463,11 @@ public class SemanticChecker implements ASTVisitor {
 
         // Second pass: visit members to check usage
         if (node.members != null) {
-        currentDeclarationOrder = 0;
-        for (MemberNode member : node.members) {
-            declarationOrders.put(member, currentDeclarationOrder++);
-            member.accept(this);
-        }
+            currentDeclarationOrder = 0;
+            for (MemberNode member : node.members) {
+                declarationOrders.put(member, currentDeclarationOrder++);
+                member.accept(this);
+            }
         }
 
         variableScopes.pop();
@@ -481,6 +480,14 @@ public class SemanticChecker implements ASTVisitor {
         // Just check the initializer expression
         if (node.initializer != null) {
             node.initializer.accept(this);
+            String declaredType = resolveTypeName(node.type);
+            String initializerType = inferExprType(node.initializer);
+            if (declaredType != null && initializerType != null &&
+                !declaredType.equals(initializerType)) {
+                reportError(
+                    "Type mismatch in variable initialization: expected " +
+                    declaredType + " but found " + initializerType);
+            }
         }
         if (node.type instanceof GenericTypeNode genericType &&
             node.initializer instanceof ConstructorInvocationNode cons) {
@@ -500,6 +507,8 @@ public class SemanticChecker implements ASTVisitor {
 
     @Override
     public void visit(MethodDeclNode node) {
+        MethodInfo methodInfo = lookupMethod(node.header.methodName);
+        currentMethodScope.push(methodInfo);
         // Enter new scope for method body (parameters will be added here)
         variableScopes.push(new HashMap<>());
         currentDeclarationOrder = 0;
@@ -525,6 +534,7 @@ public class SemanticChecker implements ASTVisitor {
         }
 
         variableScopes.pop();
+        currentMethodScope.pop();
     }
 
     @Override
@@ -537,6 +547,7 @@ public class SemanticChecker implements ASTVisitor {
         if (node.isArrow && node.arrowExpression != null) {
             declarationOrders.put(node.arrowExpression, currentDeclarationOrder++);
             node.arrowExpression.accept(this);
+            checkReturnExpressionType(node.arrowExpression);
         } else if (!node.isArrow && node.body != null) {
             analyzeBodyWithNewScope(node.body);
         }
@@ -603,6 +614,40 @@ public class SemanticChecker implements ASTVisitor {
             declarationOrders.put(node.right, currentDeclarationOrder++);
             node.right.accept(this);
         }
+        checkAssignmentType(node.left, node.right);
+    }
+
+    private void checkAssignmentType(ExpressionNode left, ExpressionNode right) {
+        if (left == null || right == null) {
+            return;
+        }
+
+        String targetType = inferExprType(left);
+        String valueType = inferExprType(right);
+
+        if (targetType != null && valueType != null && !targetType.equals(valueType)) {
+            String targetName = extractAssignmentTargetName(left);
+            String message = "Type mismatch in assignment";
+            if (targetName != null) {
+                message += " to '" + targetName + "'";
+            }
+            message += ": expected " + targetType + " but found " + valueType;
+            reportError(message);
+        }
+    }
+
+    private String extractAssignmentTargetName(ExpressionNode left) {
+        if (left instanceof IdentifierNode id) {
+            return id.name;
+        }
+
+        if (left instanceof MemberAccessNode access) {
+            if (access.member instanceof IdentifierNode fieldId) {
+                return fieldId.name;
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -636,6 +681,44 @@ public class SemanticChecker implements ASTVisitor {
         if (node.expression != null) {
             declarationOrders.put(node.expression, currentDeclarationOrder++);
             node.expression.accept(this);
+        }
+        checkReturnExpressionType(node.expression);
+    }
+
+    private void checkReturnExpressionType(ExpressionNode expression) {
+        if (currentMethodScope.isEmpty()) {
+            return;
+        }
+
+        MethodInfo currentMethod = currentMethodScope.peek();
+        if (currentMethod == null) {
+            return;
+        }
+
+        String expectedType = currentMethod.returnType;
+
+        if (expression == null) {
+            if (expectedType != null) {
+                reportError(
+                    "Return without value in method " + currentMethod.name +
+                    " with return type " + expectedType);
+            }
+            return;
+        }
+
+        String actualType = inferExprType(expression);
+
+        if (expectedType == null) {
+            reportError(
+                "Return with value in method " + currentMethod.name +
+                " without declared return type");
+            return;
+        }
+
+        if (actualType != null && !expectedType.equals(actualType)) {
+            reportError(
+                "Return type mismatch in method " + currentMethod.name +
+                ": expected " + expectedType + " but found " + actualType);
         }
     }
 
@@ -1202,6 +1285,14 @@ public class SemanticChecker implements ASTVisitor {
         return null;
     }
 
+    // определяет тип элемента коллекции по выражению, которое хранит сама коллекция
+    /*
+    var xs: List[Integer] → xs.append(5)
+    target = IdentifierNode("xs") → var.type = GenericTypeNode("List", parameter=Integer) → "Integer".
+
+    var obj: MyClass, поле obj.arr: Array[Real].
+    target = MemberAccessNode(obj, "arr") → через ownerClass = inferExprType(obj) → MyClass → fields.get("arr") → GenericTypeNode("Array", parameter=Real) → "Real".
+    */
     private String resolveElementType(ExpressionNode target) {
         if (target instanceof IdentifierNode id) {
             VariableInfo var = lookupVariable(id.name);
