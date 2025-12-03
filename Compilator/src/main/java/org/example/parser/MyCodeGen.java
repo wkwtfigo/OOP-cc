@@ -233,8 +233,7 @@ public class MyCodeGen implements ASTVisitor {
                 }
                 case MethodDeclNode m -> registerMethod(info, m);
                 case ConstructorDeclNode c -> info.constructors.add(c);
-                default -> {
-                }
+                default -> {}
             }
         }
     }
@@ -369,7 +368,10 @@ public class MyCodeGen implements ASTVisitor {
         String ownerInternal = currentClassName.replace('.', '/');
 
         emit(".method public static main([Ljava/lang/String;)V");
+        // максимальная глубина стэка -- если код метода в люьой момент потребует держать больше чем 4 значения
+        // jvm выдаст ошибку валидации
         emit("    .limit stack 4");
+        // сколько локальных переменных может держать метод
         emit("    .limit locals 1");
 
         emit("    new " + ownerInternal);
@@ -796,7 +798,7 @@ public class MyCodeGen implements ASTVisitor {
      */
     private void generateObjectFieldAccess(ExpressionNode target, String fieldName) {
         // 1. Push objectref
-        generateExpression(target);
+        generateExpression(target); // -> obj 
 
         // 2. Try to infer object type
         String ownerInternal = "java/lang/Object";
@@ -1855,7 +1857,6 @@ public class MyCodeGen implements ASTVisitor {
      */
     private String descriptorForTypeNode(ASTNode typeNode) {
         if (typeNode == null) {
-            // на всякий случай, чтобы не упасть; можно кинуть исключение
             return "Ljava/lang/Object;";
         }
 
@@ -1868,7 +1869,7 @@ public class MyCodeGen implements ASTVisitor {
             return descriptorForTypeName(g.baseType);
         }
 
-        // fallback — если вдруг туда попадёт что-то ещё
+        // fallback
         return "Ljava/lang/Object;";
     }
 

@@ -11,7 +11,7 @@ class Main is
     method f(x: Real) : Real
     method f(x: Test) : Boolean
     var lst := List[Integer](12)
-    var arr := Array[Integer](2)
+    var arr := Array[Integer](2, 0, 1, 2)
 
     method start() is
         var a is 5
@@ -34,7 +34,7 @@ class Main is
         print arr
     end
 
-    method f(x: Integer) : Integer => x.Plus(1)
+    // method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
     method f(x: Test) : Boolean => x.l.toBoolean()
 end

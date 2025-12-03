@@ -286,6 +286,59 @@ public class SemanticChecker implements ASTVisitor {
     }
 
     /**
+     * Ensure that each forward-declared method (header only) has a matching
+     * implementation somewhere in the same class.
+     */
+    private void validateForwardDeclaredMethods(List<MemberNode> members) {
+        Map<String, Boolean> signatureImplemented = new HashMap<>();
+        List<MethodDeclNode> declarations = new ArrayList<>();
+
+        for (MemberNode member : members) {
+            if (member instanceof MethodDeclNode methodDecl) {
+                String signature = buildMethodSignature(methodDecl);
+                declarations.add(methodDecl);
+                boolean hasBody = methodDecl.body != null;
+                signatureImplemented.merge(signature, hasBody, (existing, incoming) -> existing || incoming);
+            }
+        }
+
+        for (MethodDeclNode decl : declarations) {
+            if (decl.body == null) {
+                String signature = buildMethodSignature(decl);
+                if (!signatureImplemented.getOrDefault(signature, false)) {
+                    reportError("Method '" + decl.header.methodName + "' is declared without implementation");
+                }
+            }
+        }
+    }
+
+    /**
+     * Build a textual signature for a method including parameter and return types
+     * to distinguish overloads when checking forward declarations.
+     */
+    private String buildMethodSignature(MethodDeclNode methodDecl) {
+        StringBuilder signature = new StringBuilder(methodDecl.header.methodName).append('(');
+
+        if (methodDecl.header.parameters != null) {
+            for (int i = 0; i < methodDecl.header.parameters.size(); i++) {
+                ParamDeclNode param = methodDecl.header.parameters.get(i);
+                String typeName = resolveTypeName(param.paramType);
+                signature.append(typeName != null ? typeName : "<unknown>");
+                if (i < methodDecl.header.parameters.size() - 1) {
+                    signature.append(',');
+                }
+            }
+        }
+
+        signature.append(')');
+        String returnType = resolveTypeName(methodDecl.header.returnType);
+        if (returnType != null) {
+            signature.append(":").append(returnType);
+        }
+        return signature.toString();
+    }
+
+    /**
      * Extract array length from an expression (if it's a compile-time constant)
      * Looks for patterns like:
      * - List[Type](IntLiteral) - where IntLiteral is the size
@@ -377,6 +430,25 @@ public class SemanticChecker implements ASTVisitor {
         }
     }
 
+    private void checkArrayInitializerLength(ConstructorInvocationNode cons) {
+        if (!"Array".equals(cons.className) || cons.arguments == null ||
+            cons.arguments.isEmpty()) {
+            return;
+        }
+
+        Integer declaredLength = extractIntegerValue(cons.arguments.get(0));
+        if (declaredLength == null) {
+            return;
+        }
+
+        int providedElements = cons.arguments.size() - 1;
+        if (providedElements > declaredLength) {
+            reportError(
+                "Array initializer provides " + providedElements +
+                " elements but declared size is " + declaredLength);
+        }
+    }
+
     @Override
     public void visit(ProgramNode node) {
         // Сначала добавляем стандартную библиотеку
@@ -459,6 +531,7 @@ public class SemanticChecker implements ASTVisitor {
                     currentDeclarationOrder++;
                 }
             }
+            validateForwardDeclaredMethods(node.members);
         }
 
         // Second pass: visit members to check usage
@@ -856,6 +929,7 @@ public class SemanticChecker implements ASTVisitor {
                 arg.accept(this);
             }
         }
+        checkArrayInitializerLength(node);
     }
 
     @Override
