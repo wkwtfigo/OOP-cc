@@ -231,14 +231,44 @@ public class MyCodeGen implements ASTVisitor {
 
                     info.fields.put(v.varName, new FieldInfo(v.varName, desc, typeName));
                 }
-                case MethodDeclNode m -> info.methods
-                        .computeIfAbsent(m.header.methodName, k -> new ArrayList<>())
-                        .add(m);
+                case MethodDeclNode m -> registerMethod(info, m);
                 case ConstructorDeclNode c -> info.constructors.add(c);
                 default -> {
                 }
             }
         }
+    }
+
+    /**
+     * Registers a method declaration while avoiding duplicate entries for the same
+     * signature. Forward declarations (with a {@code null} body) are replaced by
+     * a later implementation with the same signature, so only the real
+     * implementation is emitted during code generation.
+     */
+    private void registerMethod(ClassInfo info, MethodDeclNode method) {
+        java.util.List<MethodDeclNode> overloads = info.methods
+                .computeIfAbsent(method.header.methodName, k -> new ArrayList<>());
+
+        for (int i = 0; i < overloads.size(); i++) {
+            MethodDeclNode existing = overloads.get(i);
+            if (sameSignature(existing, method)) {
+                // Prefer the declaration that has a body
+                if (existing.body == null && method.body != null) {
+                    overloads.set(i, method);
+                }
+                return;
+            }
+        }
+
+        overloads.add(method);
+    }
+
+    /**
+     * Checks whether two method declarations have identical JVM-level
+     * signatures: same name, parameter descriptors and return descriptor.
+     */
+    private boolean sameSignature(MethodDeclNode first, MethodDeclNode second) {
+        return methodDescriptor(first.header).equals(methodDescriptor(second.header));
     }
 
     /**

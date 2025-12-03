@@ -10,7 +10,7 @@ public class test {
     public static void main(String[] args) throws IOException {
         // Читаем код из файла
         String code = Files
-                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/merge_sort.txt"));
+                .readString(Path.of("Compilator/src/main/java/org/example/tests/positive_tests/overload.txt"));
         System.out.println("=== Исходный код ===");
         System.out.println(code);
         System.out.println();
@@ -55,7 +55,7 @@ public class test {
                     ASTPrinter optimizedPrinter = new ASTPrinter();
                     optimized.accept(optimizedPrinter);
 
-                    // System.out.println(optimizedPrinter.getOutput());
+                    System.out.println(optimizedPrinter.getOutput());
 
                     // Генерация кода
                     System.out.println("\n=== Генерация кода ===");

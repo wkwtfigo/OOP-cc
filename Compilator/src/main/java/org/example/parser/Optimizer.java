@@ -741,7 +741,7 @@ public class Optimizer implements ASTOptimizerVisitor {
     @Override
     public ASTNode visit(MethodDeclNode n) {
         MethodHeaderNode header = (MethodHeaderNode) n.header.accept(this);
-        MethodBodyNode body = (MethodBodyNode) n.body.accept(this);
+        MethodBodyNode body = n.body == null ? null : (MethodBodyNode) n.body.accept(this);
         return new MethodDeclNode(header, body);
     }
 
