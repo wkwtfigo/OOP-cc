@@ -55,7 +55,7 @@ public class test {
                     ASTPrinter optimizedPrinter = new ASTPrinter();
                     optimized.accept(optimizedPrinter);
 
-                    // System.out.println(optimizedPrinter.getOutput());
+                    System.out.println(optimizedPrinter.getOutput());
 
                     // Генерация кода
                     System.out.println("\n=== Генерация кода ===");

@@ -18,14 +18,16 @@ class Main is
         var x := a.Plus(3)
         var l := f(Real(3.4))
         var k := f(Integer(5))
+        var m := Integer(7).Plus(Integer(7).Mult(Integer(9).Div(4))) 
         var n := f(p)
         print l
         print k
         print x
         print n
+        print m
     end
 
-    method f(x: Integer) : Integer => x.Plus(1)
+    // method f(x: Integer) : Integer => x.Plus(1)
     method f(x: Real) : Real => x.Plus(Real(0.5))
     method f(x: Test) : Boolean => x.l.toBoolean()
 end
