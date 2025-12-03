@@ -482,6 +482,20 @@ public class SemanticChecker implements ASTVisitor {
         if (node.initializer != null) {
             node.initializer.accept(this);
         }
+        if (node.type instanceof GenericTypeNode genericType &&
+            node.initializer instanceof ConstructorInvocationNode cons) {
+
+            String elementType = resolveTypeName(genericType.parameter);
+            if (elementType != null) {
+                if ("List".equals(genericType.baseType)) {
+                    checkCollectionConstructorArguments(cons, elementType, false);
+                } else if ("Array".equals(genericType.baseType)) {
+                    // For arrays, first argument is size; others (if any) are
+                    // treated as element initializers
+                    checkCollectionConstructorArguments(cons, elementType, true);
+                }
+            }
+        }
     }
 
     @Override
@@ -650,7 +664,7 @@ public class SemanticChecker implements ASTVisitor {
             // Don't check as variable - it's a field/method name
             if (!checkClassField(node))
                 reportError("У класса нет поля " + ((IdentifierNode) node.member).name);
-            } else if (node.member instanceof MethodInvocationNode) {
+            } else if (node.member instanceof MethodInvocationNode methodInv) {
             // Method call on an object - don't check member as variable
             if (!checkMethodExistence(node)) {
                 ExpressionNode method = ((MethodInvocationNode) node.member).target;
@@ -658,8 +672,6 @@ public class SemanticChecker implements ASTVisitor {
                 reportError(
                     "У класса нет метода " + methodName);
             }
-
-            MethodInvocationNode methodInv = (MethodInvocationNode) node.member;
 
             // Check arguments
             if (methodInv.arguments != null) {
@@ -680,6 +692,7 @@ public class SemanticChecker implements ASTVisitor {
                     }
                 }
             }
+            checkCollectionMethodArguments(node, methodInv);
         } else {
             // Other types - visit normally
             if (node.member != null) {
@@ -1099,6 +1112,18 @@ public class SemanticChecker implements ASTVisitor {
     private String inferExprType(ExpressionNode e) {
         if (e == null) return null;
 
+        if (e instanceof IntLiteralNode) {
+            return "Integer";
+        }
+
+        if (e instanceof RealLiteralNode) {
+            return "Real";
+        }
+
+        if (e instanceof BoolLiteralNode) {
+            return "Boolean";
+        }
+
         // x, a, p и т.п.
         if (e instanceof IdentifierNode id) {
             VariableInfo var = lookupVariable(id.name);
@@ -1168,6 +1193,101 @@ public class SemanticChecker implements ASTVisitor {
         }
 
         return null;
+    }
+
+    private String resolveGenericParameter(ASTNode typeNode) {
+        if (typeNode instanceof GenericTypeNode generic && generic.parameter != null) {
+            return resolveTypeName(generic.parameter);
+        }
+        return null;
+    }
+
+    private String resolveElementType(ExpressionNode target) {
+        if (target instanceof IdentifierNode id) {
+            VariableInfo var = lookupVariable(id.name);
+            if (var != null) {
+                return resolveGenericParameter(var.type);
+            }
+        }
+
+        if (target instanceof MemberAccessNode access && access.member instanceof IdentifierNode fieldId) {
+            String ownerClass = inferExprType(access.target);
+            if (ownerClass != null) {
+                ClassInfo owner = lookupClass(ownerClass);
+                if (owner != null) {
+                    VariableInfo field = owner.fields.get(fieldId.name);
+                    if (field != null) {
+                        return resolveGenericParameter(field.type);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void checkCollectionConstructorArguments(
+        ConstructorInvocationNode cons, String expectedElementType, boolean skipFirst) {
+
+        if (cons.arguments == null) {
+            return;
+        }
+
+        for (int i = 0; i < cons.arguments.size(); i++) {
+            if (skipFirst && i == 0) continue;
+
+            ExpressionNode arg = cons.arguments.get(i);
+            String argType = inferExprType(arg);
+            if (argType != null && !expectedElementType.equals(argType)) {
+                reportError(
+                    "Type mismatch in collection initializer: expected " +
+                    expectedElementType + " but found " + argType);
+            }
+        }
+    }
+
+    private void checkCollectionMethodArguments(
+        MemberAccessNode node, MethodInvocationNode methodInv) {
+
+        String ownerType = inferExprType(node.target);
+        if (ownerType == null) {
+            return;
+        }
+
+        String methodName = null;
+        if (methodInv.target instanceof IdentifierNode id) {
+            methodName = id.name;
+        } else if (methodInv.methodName != null) {
+            methodName = methodInv.methodName;
+        }
+
+        if (methodName == null || methodInv.arguments == null) {
+            return;
+        }
+
+        if ("Array".equals(ownerType) && "set".equals(methodName)) {
+            String elementType = resolveElementType(node.target);
+            if (elementType != null && methodInv.arguments.size() >= 2) {
+                String valueType = inferExprType(methodInv.arguments.get(1));
+                if (valueType != null && !elementType.equals(valueType)) {
+                    reportError(
+                        "Type mismatch in array set: expected " + elementType +
+                        " but found " + valueType);
+                }
+            }
+        }
+
+        if ("List".equals(ownerType) && "append".equals(methodName)) {
+            String elementType = resolveElementType(node.target);
+            if (elementType != null && methodInv.arguments.size() >= 1) {
+                String valueType = inferExprType(methodInv.arguments.get(0));
+                if (valueType != null && !elementType.equals(valueType)) {
+                    reportError(
+                        "Type mismatch in list append: expected " + elementType +
+                        " but found " + valueType);
+                }
+            }
+        }
     }
 
     /**

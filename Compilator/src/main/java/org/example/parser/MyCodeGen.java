@@ -450,6 +450,7 @@ public class MyCodeGen implements ASTVisitor {
                         }
                     }
                     emit("    putfield " + ownerInternal + "/" + v.varName + " " + desc);
+                    currentLocalIndex = localVars.size();
                 }
             }
         }
@@ -503,6 +504,7 @@ public class MyCodeGen implements ASTVisitor {
                 FieldInfo f = (ci != null ? ci.fields.get(v.varName) : null);
                 String desc = (f != null ? f.descriptor : "Ljava/lang/Object;");
                 emit("    putfield " + ownerInternal + "/" + v.varName + " " + desc);
+                currentLocalIndex = localVars.size();
             }
         }
 
