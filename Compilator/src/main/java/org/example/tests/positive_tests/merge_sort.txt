@@ -51,7 +51,7 @@ end
 
 class Main is
     method start() is
-        var arr := Array[Integer](6)
+        var arr := Array[Integer](6, 1, 2, 3, 4, 5, 6)
         print arr 
         arr := arr.set(0, 89)
         arr := arr.set(1, 11)

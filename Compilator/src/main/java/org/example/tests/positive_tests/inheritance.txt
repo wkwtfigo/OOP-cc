@@ -2,7 +2,7 @@ class Base is
     method whoAmI() : Integer => Integer(1)
 end
 
-class Main extends aejgh is
+class Main extends Base is
     method whoAmI() : Integer => Integer(7)
     var a : Integer()
 

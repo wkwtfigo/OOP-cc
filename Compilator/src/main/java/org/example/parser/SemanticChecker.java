@@ -620,7 +620,7 @@ public class SemanticChecker implements ASTVisitor {
         if (node.isArrow && node.arrowExpression != null) {
             declarationOrders.put(node.arrowExpression, currentDeclarationOrder++);
             node.arrowExpression.accept(this);
-            checkReturnExpressionType(node.arrowExpression);
+            // checkReturnExpressionType(node.arrowExpression);
         } else if (!node.isArrow && node.body != null) {
             analyzeBodyWithNewScope(node.body);
         }
@@ -755,7 +755,7 @@ public class SemanticChecker implements ASTVisitor {
             declarationOrders.put(node.expression, currentDeclarationOrder++);
             node.expression.accept(this);
         }
-        checkReturnExpressionType(node.expression);
+        // checkReturnExpressionType(node.expression);
     }
 
     private void checkReturnExpressionType(ExpressionNode expression) {

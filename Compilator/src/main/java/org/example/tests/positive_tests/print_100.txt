@@ -1,6 +1,7 @@
 class Main is
     method start() is
-        print Integer(100)
+        var m := Integer(7).Plus(Integer(7).Mult(Integer(9).Div(1)))
+        print m
     end
 end
 
